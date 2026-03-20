@@ -4,7 +4,7 @@ import { WizardLayout } from "@/components/wizard-layout";
 import { useWizard } from "@/lib/wizard-context";
 import { useEffect, useMemo, useState } from "react";
 
-type ProviderId = "anthropic" | "openai" | "google" | "ollama";
+type ProviderId = "anthropic" | "openai" | "google" | "ollama" | "axet";
 
 type Detection = {
   provider?: ProviderId;
@@ -40,6 +40,13 @@ const PROVIDERS: Array<{ id: ProviderId; name: string; emoji: string; docs: stri
     emoji: "🏠",
     docs: "https://ollama.com/download",
     helper: "No necesitas API key. Recomendado para empezar sin credenciales.",
+  },
+  {
+    id: "axet",
+    name: "Axet (Corporate / Okta)",
+    emoji: "🏢",
+    docs: "#",
+    helper: "Provider corporativo. Auth vía Device Flow / Okta en gateway.",
   },
 ];
 
@@ -91,6 +98,16 @@ export default function Step1() {
   const [ollamaBaseUrl] = useState("http://localhost:11434");
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [testMessage, setTestMessage] = useState("");
+
+  // Axet corporate fields
+  const [axetGatewayUrl, setAxetGatewayUrl] = useState("");
+  const [axetGatewayToken, setAxetGatewayToken] = useState("");
+  const [oktaIssuer, setOktaIssuer] = useState("");
+  const [oktaClientId, setOktaClientId] = useState("");
+  const [oktaScope, setOktaScope] = useState("openid profile email");
+  const [axetApiBaseUrl, setAxetApiBaseUrl] = useState("");
+  const [axetTestStatus, setAxetTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [axetTestMessage, setAxetTestMessage] = useState("");
 
   const selectedMeta = PROVIDERS.find((p) => p.id === selectedProvider)!;
   const detected = useMemo(() => detectCredential(credential), [credential]);
@@ -172,6 +189,27 @@ export default function Step1() {
     setTestMessage("");
   };
 
+  const handleAxetTest = () => {
+    setAxetTestStatus("testing");
+    setAxetTestMessage("");
+    const missing: string[] = [];
+    if (!axetGatewayUrl.trim()) missing.push("Gateway URL");
+    if (!axetGatewayToken.trim()) missing.push("Gateway Token");
+    if (!oktaIssuer.trim()) missing.push("Okta Issuer");
+    if (!oktaClientId.trim()) missing.push("Okta Client ID");
+    if (!axetApiBaseUrl.trim()) missing.push("API Base URL");
+
+    setTimeout(() => {
+      if (missing.length > 0) {
+        setAxetTestStatus("error");
+        setAxetTestMessage(`Campos obligatorios vacíos: ${missing.join(", ")}`);
+      } else {
+        setAxetTestStatus("ok");
+        setAxetTestMessage("Validación local OK. La auth real se completará vía Device Flow / Okta en gateway.");
+      }
+    }, 600);
+  };
+
   const applyTemplateDefaults = () => {
     if (selectedTemplate === "custom") return;
 
@@ -208,11 +246,31 @@ export default function Step1() {
     applyTemplateDefaults();
     const providers = { ...config.providers };
 
+    if (selectedProvider === "axet") {
+      if (!axetGatewayUrl.trim() || !axetGatewayToken.trim() || !oktaIssuer.trim() || !oktaClientId.trim() || !axetApiBaseUrl.trim()) return false;
+      providers.axet = {
+        axetEnabled: true,
+        axetGatewayUrl: axetGatewayUrl.trim(),
+        axetGatewayToken: axetGatewayToken.trim(),
+        oktaIssuer: oktaIssuer.trim(),
+        oktaClientId: oktaClientId.trim(),
+        oktaScope: oktaScope.trim() || "openid profile email",
+        axetApiBaseUrl: axetApiBaseUrl.trim(),
+      };
+      delete providers.anthropic;
+      delete providers.openai;
+      delete providers.google;
+      delete providers.ollama;
+      updateConfig({ providers });
+      return true;
+    }
+
     if (selectedProvider === "ollama") {
       providers.ollama = { baseUrl: ollamaBaseUrl };
       delete providers.anthropic;
       delete providers.openai;
       delete providers.google;
+      delete providers.axet;
       updateConfig({ providers });
       return true;
     }
@@ -224,6 +282,7 @@ export default function Step1() {
       delete providers.openai;
       delete providers.google;
       delete providers.ollama;
+      delete providers.axet;
     }
 
     if (selectedProvider === "openai") {
@@ -231,6 +290,7 @@ export default function Step1() {
       delete providers.anthropic;
       delete providers.google;
       delete providers.ollama;
+      delete providers.axet;
     }
 
     if (selectedProvider === "google") {
@@ -238,6 +298,7 @@ export default function Step1() {
       delete providers.anthropic;
       delete providers.openai;
       delete providers.ollama;
+      delete providers.axet;
     }
 
     updateConfig({ providers });
@@ -360,6 +421,55 @@ export default function Step1() {
         {selectedProvider === "ollama" && (
           <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm">
             Se usará Ollama en <code>{ollamaBaseUrl}</code>.
+          </div>
+        )}
+
+        {selectedProvider === "axet" && (
+          <div className="space-y-4 p-4 bg-slate-700/30 border border-slate-600 rounded-lg">
+            <p className="text-xs text-slate-400">
+              La autenticación real se completa vía Device Flow / Okta en el gateway corporativo. Aquí solo configuras los endpoints y credenciales del gateway.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Gateway URL *</label>
+                <input type="url" value={axetGatewayUrl} onChange={(e) => setAxetGatewayUrl(e.target.value)} placeholder="https://gateway.axet.corp/v1" className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm" />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Gateway Token *</label>
+                <input type="password" value={axetGatewayToken} onChange={(e) => setAxetGatewayToken(e.target.value)} placeholder="gw-token-..." className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm" />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Okta Issuer *</label>
+                <input type="url" value={oktaIssuer} onChange={(e) => setOktaIssuer(e.target.value)} placeholder="https://your-org.okta.com/oauth2/default" className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-slate-300 mb-1">Okta Client ID *</label>
+                  <input type="text" value={oktaClientId} onChange={(e) => setOktaClientId(e.target.value)} placeholder="0oaXXXXXXXXXXXX" className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-300 mb-1">Okta Scope</label>
+                  <input type="text" value={oktaScope} onChange={(e) => setOktaScope(e.target.value)} placeholder="openid profile email" className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Axet API Base URL *</label>
+                <input type="url" value={axetApiBaseUrl} onChange={(e) => setAxetApiBaseUrl(e.target.value)} placeholder="https://api.axet.corp" className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={handleAxetTest} disabled={axetTestStatus === "testing"} className="px-4 py-2 rounded-lg border border-slate-500 hover:border-cyan-500 text-sm">
+                {axetTestStatus === "testing" ? "Validando..." : "Test Axet Connection"}
+              </button>
+              {axetTestStatus === "ok" && <span className="text-emerald-400 text-sm">✅ {axetTestMessage}</span>}
+              {axetTestStatus === "error" && <span className="text-rose-400 text-sm">❌ {axetTestMessage}</span>}
+            </div>
           </div>
         )}
 

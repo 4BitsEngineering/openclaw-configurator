@@ -36,6 +36,17 @@ export function generateConfigYAML(config: WizardConfig): string {
       yaml.push(`  - provider: ollama`);
       yaml.push(`    baseUrl: http://localhost:11434`);
     }
+
+    if (config.providers.axet) {
+      yaml.push(`  - provider: axet`);
+      yaml.push(`    gatewayUrl: \${AXET_GATEWAY_URL}`);
+      yaml.push(`    gatewayToken: \${AXET_GATEWAY_TOKEN}`);
+      yaml.push(`    oktaIssuer: \${OKTA_ISSUER}`);
+      yaml.push(`    oktaClientId: \${OKTA_CLIENT_ID}`);
+      yaml.push(`    oktaScope: "${config.providers.axet.oktaScope}"`);
+      yaml.push(`    apiBaseUrl: \${AXET_API_BASE_URL}`);
+      yaml.push(`    # Auth: Device Flow / Okta — initiated at gateway runtime`);
+    }
     
     yaml.push(``);
   }
@@ -119,6 +130,17 @@ export function generateEnvFile(config: WizardConfig): string {
   if (config.providers.google) {
     lines.push(`# Google Gemini`);
     lines.push(`GOOGLE_API_KEY=AIza...`);
+    lines.push(``);
+  }
+
+  if (config.providers.axet) {
+    lines.push(`# Axet Corporate Provider (Okta)`);
+    lines.push(`AXET_GATEWAY_URL=${config.providers.axet.axetGatewayUrl}`);
+    lines.push(`AXET_GATEWAY_TOKEN=your-gateway-token-here`);
+    lines.push(`OKTA_ISSUER=${config.providers.axet.oktaIssuer}`);
+    lines.push(`OKTA_CLIENT_ID=${config.providers.axet.oktaClientId}`);
+    lines.push(`OKTA_SCOPE=${config.providers.axet.oktaScope}`);
+    lines.push(`AXET_API_BASE_URL=${config.providers.axet.axetApiBaseUrl}`);
     lines.push(``);
   }
 

@@ -32,6 +32,16 @@ export default function Step6() {
             ) : (
               <span>None configured</span>
             )}
+            {config.providers.axet && (
+              <div className="mt-3 space-y-1 text-xs text-slate-500 border-t border-slate-600 pt-2">
+                <div>Gateway: {config.providers.axet.axetGatewayUrl}</div>
+                <div>Token: ****{config.providers.axet.axetGatewayToken.slice(-4)}</div>
+                <div>Okta Issuer: {config.providers.axet.oktaIssuer}</div>
+                <div>Client ID: {config.providers.axet.oktaClientId}</div>
+                <div>Scope: {config.providers.axet.oktaScope}</div>
+                <div>API Base: {config.providers.axet.axetApiBaseUrl}</div>
+              </div>
+            )}
           </div>
         </div>
 

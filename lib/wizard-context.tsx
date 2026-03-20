@@ -6,12 +6,23 @@ export type TemplateType = "personal" | "developer" | "business" | "custom";
 
 type TouchedKey = "channels" | "security" | "skills" | "personality";
 
+export interface AxetProviderConfig {
+  axetEnabled: boolean;
+  axetGatewayUrl: string;
+  axetGatewayToken: string;
+  oktaIssuer: string;
+  oktaClientId: string;
+  oktaScope: string;
+  axetApiBaseUrl: string;
+}
+
 export interface WizardConfig {
   providers: {
     anthropic?: { apiKey?: string; sessionToken?: string };
     openai?: { apiKey: string };
     google?: { apiKey: string };
     ollama?: { baseUrl: string };
+    axet?: AxetProviderConfig;
   };
   channels: {
     telegram?: { token: string; allowlist?: string[] };
