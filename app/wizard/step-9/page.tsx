@@ -8,7 +8,6 @@ import {
   generateAgentsConfig,
   generateBridgeConfig,
   generateGuardClawConfig,
-  generateGatewayConfig,
 } from "@/lib/generators";
 
 export default function Step9() {
@@ -29,7 +28,6 @@ export default function Step9() {
     downloadFile("agents-config.yaml", generateAgentsConfig(config));
     downloadFile("bridge-config.yaml", generateBridgeConfig(config));
     downloadFile("guardclaw-config.yaml", generateGuardClawConfig(config));
-    downloadFile("gateway-config.yaml", generateGatewayConfig(config));
     downloadFile(".env", generateEnvFile(config));
     downloadFile("install.sh", generateInstallScript());
   };
@@ -39,7 +37,6 @@ export default function Step9() {
     { name: "agents-config.yaml", emoji: "🤖", generator: () => generateAgentsConfig(config) },
     { name: "bridge-config.yaml", emoji: "🌉", generator: () => generateBridgeConfig(config) },
     { name: "guardclaw-config.yaml", emoji: "🛡️", generator: () => generateGuardClawConfig(config) },
-    { name: "gateway-config.yaml", emoji: "🔌", generator: () => generateGatewayConfig(config) },
     { name: ".env", emoji: "🔐", generator: () => generateEnvFile(config) },
     { name: "install.sh", emoji: "🛠️", generator: () => generateInstallScript() },
   ];
@@ -64,13 +61,13 @@ export default function Step9() {
             <div className="text-6xl mb-4 animate-float">🎉</div>
             <h1 className="text-3xl font-bold mb-2 gradient-text">Stack Empresarial Listo</h1>
             <p className="text-slate-400">
-              OpenClaw + axet-gateway + autonomous-agents + GuardClaw configurados
+              OpenClaw + autonomous-agents + GuardClaw configurados
             </p>
           </div>
 
           {/* Stack summary badges */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {["OpenClaw", "axet-gateway", "autonomous-agents", "GuardClaw"].map((component) => (
+            {["OpenClaw", "autonomous-agents", "GuardClaw"].map((component) => (
               <span
                 key={component}
                 className="px-3 py-1 text-xs font-medium rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30"
@@ -88,7 +85,7 @@ export default function Step9() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            Descargar Todos los Ficheros (7)
+            Descargar Todos los Ficheros (6)
           </button>
 
           {/* Individual downloads */}
@@ -126,7 +123,6 @@ export default function Step9() {
             <ol className="text-sm text-slate-300 space-y-2 list-decimal list-inside">
               <li>Edita <code className="bg-slate-700 px-1 rounded">.env</code> con tus API keys reales</li>
               <li>Ejecuta <code className="bg-slate-700 px-1 rounded">bash install.sh</code> para instalar el stack</li>
-              <li>Inicia el gateway: <code className="bg-slate-700 px-1 rounded">axet-gateway start</code></li>
               <li>Los agentes se cargan automáticamente desde <code className="bg-slate-700 px-1 rounded">agents-config.yaml</code></li>
               <li>Panel de control: <code className="bg-slate-700 px-1 rounded">http://localhost:18789</code></li>
             </ol>

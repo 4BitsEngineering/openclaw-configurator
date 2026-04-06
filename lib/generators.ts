@@ -244,65 +244,6 @@ export function generateGuardClawConfig(config: WizardConfig): string {
   return yaml.join("\n");
 }
 
-export function generateGatewayConfig(config: WizardConfig): string {
-  const yaml: string[] = [];
-
-  yaml.push(`# axet-gateway configuration`);
-  yaml.push(`# Generated: ${new Date().toISOString()}`);
-  yaml.push(``);
-  yaml.push(`gateway:`);
-  yaml.push(`  port: 18789`);
-  yaml.push(`  host: localhost`);
-  yaml.push(`  log_level: ${config.guardClaw.sensitivity === "S3" ? "warn" : "info"}`);
-  yaml.push(``);
-  yaml.push(`auth:`);
-
-  if (config.providers.axet) {
-    yaml.push(`  provider: okta`);
-    yaml.push(`  okta_issuer: \${OKTA_ISSUER}`);
-    yaml.push(`  okta_client_id: \${OKTA_CLIENT_ID}`);
-    yaml.push(`  okta_scope: "${config.providers.axet.oktaScope}"`);
-    yaml.push(`  flow: device`);
-  } else {
-    yaml.push(`  provider: apikey`);
-    yaml.push(`  # API key is read from OPENCLAW_GATEWAY_KEY env var`);
-  }
-
-  yaml.push(``);
-  yaml.push(`upstream:`);
-
-  if (config.providers.anthropic) {
-    yaml.push(`  - name: anthropic`);
-    yaml.push(`    endpoint: https://api.anthropic.com`);
-    yaml.push(`    auth_header: x-api-key`);
-    yaml.push(`    auth_env: ANTHROPIC_API_KEY`);
-  }
-  if (config.providers.openai) {
-    yaml.push(`  - name: openai`);
-    yaml.push(`    endpoint: https://api.openai.com`);
-    yaml.push(`    auth_header: Authorization`);
-    yaml.push(`    auth_env: OPENAI_API_KEY`);
-    yaml.push(`    auth_prefix: "Bearer "`);
-  }
-  if (config.providers.google) {
-    yaml.push(`  - name: google`);
-    yaml.push(`    endpoint: https://generativelanguage.googleapis.com`);
-    yaml.push(`    auth_query: key`);
-    yaml.push(`    auth_env: GOOGLE_API_KEY`);
-  }
-  if (config.providers.ollama) {
-    yaml.push(`  - name: ollama`);
-    yaml.push(`    endpoint: http://localhost:11434`);
-    yaml.push(`    auth_header: null`);
-  }
-
-  yaml.push(``);
-  yaml.push(`guardclaw_ref: ./guardclaw-config.yaml`);
-  yaml.push(`agents_ref: ./agents-config.yaml`);
-
-  return yaml.join("\n");
-}
-
 export function generateEnvFile(config: WizardConfig): string {
   const lines: string[] = [];
 
@@ -358,13 +299,6 @@ export function generateEnvFile(config: WizardConfig): string {
     lines.push(``);
   }
 
-  // Gateway key (non-Axet)
-  if (!config.providers.axet) {
-    lines.push(`# axet-gateway API key`);
-    lines.push(`OPENCLAW_GATEWAY_KEY=change-me-in-production`);
-    lines.push(``);
-  }
-
   // GuardClaw specific
   if (config.guardClaw.sensitivity === "S3") {
     lines.push(`# GuardClaw S3 — local LLM required`);
@@ -379,7 +313,7 @@ export function generateInstallScript(): string {
   return `#!/bin/bash
 # OpenClaw Enterprise Stack — Install Script v3
 # Generated: ${new Date().toISOString()}
-# Components: OpenClaw + axet-gateway + autonomous-agents + GuardClaw
+# Components: OpenClaw + autonomous-agents + GuardClaw
 
 set -e
 
@@ -393,14 +327,13 @@ fi
 
 echo "🚀 Installing OpenClaw enterprise stack..."
 npm install -g openclaw
-npm install -g axet-gateway
 npm install -g autonomous-agents
 npm install -g guardclaw
 
 mkdir -p ~/.openclaw
 
 echo "📝 Copying config files..."
-for f in openclaw.yaml agents-config.yaml bridge-config.yaml guardclaw-config.yaml gateway-config.yaml .env; do
+for f in openclaw.yaml agents-config.yaml bridge-config.yaml guardclaw-config.yaml .env; do
   [ -f "$f" ] && cp "$f" ~/.openclaw/"$f" && echo "  ✅ $f"
 done
 
@@ -420,9 +353,6 @@ guardclaw start --config ~/.openclaw/guardclaw-config.yaml || true
 
 echo "🌉 Iniciando autonomous-agents bridge..."
 autonomous-agents bridge start --config ~/.openclaw/bridge-config.yaml || true
-
-echo "🔌 Iniciando axet-gateway..."
-axet-gateway start --config ~/.openclaw/gateway-config.yaml || true
 
 echo "🚀 Iniciando OpenClaw..."
 openclaw start --config ~/.openclaw/openclaw.yaml || true
