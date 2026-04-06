@@ -109,6 +109,9 @@ export default function Step1() {
   const [axetTestStatus, setAxetTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [axetTestMessage, setAxetTestMessage] = useState("");
 
+  // OpenClaw auto-detection
+  const [openclawDetection, setOpenclawDetection] = useState<{ detected: boolean; token?: string; url?: string } | null>(null);
+
   const selectedMeta = PROVIDERS.find((p) => p.id === selectedProvider)!;
   const detected = useMemo(() => detectCredential(credential), [credential]);
   const hasMismatch = !!detected.provider && detected.provider !== selectedProvider;
@@ -242,6 +245,24 @@ export default function Step1() {
     applyTemplateDefaults();
   }, [selectedTemplate]);
 
+  useEffect(() => {
+    fetch("/api/openclaw-detect")
+      .then((r) => r.json())
+      .then((data) => {
+        setOpenclawDetection(data);
+        if (data.detected) {
+          updateConfig({
+            openclaw: {
+              detected: true,
+              gatewayToken: data.token,
+              gatewayUrl: data.url,
+            },
+          });
+        }
+      })
+      .catch(() => setOpenclawDetection({ detected: false }));
+  }, []);
+
   const handleNext = () => {
     applyTemplateDefaults();
     const providers = { ...config.providers };
@@ -313,6 +334,18 @@ export default function Step1() {
       onNext={handleNext}
     >
       <div className="space-y-6">
+        {openclawDetection?.detected && (
+          <div className="p-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 flex items-center gap-3">
+            <span className="text-emerald-400 text-lg">✓</span>
+            <div>
+              <div className="text-sm font-semibold text-emerald-300">OpenClaw detectado</div>
+              <div className="text-xs text-slate-400">
+                Gateway: <code className="text-slate-300">{openclawDetection.url}</code> — GATEWAY_TOKEN pre-rellenado en el .env generado.
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <p className="text-sm text-slate-300">Template rápido (opcional)</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useWizard } from "@/lib/wizard-context";
 import {
   generateConfigYAML,
@@ -10,8 +11,17 @@ import {
   generateGuardClawConfig,
 } from "@/lib/generators";
 
+type HealthData = {
+  integrationMode?: string;
+  connectorReadiness?: Record<string, { configured: boolean; writeEnabled: boolean }>;
+  [key: string]: unknown;
+};
+
 export default function Step9() {
   const { config } = useWizard();
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [verifyError, setVerifyError] = useState("");
 
   const downloadFile = (filename: string, content: string) => {
     const blob = new Blob([content], { type: "text/plain" });
@@ -29,7 +39,23 @@ export default function Step9() {
     downloadFile("bridge-config.yaml", generateBridgeConfig(config));
     downloadFile("guardclaw-config.yaml", generateGuardClawConfig(config));
     downloadFile(".env", generateEnvFile(config));
-    downloadFile("install.sh", generateInstallScript());
+    downloadFile("install.sh", generateInstallScript(config));
+  };
+
+  const verifyInstallation = async () => {
+    setVerifyStatus("checking");
+    setHealthData(null);
+    setVerifyError("");
+    try {
+      const r = await fetch("http://localhost:3700/api/health");
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data: HealthData = await r.json();
+      setHealthData(data);
+      setVerifyStatus("ok");
+    } catch (e) {
+      setVerifyError(e instanceof Error ? e.message : "No se pudo conectar a localhost:3700");
+      setVerifyStatus("error");
+    }
   };
 
   const FILES: { name: string; emoji: string; generator: () => string }[] = [
@@ -38,7 +64,7 @@ export default function Step9() {
     { name: "bridge-config.yaml", emoji: "🌉", generator: () => generateBridgeConfig(config) },
     { name: "guardclaw-config.yaml", emoji: "🛡️", generator: () => generateGuardClawConfig(config) },
     { name: ".env", emoji: "🔐", generator: () => generateEnvFile(config) },
-    { name: "install.sh", emoji: "🛠️", generator: () => generateInstallScript() },
+    { name: "install.sh", emoji: "🛠️", generator: () => generateInstallScript(config) },
   ];
 
   return (
@@ -121,11 +147,55 @@ export default function Step9() {
           <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-6">
             <div className="font-semibold mb-2">📋 Próximos pasos:</div>
             <ol className="text-sm text-slate-300 space-y-2 list-decimal list-inside">
-              <li>Edita <code className="bg-slate-700 px-1 rounded">.env</code> con tus API keys reales</li>
-              <li>Ejecuta <code className="bg-slate-700 px-1 rounded">bash install.sh</code> para instalar el stack</li>
-              <li>Los agentes se cargan automáticamente desde <code className="bg-slate-700 px-1 rounded">agents-config.yaml</code></li>
-              <li>Panel de control: <code className="bg-slate-700 px-1 rounded">http://localhost:18789</code></li>
+              <li>Descarga todos los ficheros con el botón de arriba</li>
+              <li>Ejecuta <code className="bg-slate-700 px-1 rounded">bash install.sh</code> — clona el repo, instala deps y arranca el bridge</li>
+              <li>El script lee <code className="bg-slate-700 px-1 rounded">~/.openclaw/openclaw.json</code> para obtener el GATEWAY_TOKEN automáticamente</li>
+              <li>Work Console UI: <code className="bg-slate-700 px-1 rounded">http://localhost:8080</code></li>
+              <li>Usa el botón de verificación aquí abajo para confirmar que el bridge responde</li>
             </ol>
+          </div>
+
+          {/* Verification */}
+          <div className="p-4 bg-slate-700/40 border border-slate-600/50 rounded-xl mb-4">
+            <div className="font-semibold mb-2">🔍 Verificar instalación</div>
+            <p className="text-sm text-slate-400 mb-3">
+              Después de ejecutar <code className="bg-slate-700 px-1 rounded">install.sh</code>, comprueba que el bridge responde.
+            </p>
+            <button
+              onClick={verifyInstallation}
+              disabled={verifyStatus === "checking"}
+              className="px-4 py-2 rounded-lg border border-slate-500 hover:border-cyan-500 text-sm transition-colors disabled:opacity-50"
+            >
+              {verifyStatus === "checking" ? "Verificando..." : "Verificar instalación"}
+            </button>
+
+            {verifyStatus === "ok" && healthData && (
+              <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-sm space-y-1">
+                <div className="text-emerald-300 font-medium">Bridge activo</div>
+                {healthData.integrationMode && (
+                  <div className="text-slate-300">
+                    Modo: <code className="bg-slate-700 px-1 rounded">{healthData.integrationMode}</code>
+                  </div>
+                )}
+                {healthData.connectorReadiness && (
+                  <div className="text-slate-300">
+                    Conectores:{" "}
+                    {Object.entries(healthData.connectorReadiness).map(([name, info]) => (
+                      <span key={name} className={`inline-block mr-2 px-1.5 py-0.5 rounded text-xs ${info.configured ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-600 text-slate-400"}`}>
+                        {name} {info.configured ? "✓" : "—"}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {verifyStatus === "error" && (
+              <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-300">
+                No se pudo conectar al bridge: {verifyError}
+                <div className="text-slate-400 mt-1">Asegúrate de haber ejecutado <code className="bg-slate-700 px-1 rounded">install.sh</code> y que el bridge está arrancado.</div>
+              </div>
+            )}
           </div>
 
           {/* Resources */}

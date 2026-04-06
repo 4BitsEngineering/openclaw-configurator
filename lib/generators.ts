@@ -247,30 +247,51 @@ export function generateGuardClawConfig(config: WizardConfig): string {
 export function generateEnvFile(config: WizardConfig): string {
   const lines: string[] = [];
 
-  lines.push(`# OpenClaw Enterprise Stack — Environment Variables`);
+  lines.push(`# autonomous-agents / Work Console — Environment Variables`);
   lines.push(`# Generated: ${new Date().toISOString()}`);
-  lines.push(`# Version: 2026.3`);
+  lines.push(`# Place this file at: ~/autonomous-agents/work-console/.env`);
   lines.push(``);
 
-  // Providers
+  // OpenClaw Gateway (autonomous-agents connects to it)
+  const gatewayUrl = config.openclaw?.gatewayUrl || "http://localhost:18789";
+  const gatewayToken = config.openclaw?.gatewayToken || "";
+  lines.push(`# --- OpenClaw Gateway ---`);
+  lines.push(`GATEWAY_URL=${gatewayUrl}`);
+  lines.push(`GATEWAY_WS_URL=${gatewayUrl.replace(/^http/, "ws")}`);
+  lines.push(`GATEWAY_TOKEN=${gatewayToken || "# Pega aquí el token de ~/.openclaw/openclaw.json > gateway.auth.token"}`);
+  lines.push(`DISABLE_GATEWAY=false`);
+  lines.push(``);
+
+  // Bridge
+  lines.push(`# --- Bridge ---`);
+  lines.push(`BRIDGE_PORT=3700`);
+  lines.push(``);
+
+  // GuardClaw
+  lines.push(`# --- GuardClaw ---`);
+  lines.push(`GUARDCLAW_ENABLED=true`);
+  lines.push(`GUARDCLAW_LOCAL_AGENT=corp-compliance-v1`);
+  lines.push(``);
+
+  // Providers (for OpenClaw itself, not the bridge — kept for reference)
   if (config.providers.anthropic?.sessionToken) {
-    lines.push(`# Anthropic Claude (Session Token)`);
+    lines.push(`# Anthropic Claude (Session Token) — usado por OpenClaw`);
     lines.push(`ANTHROPIC_SESSION_TOKEN=your-session-token-here`);
     lines.push(``);
   } else if (config.providers.anthropic?.apiKey) {
-    lines.push(`# Anthropic Claude (API Key)`);
+    lines.push(`# Anthropic Claude (API Key) — usado por OpenClaw`);
     lines.push(`ANTHROPIC_API_KEY=sk-ant-api-...`);
     lines.push(``);
   }
 
   if (config.providers.openai) {
-    lines.push(`# OpenAI GPT`);
+    lines.push(`# OpenAI GPT — usado por OpenClaw`);
     lines.push(`OPENAI_API_KEY=sk-...`);
     lines.push(``);
   }
 
   if (config.providers.google) {
-    lines.push(`# Google Gemini`);
+    lines.push(`# Google Gemini — usado por OpenClaw`);
     lines.push(`GOOGLE_API_KEY=AIza...`);
     lines.push(``);
   }
@@ -286,20 +307,36 @@ export function generateEnvFile(config: WizardConfig): string {
     lines.push(``);
   }
 
+  // Connectors (MCP)
+  lines.push(`# --- Connectors (MCP servers) ---`);
+  if (config.skills.includes("github")) {
+    lines.push(`GITHUB_PAT=ghp_xxxx  # GitHub Personal Access Token`);
+    lines.push(`GITHUB_WRITE_ENABLED=false`);
+  } else {
+    lines.push(`# GITHUB_PAT=ghp_xxxx`);
+    lines.push(`# GITHUB_WRITE_ENABLED=false`);
+  }
+  lines.push(`# SLACK_BOT_TOKEN=`);
+  lines.push(`# SLACK_NOTIFY_CHANNEL=`);
+  lines.push(`# SLACK_WRITE_ENABLED=false`);
+  lines.push(`# JIRA_API_TOKEN=`);
+  lines.push(`# JIRA_WRITE_ENABLED=false`);
+  lines.push(``);
+
   // Channels
   if (config.channels.telegram) {
-    lines.push(`# Telegram Bot`);
+    lines.push(`# Telegram Bot — usado por OpenClaw`);
     lines.push(`TELEGRAM_BOT_TOKEN=123456:ABC-DEF...`);
     lines.push(``);
   }
 
   if (config.channels.discord) {
-    lines.push(`# Discord Bot`);
+    lines.push(`# Discord Bot — usado por OpenClaw`);
     lines.push(`DISCORD_BOT_TOKEN=...`);
     lines.push(``);
   }
 
-  // GuardClaw specific
+  // GuardClaw S3
   if (config.guardClaw.sensitivity === "S3") {
     lines.push(`# GuardClaw S3 — local LLM required`);
     lines.push(`OLLAMA_BASE_URL=http://localhost:11434`);
@@ -309,66 +346,123 @@ export function generateEnvFile(config: WizardConfig): string {
   return lines.join("\n");
 }
 
-export function generateInstallScript(): string {
+export function generateInstallScript(config: WizardConfig): string {
+  const REPO_URL = "https://github.com/jotajota1302/autonomous-agents.git";
   return `#!/bin/bash
-# OpenClaw Enterprise Stack — Install Script v3
+# autonomous-agents — Install Script
 # Generated: ${new Date().toISOString()}
-# Components: OpenClaw + autonomous-agents + GuardClaw
+# Prerequisito: OpenClaw ya instalado y ejecutándose en localhost:18789
 
-set -e
+set -euo pipefail
 
 OS="$(uname -s)"
 echo "🖥️  Detected OS: $OS"
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "❌ npm not found. Install Node.js first: https://nodejs.org"
+# ── 1. Verificar dependencias ───────────────────────────────────────────────
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ Node.js no encontrado. Instálalo primero: https://nodejs.org"
   exit 1
 fi
 
-echo "🚀 Installing OpenClaw enterprise stack..."
-npm install -g openclaw
-npm install -g autonomous-agents
-npm install -g guardclaw
+if ! command -v git >/dev/null 2>&1; then
+  echo "❌ git no encontrado. Instálalo primero."
+  exit 1
+fi
 
-mkdir -p ~/.openclaw
+echo "✅ Node $(node --version) | git $(git --version | awk '{print $3}')"
 
-echo "📝 Copying config files..."
-for f in openclaw.yaml agents-config.yaml bridge-config.yaml guardclaw-config.yaml .env; do
-  [ -f "$f" ] && cp "$f" ~/.openclaw/"$f" && echo "  ✅ $f"
-done
-
-# Interactive prompts for missing env values
-if grep -q "your-session-token-here\\|sk-\\.\\.\\.\\|AIza\\.\\.\\.\\|123456:ABC-DEF\\|change-me-in-production" ~/.openclaw/.env 2>/dev/null; then
+# ── 2. Verificar que OpenClaw está instalado ────────────────────────────────
+OPENCLAW_JSON="$HOME/.openclaw/openclaw.json"
+if [ ! -f "$OPENCLAW_JSON" ]; then
   echo ""
-  echo "⚠️  Se detectaron placeholders en ~/.openclaw/.env"
-  read -p "¿Quieres editar .env ahora? (y/N): " EDIT_ENV
-  if [[ "$EDIT_ENV" =~ ^[Yy]$ ]]; then
-    \${EDITOR:-nano} ~/.openclaw/.env
+  echo "⚠️  No se encontró ~/.openclaw/openclaw.json"
+  echo "   Asegúrate de que OpenClaw está instalado y has ejecutado al menos una vez."
+  read -p "¿Continuar de todas formas? (y/N): " CONTINUE
+  if [[ ! "$CONTINUE" =~ ^[Yy]$ ]]; then
+    exit 1
   fi
 fi
 
-echo ""
-echo "🛡️  Iniciando GuardClaw..."
-guardclaw start --config ~/.openclaw/guardclaw-config.yaml || true
-
-echo "🌉 Iniciando autonomous-agents bridge..."
-autonomous-agents bridge start --config ~/.openclaw/bridge-config.yaml || true
-
-echo "🚀 Iniciando OpenClaw..."
-openclaw start --config ~/.openclaw/openclaw.yaml || true
-
-DASH_URL="http://localhost:18789"
-echo ""
-echo "🌐 Abriendo panel de control: $DASH_URL"
-if [[ "$OS" == "Darwin" ]]; then
-  open "$DASH_URL" || true
-elif command -v xdg-open >/dev/null 2>&1; then
-  xdg-open "$DASH_URL" || true
+# ── 3. Clonar o actualizar autonomous-agents ────────────────────────────────
+INSTALL_DIR="$HOME/autonomous-agents"
+if [ -d "$INSTALL_DIR/.git" ]; then
+  echo "📦 autonomous-agents ya existe — actualizando..."
+  git -C "$INSTALL_DIR" pull --ff-only 2>/dev/null || echo "   (sin cambios o conflictos — continuando)"
+else
+  echo "📦 Clonando autonomous-agents..."
+  git clone "${REPO_URL}" "$INSTALL_DIR"
 fi
 
+# ── 4. Instalar dependencias del work-console ───────────────────────────────
+WORK_CONSOLE="$INSTALL_DIR/work-console"
+echo "📦 Instalando dependencias de work-console..."
+cd "$WORK_CONSOLE"
+npm ci
+
+# ── 5. Leer GATEWAY_TOKEN desde openclaw.json ───────────────────────────────
+GATEWAY_TOKEN_VALUE=""
+if [ -f "$OPENCLAW_JSON" ]; then
+  GATEWAY_TOKEN_VALUE="$(python3 -c "import json; print(json.load(open('$OPENCLAW_JSON')).get('gateway',{}).get('auth',{}).get('token',''))" 2>/dev/null || true)"
+fi
+
+# ── 6. Crear work-console/.env ──────────────────────────────────────────────
+echo "📝 Generando work-console/.env..."
+ENV_FILE="$WORK_CONSOLE/.env"
+
+cat > "$ENV_FILE" << 'ENVEOF'
+# autonomous-agents Work Console — generado por install.sh
+BRIDGE_PORT=3700
+DISABLE_GATEWAY=false
+GUARDCLAW_ENABLED=true
+GUARDCLAW_LOCAL_AGENT=corp-compliance-v1
+ENVEOF
+
+# Append dynamic values
+echo "GATEWAY_URL=http://localhost:18789" >> "$ENV_FILE"
+echo "GATEWAY_WS_URL=ws://localhost:18789" >> "$ENV_FILE"
+echo "GATEWAY_TOKEN=$GATEWAY_TOKEN_VALUE" >> "$ENV_FILE"
+
+echo "  ✅ .env creado con GATEWAY_TOKEN=$([ -n "$GATEWAY_TOKEN_VALUE" ] && echo "detectado" || echo "vacío — edita manualmente")"
+
+if [ -z "$GATEWAY_TOKEN_VALUE" ]; then
+  echo ""
+  echo "⚠️  GATEWAY_TOKEN está vacío. Edita manualmente $ENV_FILE"
+  echo "   Valor en: ~/.openclaw/openclaw.json > gateway.auth.token"
+  read -p "¿Quieres editar el .env ahora? (y/N): " EDIT_ENV
+  if [[ "$EDIT_ENV" =~ ^[Yy]$ ]]; then
+    "\${EDITOR:-nano}" "$ENV_FILE"
+  fi
+fi
+
+# ── 7. Copiar configs YAML a ~/.openclaw/ ────────────────────────────────────
+echo "📝 Copiando configs a ~/.openclaw/..."
+mkdir -p "$HOME/.openclaw"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+for f in agents-config.yaml bridge-config.yaml guardclaw-config.yaml openclaw.yaml; do
+  if [ -f "$SCRIPT_DIR/$f" ]; then
+    cp "$SCRIPT_DIR/$f" "$HOME/.openclaw/$f"
+    echo "  ✅ $f → ~/.openclaw/$f"
+  fi
+done
+
+# ── 8. Arrancar los servicios ───────────────────────────────────────────────
 echo ""
-echo "✅ Stack empresarial instalado."
-echo "   Panel: $DASH_URL"
-echo "   Agentes cargados desde: ~/.openclaw/agents-config.yaml"
+echo "🚀 Arrancando autonomous-agents..."
+cd "$INSTALL_DIR/work-console"
+bash bin/start-all.sh
+
+echo ""
+echo "✅ autonomous-agents en marcha."
+echo "   Bridge API: http://localhost:3700/api/health"
+echo "   Work Console UI: http://localhost:8080"
+echo ""
+
+UI_URL="http://localhost:8080"
+if [[ "$OS" == "Darwin" ]]; then
+  open "$UI_URL" || true
+elif command -v xdg-open >/dev/null 2>&1; then
+  xdg-open "$UI_URL" || true
+fi
 `;
 }

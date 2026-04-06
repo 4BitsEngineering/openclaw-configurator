@@ -40,6 +40,11 @@ export interface WizardConfig {
     ollama?: { baseUrl: string };
     axet?: AxetProviderConfig;
   };
+  openclaw?: {
+    detected: boolean;
+    gatewayToken?: string;
+    gatewayUrl?: string;
+  };
   useCase: {
     type: UseCaseType;
     agents: AgentDefinition[];
