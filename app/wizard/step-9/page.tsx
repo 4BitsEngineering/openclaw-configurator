@@ -121,10 +121,32 @@ export default function Step9() {
           <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-6">
             <div className="font-semibold mb-2">📋 Próximos pasos:</div>
             <ol className="text-sm text-slate-300 space-y-2 list-decimal list-inside">
-              <li>Edita <code className="bg-slate-700 px-1 rounded">.env</code> con tus API keys reales</li>
-              <li>Ejecuta <code className="bg-slate-700 px-1 rounded">bash install.sh</code> para instalar el stack</li>
-              <li>Los agentes se cargan automáticamente desde <code className="bg-slate-700 px-1 rounded">agents-config.yaml</code></li>
-              <li>Panel de control: <code className="bg-slate-700 px-1 rounded">http://localhost:18789</code></li>
+              <li>
+                Haz ejecutable el script y lánzalo:
+                <br />
+                <code className="bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block text-cyan-300">
+                  chmod +x install.sh &amp;&amp; ./install.sh
+                </code>
+              </li>
+              <li>
+                Verifica que la API responde:
+                <br />
+                <code className="bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block text-cyan-300">
+                  curl http://localhost:3700/api/health
+                </code>
+              </li>
+              <li>
+                Abre la interfaz web:{" "}
+                <code className="bg-slate-700 px-1 rounded">http://localhost:8080</code>
+              </li>
+              <li>
+                API disponible en:{" "}
+                <code className="bg-slate-700 px-1 rounded">http://localhost:3700</code>
+              </li>
+              <li>
+                Si ya tienes OpenClaw, el token se detecta automáticamente desde{" "}
+                <code className="bg-slate-700 px-1 rounded">~/.openclaw/openclaw.json</code>
+              </li>
             </ol>
           </div>
 

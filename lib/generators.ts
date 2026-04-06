@@ -310,65 +310,176 @@ export function generateEnvFile(config: WizardConfig): string {
 }
 
 export function generateInstallScript(): string {
-  return `#!/bin/bash
-# OpenClaw Enterprise Stack — Install Script v3
-# Generated: ${new Date().toISOString()}
-# Components: OpenClaw + autonomous-agents + GuardClaw
+  return `#!/usr/bin/env bash
+# autonomous-agents — Work Console Installer
+# Usage:
+#   ./install.sh            # full install
+#   ./install.sh --dry-run  # preview what would happen
+set -euo pipefail
 
-set -e
+GREEN='\\033[0;32m'; RED='\\033[0;31m'; YELLOW='\\033[1;33m'
+CYAN='\\033[0;36m'; BOLD='\\033[1m'; RESET='\\033[0m'
+ok()   { echo -e "\${GREEN}  ✓\${RESET} $*"; }
+err()  { echo -e "\${RED}  ✗\${RESET} $*" >&2; }
+warn() { echo -e "\${YELLOW}  !\${RESET} $*"; }
+info() { echo -e "\${CYAN}  →\${RESET} $*"; }
+hdr()  { echo -e "\\n\${BOLD}$*\${RESET}"; }
 
-OS="$(uname -s)"
-echo "🖥️  Detected OS: $OS"
+DRY_RUN=false
+for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRY_RUN=true; done
+run() { $DRY_RUN && echo -e "\${YELLOW}  [dry-run]\${RESET} $*" || "$@"; }
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "❌ npm not found. Install Node.js first: https://nodejs.org"
-  exit 1
+echo -e "\${BOLD}"
+echo "╔══════════════════════════════════════════════════╗"
+echo "║   autonomous-agents — Work Console Installer     ║"
+echo "╚══════════════════════════════════════════════════╝"
+echo -e "\${RESET}"
+$DRY_RUN && warn "DRY-RUN mode — no changes will be made\\n"
+
+REPO_URL="https://github.com/jotajota1302/autonomous-agents.git"
+INSTALL_DIR="\$HOME/autonomous-agents"
+WORK_CONSOLE="\$INSTALL_DIR/work-console"
+OPENCLAW_CONFIG="\$HOME/.openclaw/openclaw.json"
+ENV_FILE="\$WORK_CONSOLE/.env"
+ENV_EXAMPLE="\$INSTALL_DIR/env.example"
+BRIDGE_PORT=3700; UI_PORT=8080; GATEWAY_PORT=18789
+
+# ── Step 1: Prerequisites ──────────────────────────────────────────────────────
+hdr "1/5  Checking prerequisites"
+
+if ! command -v node &>/dev/null; then
+  err "Node.js not found. Install Node.js 18+ from https://nodejs.org"; exit 1
+fi
+NODE_VERSION=\$(node -e "process.stdout.write(process.version.slice(1).split('.')[0])")
+[[ "\$NODE_VERSION" -lt 18 ]] && { err "Node.js \$NODE_VERSION found, need >= 18"; exit 1; }
+ok "Node.js \$(node --version)"
+
+command -v npm &>/dev/null || { err "npm not found"; exit 1; }
+ok "npm \$(npm --version)"
+
+command -v git &>/dev/null || { err "git not found — https://git-scm.com"; exit 1; }
+ok "git \$(git --version | awk '{print \$3}')"
+
+JQ_AVAILABLE=false; command -v jq &>/dev/null && JQ_AVAILABLE=true
+
+# ── Step 2: Clone or update repo ───────────────────────────────────────────────
+hdr "2/5  Repository"
+
+if [ -d "\$INSTALL_DIR/.git" ]; then
+  ok "Repo already cloned at \$INSTALL_DIR"
+  info "Pulling latest changes..."
+  run bash -c "cd '\$INSTALL_DIR' && git pull --ff-only"
+else
+  info "Cloning \$REPO_URL → \$INSTALL_DIR"
+  run git clone "\$REPO_URL" "\$INSTALL_DIR"
+  ok "Cloned successfully"
 fi
 
-echo "🚀 Installing OpenClaw enterprise stack..."
-npm install -g openclaw
-npm install -g autonomous-agents
-npm install -g guardclaw
+# ── Step 3: Detect OpenClaw token ─────────────────────────────────────────────
+hdr "3/5  Detecting OpenClaw configuration"
 
-mkdir -p ~/.openclaw
+GATEWAY_TOKEN=""
+GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
 
-echo "📝 Copying config files..."
-for f in openclaw.yaml agents-config.yaml bridge-config.yaml guardclaw-config.yaml .env; do
-  [ -f "$f" ] && cp "$f" ~/.openclaw/"$f" && echo "  ✅ $f"
-done
+if [ -f "\$OPENCLAW_CONFIG" ]; then
+  ok "Found \$OPENCLAW_CONFIG"
+  if \$JQ_AVAILABLE; then
+    GATEWAY_TOKEN=\$(jq -r '.gateway.auth.token // ""' "\$OPENCLAW_CONFIG" 2>/dev/null || true)
+    DETECTED_PORT=\$(jq -r '.gateway.port // 18789' "\$OPENCLAW_CONFIG" 2>/dev/null || echo "\$GATEWAY_PORT")
+  else
+    GATEWAY_TOKEN=\$(python3 -c \\
+      "import json; d=json.load(open('\$OPENCLAW_CONFIG')); print(d.get('gateway',{}).get('auth',{}).get('token',''))" \\
+      2>/dev/null || true)
+    DETECTED_PORT=\$(python3 -c \\
+      "import json; d=json.load(open('\$OPENCLAW_CONFIG')); print(d.get('gateway',{}).get('port',18789))" \\
+      2>/dev/null || echo "\$GATEWAY_PORT")
+  fi
+  GATEWAY_PORT="\$DETECTED_PORT"
+  GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
+  [ -n "\$GATEWAY_TOKEN" ] \\
+    && ok "Gateway token detected (\${GATEWAY_TOKEN:0:8}...)" \\
+    || warn "Token not found in openclaw.json — fill GATEWAY_TOKEN manually in \$ENV_FILE"
+else
+  warn "~/.openclaw/openclaw.json not found — fill GATEWAY_TOKEN manually in \$ENV_FILE"
+fi
 
-# Interactive prompts for missing env values
-if grep -q "your-session-token-here\\|sk-\\.\\.\\.\\|AIza\\.\\.\\.\\|123456:ABC-DEF\\|change-me-in-production" ~/.openclaw/.env 2>/dev/null; then
-  echo ""
-  echo "⚠️  Se detectaron placeholders en ~/.openclaw/.env"
-  read -p "¿Quieres editar .env ahora? (y/N): " EDIT_ENV
-  if [[ "$EDIT_ENV" =~ ^[Yy]$ ]]; then
-    \${EDITOR:-nano} ~/.openclaw/.env
+# ── Step 4: npm ci + .env ──────────────────────────────────────────────────────
+hdr "4/5  Dependencies & environment"
+
+[ -d "\$WORK_CONSOLE" ] || { err "work-console/ not found at \$WORK_CONSOLE"; exit 1; }
+
+if [ ! -d "\$WORK_CONSOLE/node_modules" ]; then
+  info "Running npm ci in work-console/"
+  run bash -c "cd '\$WORK_CONSOLE' && npm ci"
+  ok "Dependencies installed"
+else
+  ok "node_modules already present (skipping npm ci)"
+fi
+
+if [ -f "\$ENV_FILE" ]; then
+  warn ".env already exists — skipping (delete it to regenerate)"
+else
+  if [ -f "\$ENV_EXAMPLE" ]; then
+    if \$DRY_RUN; then
+      info "[dry-run] Would create \$ENV_FILE from env.example"
+    else
+      cp "\$ENV_EXAMPLE" "\$ENV_FILE"
+      if [ -n "\$GATEWAY_TOKEN" ]; then
+        sed -i '' "s|^GATEWAY_TOKEN=.*|GATEWAY_TOKEN=\$GATEWAY_TOKEN|" "\$ENV_FILE" 2>/dev/null || \\
+        sed -i    "s|^GATEWAY_TOKEN=.*|GATEWAY_TOKEN=\$GATEWAY_TOKEN|" "\$ENV_FILE"
+      fi
+      sed -i '' "s|^GATEWAY_URL=.*|GATEWAY_URL=\$GATEWAY_URL|" "\$ENV_FILE" 2>/dev/null || \\
+      sed -i    "s|^GATEWAY_URL=.*|GATEWAY_URL=\$GATEWAY_URL|" "\$ENV_FILE"
+      ok "Created \$ENV_FILE"
+    fi
+  else
+    if ! \$DRY_RUN; then
+      printf 'GATEWAY_TOKEN=%s\\nGATEWAY_URL=%s\\nBRIDGE_PORT=%s\\n' \\
+        "\$GATEWAY_TOKEN" "\$GATEWAY_URL" "\$BRIDGE_PORT" > "\$ENV_FILE"
+      ok "Created minimal \$ENV_FILE"
+    fi
+  fi
+fi
+
+# ── Step 5: Start services ─────────────────────────────────────────────────────
+hdr "5/5  Start services"
+
+if \$DRY_RUN; then
+  info "[dry-run] Would prompt to start services"
+else
+  echo -ne "\${CYAN}  →\${RESET} Start Work Console now? [Y/n] "
+  read -r REPLY; REPLY="\${REPLY:-Y}"
+  if [[ "\$REPLY" =~ ^[Yy]\$ ]]; then
+    START_SCRIPT="\$WORK_CONSOLE/bin/start-all.sh"
+    if [ -f "\$START_SCRIPT" ]; then
+      bash "\$START_SCRIPT"
+      info "Waiting for API health check (http://localhost:\$BRIDGE_PORT/api/health)..."
+      for i in \$(seq 1 8); do
+        if curl -sf --max-time 2 "http://localhost:\$BRIDGE_PORT/api/health" &>/dev/null; then
+          ok "API is healthy at http://localhost:\$BRIDGE_PORT/api/health"; break
+        fi
+        sleep 1
+        [ "\$i" -eq 8 ] && warn "Health check timed out — check logs in work-console/.pids/"
+      done
+    else
+      warn "start-all.sh not found — try: cd \$WORK_CONSOLE && npm start"
+    fi
+  else
+    info "Skipped. Start later: cd \$WORK_CONSOLE && ./bin/start-all.sh"
   fi
 fi
 
 echo ""
-echo "🛡️  Iniciando GuardClaw..."
-guardclaw start --config ~/.openclaw/guardclaw-config.yaml || true
-
-echo "🌉 Iniciando autonomous-agents bridge..."
-autonomous-agents bridge start --config ~/.openclaw/bridge-config.yaml || true
-
-echo "🚀 Iniciando OpenClaw..."
-openclaw start --config ~/.openclaw/openclaw.yaml || true
-
-DASH_URL="http://localhost:18789"
+echo -e "\${BOLD}╔══════════════════════════════════════════════════╗\${RESET}"
+echo -e "\${BOLD}║   Installation complete                          ║\${RESET}"
+echo -e "\${BOLD}╚══════════════════════════════════════════════════╝\${RESET}"
 echo ""
-echo "🌐 Abriendo panel de control: $DASH_URL"
-if [[ "$OS" == "Darwin" ]]; then
-  open "$DASH_URL" || true
-elif command -v xdg-open >/dev/null 2>&1; then
-  xdg-open "$DASH_URL" || true
-fi
-
+echo -e "  \${CYAN}UI:\${RESET}      http://localhost:\$UI_PORT"
+echo -e "  \${CYAN}API:\${RESET}     http://localhost:\$BRIDGE_PORT/api/health"
+echo -e "  \${CYAN}Gateway:\${RESET} \$GATEWAY_URL"
 echo ""
-echo "✅ Stack empresarial instalado."
-echo "   Panel: $DASH_URL"
-echo "   Agentes cargados desde: ~/.openclaw/agents-config.yaml"
+echo -e "  \${CYAN}Start:\${RESET}   cd \$WORK_CONSOLE && ./bin/start-all.sh"
+echo -e "  \${CYAN}Stop:\${RESET}    cd \$WORK_CONSOLE && ./bin/stop-all.sh"
+echo ""
 `;
 }

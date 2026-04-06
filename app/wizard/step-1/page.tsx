@@ -343,6 +343,13 @@ export default function Step1() {
           )}
         </div>
 
+        <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/10 text-sm text-blue-200">
+          <span className="font-medium">Ya tienes OpenClaw?</span> Tu token está en{" "}
+          <code className="bg-slate-700 px-1 rounded">~/.openclaw/openclaw.json</code>
+          {" → "}campo <code className="bg-slate-700 px-1 rounded">gateway.auth.token</code>
+          {". "}El script de instalación lo detectará automáticamente.
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {PROVIDERS.map((provider) => (
             <button
