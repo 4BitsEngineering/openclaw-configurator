@@ -2,108 +2,54 @@
 
 import { WizardLayout } from "@/components/wizard-layout";
 import { useWizard } from "@/lib/wizard-context";
+import { useEffect, useState } from "react";
+
+const AVAILABLE_SKILLS = [
+  { id: "github", name: "GitHub", emoji: "🐙", desc: "Manage repos, issues, PRs" },
+  { id: "himalaya", name: "Email (Himalaya)", emoji: "📧", desc: "IMAP/SMTP email client" },
+  { id: "weather", name: "Weather", emoji: "🌤️", desc: "Current weather & forecasts" },
+  { id: "coding-agent", name: "Coding Agent", emoji: "💻", desc: "Claude Code, Codex, etc." },
+];
+
+function skillDefaults(template: "personal" | "developer" | "business" | "custom") {
+  if (template === "personal") return ["weather"];
+  if (template === "developer") return ["github", "coding-agent", "himalaya"];
+  if (template === "business") return ["himalaya", "weather"];
+  return [];
+}
 
 export default function Step6() {
-  const { config } = useWizard();
+  const { config, updateConfig, selectedTemplate, touched, markTouched } = useWizard();
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(config.skills);
 
-  const providerCount = Object.keys(config.providers).length;
-  const channelCount = Object.keys(config.channels).length;
+  useEffect(() => {
+    if (touched.skills) return;
+    setSelectedSkills(skillDefaults(selectedTemplate));
+  }, [selectedTemplate, touched.skills]);
+
+  const toggleSkill = (skillId: string) => {
+    markTouched("skills");
+    setSelectedSkills((prev) => (prev.includes(skillId) ? prev.filter((id) => id !== skillId) : [...prev, skillId]));
+  };
+
+  const handleNext = () => {
+    updateConfig({ skills: selectedSkills });
+    return true;
+  };
 
   return (
-    <WizardLayout
-      step={6}
-      title="Review Your Configuration"
-      description="Double-check everything before generating files"
-      nextLabel="Generate Files"
-    >
+    <WizardLayout step={6} title="Select Skills" description="Choose the capabilities your agent will have" onNext={handleNext}>
       <div className="space-y-4">
-        {/* Providers */}
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="font-semibold mb-2">🧠 LLM Providers</div>
-          <div className="text-sm text-slate-400">
-            {providerCount > 0 ? (
-              <ul className="list-disc list-inside space-y-1">
-                {Object.keys(config.providers).map((provider) => (
-                  <li key={provider} className="capitalize">
-                    {provider}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span>None configured</span>
-            )}
-            {config.providers.axet && (
-              <div className="mt-3 space-y-1 text-xs text-slate-500 border-t border-slate-600 pt-2">
-                <div>Gateway: {config.providers.axet.axetGatewayUrl}</div>
-                <div>Token: ****{config.providers.axet.axetGatewayToken.slice(-4)}</div>
-                <div>Okta Issuer: {config.providers.axet.oktaIssuer}</div>
-                <div>Client ID: {config.providers.axet.oktaClientId}</div>
-                <div>Scope: {config.providers.axet.oktaScope}</div>
-                <div>API Base: {config.providers.axet.axetApiBaseUrl}</div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Channels */}
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="font-semibold mb-2">💬 Messaging Channels</div>
-          <div className="text-sm text-slate-400">
-            {channelCount > 0 ? (
-              <ul className="list-disc list-inside space-y-1">
-                {Object.keys(config.channels).map((channel) => (
-                  <li key={channel} className="capitalize">
-                    {channel}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span>None configured</span>
-            )}
-          </div>
-        </div>
-
-        {/* Security */}
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="font-semibold mb-2">🔒 Security</div>
-          <div className="text-sm text-slate-400">
-            <div>DM Policy: <span className="capitalize">{config.security.dmPolicy}</span></div>
-            {config.security.allowlist.length > 0 && (
-              <div className="mt-1">
-                Allowlist: {config.security.allowlist.length} user{config.security.allowlist.length !== 1 ? "s" : ""}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Skills */}
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="font-semibold mb-2">🛠️ Skills</div>
-          <div className="text-sm text-slate-400">
-            {config.skills.length > 0 ? (
-              <ul className="list-disc list-inside space-y-1">
-                {config.skills.map((skill) => (
-                  <li key={skill} className="capitalize">
-                    {skill}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span>None selected</span>
-            )}
-          </div>
-        </div>
-
-        {/* Personality */}
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="font-semibold mb-2">✨ Personality</div>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{config.personality.emoji}</span>
-            <div>
-              <div className="font-semibold">{config.personality.name}</div>
-              <div className="text-sm text-slate-400">{config.personality.vibe}</div>
-            </div>
-          </div>
+        <p className="text-sm text-slate-400 mb-4">Selected: {selectedSkills.length} skills</p>
+        <div className="grid grid-cols-1 gap-3">
+          {AVAILABLE_SKILLS.map((skill) => {
+            const isSelected = selectedSkills.includes(skill.id);
+            return (
+              <button key={skill.id} onClick={() => toggleSkill(skill.id)} className={`p-4 rounded-lg border-2 text-left transition-all ${isSelected ? "border-blue-500 bg-blue-500/10" : "border-slate-600 hover:border-slate-500"}`}>
+                <div className="flex items-start gap-3"><span className="text-2xl">{skill.emoji}</span><div className="flex-1"><div className="font-semibold mb-1">{skill.name}</div><div className="text-sm text-slate-400">{skill.desc}</div></div></div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </WizardLayout>

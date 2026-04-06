@@ -19,6 +19,16 @@ const STEP_META = [
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714a2.25 2.25 0 0 0 .659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 2.47a2.25 2.25 0 0 1-1.591.659H9.061a2.25 2.25 0 0 1-1.591-.659L5 14.5m14 0V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4.5" />
     </svg>
   )},
+  { label: "Use Case", icon: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+    </svg>
+  )},
+  { label: "GuardClaw", icon: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+    </svg>
+  )},
   { label: "Channels", icon: (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
@@ -51,6 +61,8 @@ const STEP_META = [
   )},
 ];
 
+const TOTAL_STEPS = 9;
+
 const CheckIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
     <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -64,7 +76,7 @@ export function WizardLayout({ children, step, title, description, onNext, nextL
   const handleNext = () => {
     if (onNext && !onNext()) return;
 
-    if (step < 7) {
+    if (step < TOTAL_STEPS) {
       setCurrentStep(step + 1);
       router.push(`/wizard/step-${step + 1}`);
     }
@@ -84,11 +96,11 @@ export function WizardLayout({ children, step, title, description, onNext, nextL
         <div className="mb-8">
           <div className="flex items-center justify-between relative">
             {/* Connection line behind circles */}
-            <div className="absolute top-5 left-0 right-0 h-[2px] bg-slate-700/50 mx-8" />
+            <div className="absolute top-5 left-0 right-0 h-[2px] bg-slate-700/50 mx-5" />
             <div
-              className="absolute top-5 left-0 h-[2px] mx-8 transition-all duration-500 ease-out"
+              className="absolute top-5 left-0 h-[2px] mx-5 transition-all duration-500 ease-out"
               style={{
-                width: `calc(${((step - 1) / 6) * 100}% - 0px)`,
+                width: `calc(${((step - 1) / (TOTAL_STEPS - 1)) * 100}% - 0px)`,
                 background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
               }}
             />
@@ -97,7 +109,6 @@ export function WizardLayout({ children, step, title, description, onNext, nextL
               const stepNum = i + 1;
               const isCompleted = stepNum < step;
               const isCurrent = stepNum === step;
-              const isFuture = stepNum > step;
 
               return (
                 <div key={stepNum} className="relative z-10 flex flex-col items-center">
@@ -134,7 +145,7 @@ export function WizardLayout({ children, step, title, description, onNext, nextL
           {/* Mobile step indicator */}
           <div className="sm:hidden mt-4 text-center">
             <span className="text-sm text-slate-400">
-              Step {step} of 7 &middot;{" "}
+              Step {step} of {TOTAL_STEPS} &middot;{" "}
               <span className="text-cyan-400 font-medium">{STEP_META[step - 1].label}</span>
             </span>
           </div>
@@ -151,7 +162,7 @@ export function WizardLayout({ children, step, title, description, onNext, nextL
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-2xl sm:text-3xl font-bold">{title}</h1>
                 <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-700/80 text-slate-400 border border-slate-600/50">
-                  {step}/7
+                  {step}/{TOTAL_STEPS}
                 </span>
               </div>
               <p className="text-slate-400 text-sm sm:text-base">{description}</p>

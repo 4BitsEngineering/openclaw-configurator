@@ -4,44 +4,54 @@ import { WizardLayout } from "@/components/wizard-layout";
 import { useWizard } from "@/lib/wizard-context";
 import { useEffect, useState } from "react";
 
-const EMOJI_OPTIONS = ["🤖", "🧠", "⚡", "📈", "🛠️"];
-
-function personalityDefaults(template: "personal" | "developer" | "business" | "custom") {
-  if (template === "developer") return { name: "JARVIS Dev", emoji: "🛠️", vibe: "Technical and direct" };
-  if (template === "business") return { name: "JARVIS Biz", emoji: "📈", vibe: "Professional and concise" };
-  return { name: "JARVIS", emoji: "🤖", vibe: "Professional yet approachable" };
+function securityDefaults(template: "personal" | "developer" | "business" | "custom") {
+  if (template === "custom") return { dmPolicy: "allowlist" as const, allowlist: [] as string[] };
+  return { dmPolicy: "allowlist" as const, allowlist: [] as string[] };
 }
 
 export default function Step5() {
   const { config, updateConfig, selectedTemplate, touched, markTouched } = useWizard();
-  const [name, setName] = useState(config.personality.name);
-  const [emoji, setEmoji] = useState(config.personality.emoji);
-  const [vibe, setVibe] = useState(config.personality.vibe);
+  const [dmPolicy, setDmPolicy] = useState<"allow" | "deny" | "allowlist">(config.security.dmPolicy);
+  const [allowlist, setAllowlist] = useState((config.security.allowlist || []).join("\n"));
 
   useEffect(() => {
-    if (touched.personality) return;
-    const d = personalityDefaults(selectedTemplate);
-    setName(d.name);
-    setEmoji(d.emoji);
-    setVibe(d.vibe);
-  }, [selectedTemplate, touched.personality]);
+    if (touched.security) return;
+    const d = securityDefaults(selectedTemplate);
+    setDmPolicy(d.dmPolicy);
+    setAllowlist(d.allowlist.join("\n"));
+  }, [selectedTemplate, touched.security]);
 
   const handleNext = () => {
-    if (!name.trim()) return false;
-    updateConfig({ personality: { name: name.trim(), emoji, vibe } });
+    const allowlistArray = allowlist.split("\n").map((x) => x.trim()).filter(Boolean);
+    updateConfig({ security: { dmPolicy, allowlist: allowlistArray } });
     return true;
   };
 
   return (
-    <WizardLayout step={5} title="Personalize Your Agent" description="Give your assistant a name and personality" onNext={handleNext}>
+    <WizardLayout step={5} title="Security & Privacy" description="Configure who can interact with your OpenClaw instance" onNext={handleNext}>
       <div className="space-y-6">
-        <input type="text" value={name} onChange={(e) => { setName(e.target.value); markTouched("personality"); }} className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600" />
-        <div className="grid grid-cols-5 gap-2">
-          {EMOJI_OPTIONS.map((e) => (
-            <button key={e} onClick={() => { setEmoji(e); markTouched("personality"); }} className={`text-3xl p-2 rounded ${emoji === e ? "bg-blue-500/20" : "bg-slate-700"}`}>{e}</button>
-          ))}
+        <div>
+          <label className="block text-sm font-medium mb-3">Direct Message Policy</label>
+          <div className="space-y-2">
+            {[
+              { value: "allow", label: "Allow All", desc: "Anyone can message (not recommended)" },
+              { value: "allowlist", label: "Allowlist Only", desc: "Only specific users (recommended)" },
+              { value: "deny", label: "Deny All", desc: "No one can message via DM" },
+            ].map((option) => (
+              <button key={option.value} onClick={() => { setDmPolicy(option.value as "allow" | "deny" | "allowlist"); markTouched("security"); }} className={`w-full p-4 rounded-lg border-2 text-left transition-all ${dmPolicy === option.value ? "border-blue-500 bg-blue-500/10" : "border-slate-600 hover:border-slate-500"}`}>
+                <div className="font-semibold mb-1">{option.label}</div>
+                <div className="text-sm text-slate-400">{option.desc}</div>
+              </button>
+            ))}
+          </div>
         </div>
-        <textarea value={vibe} onChange={(e) => { setVibe(e.target.value); markTouched("personality"); }} rows={3} className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600" />
+
+        {dmPolicy === "allowlist" && (
+          <div>
+            <label className="block text-sm font-medium mb-2">Allowed Users (one per line)</label>
+            <textarea value={allowlist} onChange={(e) => { setAllowlist(e.target.value); markTouched("security"); }} rows={6} className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none font-mono text-sm" />
+          </div>
+        )}
       </div>
     </WizardLayout>
   );

@@ -1,143 +1,214 @@
 "use client";
 
 import { WizardLayout } from "@/components/wizard-layout";
-import { useWizard } from "@/lib/wizard-context";
-import { useEffect, useMemo, useState } from "react";
+import { useWizard, UseCaseType, AgentDefinition, ALL_AGENTS } from "@/lib/wizard-context";
+import { useState } from "react";
 
-const TELEGRAM_DOCS = "https://core.telegram.org/bots#6-botfather";
-const DISCORD_DOCS = "https://discord.com/developers/applications";
-const WHATSAPP_DOCS = "https://docs.openclaw.ai/channels/whatsapp";
-const SIGNAL_DOCS = "https://docs.openclaw.ai/channels/signal";
+const USE_CASES: {
+  id: UseCaseType;
+  label: string;
+  emoji: string;
+  desc: string;
+  agentNames: string[];
+}[] = [
+  {
+    id: "software-dev",
+    label: "Desarrollo Software",
+    emoji: "💻",
+    desc: "Planificación, codificación, revisión y despliegue de software",
+    agentNames: ["Planner", "Executor", "Reviewer", "Architect", "DevOps"],
+  },
+  {
+    id: "compliance",
+    label: "Compliance / Legal",
+    emoji: "⚖️",
+    desc: "Auditoría normativa, investigación legal y revisión de documentos",
+    agentNames: ["Compliance", "Researcher", "Reviewer", "Planner"],
+  },
+  {
+    id: "content",
+    label: "Contenido / Marketing",
+    emoji: "✍️",
+    desc: "Estrategia de contenido, generación de copies y optimización",
+    agentNames: ["Planner", "Executor", "Researcher", "Reviewer"],
+  },
+  {
+    id: "support",
+    label: "Soporte Técnico",
+    emoji: "🎧",
+    desc: "Gestión de tickets, base de conocimiento y monitorización",
+    agentNames: ["Executor", "Researcher", "Patrol", "Reviewer"],
+  },
+  {
+    id: "custom",
+    label: "Custom",
+    emoji: "🔧",
+    desc: "Elige manualmente los agentes que necesitas",
+    agentNames: [],
+  },
+];
 
-function isTelegramToken(token: string) {
-  return /^\d{7,}:[A-Za-z0-9_-]{20,}$/.test(token.trim());
-}
-
-function isDiscordToken(token: string) {
-  return /^[A-Za-z0-9._-]{20,}$/.test(token.trim());
-}
-
-function templateChannelDefaults(template: "personal" | "developer" | "business" | "custom") {
-  if (template === "personal") return { telegram: true, discord: false, whatsapp: false, signal: false };
-  if (template === "developer") return { telegram: true, discord: true, whatsapp: false, signal: false };
-  if (template === "business") return { telegram: true, discord: false, whatsapp: true, signal: false };
-  return { telegram: false, discord: false, whatsapp: false, signal: false };
-}
+const ALL_POSSIBLE_AGENTS: AgentDefinition[] = [
+  { id: "planner", name: "Planner", role: "Descompone tareas y crea planes de ejecución", enabled: true },
+  { id: "executor", name: "Executor", role: "Ejecuta subtareas y produce resultados", enabled: true },
+  { id: "reviewer", name: "Reviewer", role: "Revisa calidad y detecta errores", enabled: true },
+  { id: "architect", name: "Architect", role: "Define arquitectura y decisiones técnicas", enabled: true },
+  { id: "devops", name: "DevOps", role: "CI/CD, infraestructura y despliegue", enabled: true },
+  { id: "compliance", name: "Compliance", role: "Verifica normativa y regulación", enabled: true },
+  { id: "researcher", name: "Researcher", role: "Investiga fuentes y recopila información", enabled: true },
+  { id: "patrol", name: "Patrol", role: "Monitoriza incidencias y alertas", enabled: true },
+];
 
 export default function Step2() {
-  const { config, updateConfig, selectedTemplate, touched, markTouched } = useWizard();
+  const { config, updateConfig, markTouched } = useWizard();
 
-  const [telegramToken, setTelegramToken] = useState(config.channels.telegram?.token || "");
-  const [discordToken, setDiscordToken] = useState(config.channels.discord?.token || "");
-  const [enableWhatsApp, setEnableWhatsApp] = useState(!!config.channels.whatsapp?.enabled);
-  const [enableSignal, setEnableSignal] = useState(!!config.channels.signal?.enabled);
-  const [telegramTestStatus, setTelegramTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
-  const [telegramTestMessage, setTelegramTestMessage] = useState("");
+  const [selectedUseCase, setSelectedUseCase] = useState<UseCaseType>(config.useCase.type);
+  const [customAgents, setCustomAgents] = useState<string[]>(
+    config.useCase.agents.map((a) => a.id)
+  );
 
-  useEffect(() => {
-    if (touched.channels) return;
-    const d = templateChannelDefaults(selectedTemplate);
-    setEnableWhatsApp(d.whatsapp);
-    setEnableSignal(d.signal);
-    if (!telegramToken && d.telegram) setTelegramToken("");
-    if (!discordToken && d.discord) setDiscordToken("");
-  }, [selectedTemplate, touched.channels]);
+  const selectUseCase = (id: UseCaseType) => {
+    setSelectedUseCase(id);
+    markTouched("useCase");
+  };
 
-  const telegramValid = useMemo(() => (telegramToken ? isTelegramToken(telegramToken) : null), [telegramToken]);
-  const discordValid = useMemo(() => (discordToken ? isDiscordToken(discordToken) : null), [discordToken]);
-
-  const handleTelegramTest = async () => {
-    if (!telegramToken.trim() || !telegramValid) {
-      setTelegramTestStatus("error");
-      setTelegramTestMessage("Token inválido. Revisa formato antes de probar.");
-      return;
-    }
-
-    setTelegramTestStatus("testing");
-    setTelegramTestMessage("");
-    try {
-      const r = await fetch(`https://api.telegram.org/bot${telegramToken.trim()}/getMe`);
-      const j = await r.json();
-      if (r.ok && j?.ok) {
-        setTelegramTestStatus("ok");
-        setTelegramTestMessage(`Token válido (${j?.result?.username || "bot"}).`);
-      } else {
-        setTelegramTestStatus("error");
-        setTelegramTestMessage(j?.description || "Token inválido o bloqueado.");
-      }
-    } catch {
-      setTelegramTestStatus("error");
-      setTelegramTestMessage("No se pudo validar por red en este navegador.");
-    }
+  const toggleCustomAgent = (agentId: string) => {
+    setCustomAgents((prev) =>
+      prev.includes(agentId) ? prev.filter((a) => a !== agentId) : [...prev, agentId]
+    );
   };
 
   const handleNext = () => {
-    const channels: {
-      telegram?: { token: string; allowlist?: string[] };
-      discord?: { token: string; allowlist?: string[] };
-      whatsapp?: { enabled: boolean };
-      signal?: { enabled: boolean };
-    } = {};
-
-    if (telegramToken.trim() && telegramValid) channels.telegram = { token: telegramToken.trim(), allowlist: [] };
-    if (discordToken.trim() && discordValid) channels.discord = { token: discordToken.trim(), allowlist: [] };
-    if (enableWhatsApp) channels.whatsapp = { enabled: true };
-    if (enableSignal) channels.signal = { enabled: true };
-
-    updateConfig({ channels });
+    let agents: AgentDefinition[];
+    if (selectedUseCase === "custom") {
+      agents = ALL_POSSIBLE_AGENTS.filter((a) => customAgents.includes(a.id));
+    } else {
+      agents = ALL_AGENTS[selectedUseCase];
+    }
+    updateConfig({ useCase: { type: selectedUseCase, agents } });
     return true;
   };
 
+  const selectedMeta = USE_CASES.find((u) => u.id === selectedUseCase)!;
+
   return (
-    <WizardLayout step={2} title="Messaging Channels" description="Conecta canales con guías rápidas y validación de tokens" onNext={handleNext}>
-      <div className="space-y-6">
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3"><span className="text-2xl">💬</span><span className="font-semibold">Telegram</span></div>
-            <a href={TELEGRAM_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Obtener token en BotFather</a>
-          </div>
-          <input type="password" value={telegramToken} onChange={(e) => { setTelegramToken(e.target.value); markTouched("channels"); }} placeholder="123456789:AA..." className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none" />
-          {telegramValid === true && <p className="text-xs text-emerald-400 mt-1">✅ Formato válido</p>}
-          {telegramValid === false && <p className="text-xs text-rose-400 mt-1">❌ Formato no válido</p>}
-          <div className="mt-2 flex items-center gap-3">
+    <WizardLayout
+      step={2}
+      title="Caso de Uso"
+      description="Elige el ámbito principal de tu stack empresarial"
+      onNext={handleNext}
+    >
+      <div className="space-y-3">
+        {USE_CASES.map((uc) => {
+          const isSelected = selectedUseCase === uc.id;
+          return (
             <button
-              type="button"
-              onClick={handleTelegramTest}
-              disabled={telegramTestStatus === "testing"}
-              className="px-3 py-1 rounded border border-slate-500 hover:border-cyan-500 text-xs"
+              key={uc.id}
+              onClick={() => selectUseCase(uc.id)}
+              className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+                isSelected
+                  ? "border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/10"
+                  : "border-slate-600/60 hover:border-slate-500 bg-slate-800/40"
+              }`}
             >
-              {telegramTestStatus === "testing" ? "Probando..." : "Test Telegram token"}
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0">{uc.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold">{uc.label}</span>
+                    {isSelected && (
+                      <span className="px-1.5 py-0.5 text-xs rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                        Seleccionado
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-400 mb-2">{uc.desc}</p>
+                  {uc.agentNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {uc.agentNames.map((name) => (
+                        <span
+                          key={name}
+                          className={`px-2 py-0.5 text-xs rounded-full border ${
+                            isSelected
+                              ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
+                              : "bg-slate-700/60 text-slate-400 border-slate-600/50"
+                          }`}
+                        >
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </button>
-            {telegramTestStatus === "ok" && <span className="text-xs text-emerald-400">✅ {telegramTestMessage}</span>}
-            {telegramTestStatus === "error" && <span className="text-xs text-rose-400">❌ {telegramTestMessage}</span>}
-          </div>
-        </div>
+          );
+        })}
 
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3"><span className="text-2xl">🎮</span><span className="font-semibold">Discord</span></div>
-            <a href={DISCORD_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Abrir Developer Portal</a>
+        {/* Custom agent picker */}
+        {selectedUseCase === "custom" && (
+          <div className="mt-4 p-4 rounded-xl border border-slate-600/60 bg-slate-800/40 space-y-3 animate-fadeInUp">
+            <p className="text-sm font-medium text-slate-300">Selecciona los agentes que quieres activar:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {ALL_POSSIBLE_AGENTS.map((agent) => {
+                const checked = customAgents.includes(agent.id);
+                return (
+                  <button
+                    key={agent.id}
+                    onClick={() => toggleCustomAgent(agent.id)}
+                    className={`p-3 rounded-lg border text-left transition-all ${
+                      checked
+                        ? "border-cyan-500 bg-cyan-500/10"
+                        : "border-slate-600/60 hover:border-slate-500 bg-slate-700/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                          checked ? "border-cyan-500 bg-cyan-500" : "border-slate-500"
+                        }`}
+                      >
+                        {checked && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                          </svg>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{agent.name}</div>
+                        <div className="text-xs text-slate-400">{agent.role}</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {customAgents.length === 0 && (
+              <p className="text-xs text-amber-400">Selecciona al menos un agente para continuar.</p>
+            )}
           </div>
-          <input type="password" value={discordToken} onChange={(e) => { setDiscordToken(e.target.value); markTouched("channels"); }} placeholder="Bot token" className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none" />
-          {discordValid === true && <p className="text-xs text-emerald-400 mt-1">✅ Formato razonable</p>}
-          {discordValid === false && <p className="text-xs text-rose-400 mt-1">❌ Parece incompleto</p>}
-        </div>
+        )}
 
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3"><span className="text-2xl">💚</span><span className="font-semibold">WhatsApp</span></div>
-            <input type="checkbox" checked={enableWhatsApp} onChange={(e) => { setEnableWhatsApp(e.target.checked); markTouched("channels"); }} />
+        {/* Preview of active agents for non-custom */}
+        {selectedUseCase !== "custom" && (
+          <div className="mt-2 p-3 rounded-lg bg-slate-800/50 border border-slate-700/60">
+            <p className="text-xs text-slate-500 mb-2">Agentes que se activarán:</p>
+            <div className="space-y-1">
+              {selectedMeta.agentNames.map((name) => {
+                const agent = ALL_POSSIBLE_AGENTS.find(
+                  (a) => a.name.toLowerCase() === name.toLowerCase()
+                );
+                return (
+                  <div key={name} className="flex items-center gap-2 text-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
+                    <span className="font-medium text-slate-200">{name}</span>
+                    {agent && <span className="text-slate-500 text-xs">— {agent.role}</span>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <a href={WHATSAPP_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Guía de configuración WhatsApp</a>
-        </div>
-
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3"><span className="text-2xl">🔐</span><span className="font-semibold">Signal</span></div>
-            <input type="checkbox" checked={enableSignal} onChange={(e) => { setEnableSignal(e.target.checked); markTouched("channels"); }} />
-          </div>
-          <a href={SIGNAL_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Guía de configuración Signal</a>
-        </div>
+        )}
       </div>
     </WizardLayout>
   );
