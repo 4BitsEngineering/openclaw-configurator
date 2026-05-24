@@ -382,13 +382,25 @@ export function generateEnvFile(config: WizardConfig): string {
 
 export function generateInstallScript(): string {
   return `#!/usr/bin/env bash
-# OpenClaw stack installer — clones autonomous-agents + clawcrew + (opcional)
-# instala el equipo de agentes definido en overlay-config.json (vía el wrapper
-# configure-overlay.js, paquete autonomous-agents/work-console/scripts).
+# OpenClaw stack installer — modo "bundle por operador".
+#
+# Si este script está dentro de un bundle (junto a autonomous-agents/, clawcrew/
+# y ai-office/), COPIA los repos desde ahí (BUNDLE_MODE). Si no, intenta
+# git clone (LEGACY_MODE) — requiere repos públicos, hoy NO disponible.
+#
+# Pasos:
+#   1. Prerequisites (Node 18+, npm, git)
+#   2. Acquire repos (bundle copy o git clone)
+#   3. OpenClaw gateway (npm i -g openclaw si falta + bootstrap config)
+#   4. npm ci (bridge + overlay UI)
+#   5. Generate .env files (bridge + overlay coherentes)
+#   6. Configure overlay agents (configure-overlay.js apply)
+#   7. Start services (gateway + bridge + overlay UI) + abrir browser
 #
 # Usage:
 #   ./install.sh            # full install
 #   ./install.sh --dry-run  # preview what would happen
+#   ./install.sh --no-browser  # skip opening browser at the end
 set -euo pipefail
 
 GREEN='\\033[0;32m'; RED='\\033[0;31m'; YELLOW='\\033[1;33m'
@@ -400,8 +412,12 @@ info() { echo -e "\${CYAN}  →\${RESET} $*"; }
 hdr()  { echo -e "\\n\${BOLD}$*\${RESET}"; }
 
 DRY_RUN=false
-for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRY_RUN=true; done
-run() { $DRY_RUN && echo -e "\${YELLOW}  [dry-run]\${RESET} $*" || "$@"; }
+OPEN_BROWSER=true
+for arg in "$@"; do
+  [[ "\$arg" == "--dry-run" ]] && DRY_RUN=true
+  [[ "\$arg" == "--no-browser" ]] && OPEN_BROWSER=false
+done
+run() { \$DRY_RUN && echo -e "\${YELLOW}  [dry-run]\${RESET} \$*" || "\$@"; }
 
 echo -e "\${BOLD}"
 echo "╔══════════════════════════════════════════════════╗"
@@ -410,24 +426,47 @@ echo "╚═══════════════════════�
 echo -e "\${RESET}"
 $DRY_RUN && warn "DRY-RUN mode — no changes will be made\\n"
 
-REPO_URL="https://github.com/jotajota1302/autonomous-agents.git"
-CLAWCREW_REPO="https://github.com/jotajota1302/clawcrew.git"
+# Repos (LEGACY mode — requiere public repos, hoy no se usa)
+REPO_URL="https://github.com/4BitsEngineering/autonomous-agents.git"
+CLAWCREW_REPO="https://github.com/4BitsEngineering/clawcrew.git"
+AI_OFFICE_REPO="https://github.com/4BitsEngineering/ai-office.git"
+
+SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
 STACK_ROOT="\$HOME/openclaw-stack"
 INSTALL_DIR="\$STACK_ROOT/autonomous-agents"
 CLAWCREW_DIR="\$STACK_ROOT/clawcrew"
+AI_OFFICE_DIR="\$STACK_ROOT/ai-office"
 OVERLAYS_DIR="\$STACK_ROOT/overlays"
 WORK_CONSOLE="\$INSTALL_DIR/work-console"
-OPENCLAW_CONFIG="\$HOME/.openclaw/openclaw.json"
+OVERLAY_WEB_DIR="\$AI_OFFICE_DIR/web"
+LOG_DIR="\$STACK_ROOT/logs"
+PID_DIR="\$STACK_ROOT/pids"
+OPENCLAW_HOME="\$HOME/.openclaw"
+OPENCLAW_OVERLAY_DIR="\$OPENCLAW_HOME/ai-office"
+OPENCLAW_CONFIG="\$OPENCLAW_OVERLAY_DIR/openclaw.json"
 ENV_FILE="\$WORK_CONSOLE/.env"
-ENV_EXAMPLE="\$INSTALL_DIR/env.example"
-SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
+ENV_EXAMPLE_AI_OFFICE="\$INSTALL_DIR/env.example.ai-office"
 OVERLAY_CONFIG="\${OVERLAY_CONFIG:-\$SCRIPT_DIR/overlay-config.json}"
-BRIDGE_PORT=3700; UI_PORT=8080; GATEWAY_PORT=18789
+BRIDGE_PORT=3700; UI_PORT=8080; GATEWAY_PORT=18789; OVERLAY_UI_PORT=3001
 
-mkdir -p "\$STACK_ROOT" "\$OVERLAYS_DIR"
+mkdir -p "\$STACK_ROOT" "\$OVERLAYS_DIR" "\$LOG_DIR" "\$PID_DIR"
+
+# ── Detect BUNDLE_MODE ──────────────────────────────────────────────────────
+# Si junto al script viven los 3 repos, asumimos que estamos dentro de un
+# bundle pre-empaquetado por el operador (prepare-client-bundle.js). En ese
+# caso COPIAMOS desde ahí en vez de hacer git clone (que necesitaría repos
+# públicos y credenciales).
+BUNDLE_MODE=false
+if [ -d "\$SCRIPT_DIR/autonomous-agents/work-console" ] \\
+   && [ -d "\$SCRIPT_DIR/clawcrew/agents" ] \\
+   && [ -d "\$SCRIPT_DIR/ai-office/web" ]; then
+  BUNDLE_MODE=true
+fi
 
 # ── Step 1: Prerequisites ──────────────────────────────────────────────────────
-hdr "1/6  Checking prerequisites"
+hdr "1/7  Checking prerequisites"
+\$BUNDLE_MODE && ok "BUNDLE_MODE detected (sources at \$SCRIPT_DIR)" \\
+              || info "LEGACY_MODE — will try git clone from public repos"
 
 if ! command -v node &>/dev/null; then
   err "Node.js not found. Install Node.js 18+ from https://nodejs.org"; exit 1
@@ -444,37 +483,66 @@ ok "git \$(git --version | awk '{print \$3}')"
 
 JQ_AVAILABLE=false; command -v jq &>/dev/null && JQ_AVAILABLE=true
 
-# ── Step 2: Clone repos (autonomous-agents + clawcrew) ────────────────────────
-hdr "2/6  Repositories"
+# ── Step 2: Acquire repos (BUNDLE copy or LEGACY clone) ───────────────────────
+hdr "2/7  Repositories"
 
-if [ -d "\$INSTALL_DIR/.git" ]; then
-  ok "autonomous-agents already at \$INSTALL_DIR"
-  info "Pulling latest changes..."
-  run bash -c "cd '\$INSTALL_DIR' && git pull --ff-only"
-else
-  info "Cloning \$REPO_URL → \$INSTALL_DIR"
-  run git clone "\$REPO_URL" "\$INSTALL_DIR"
-  ok "Cloned autonomous-agents"
-fi
+acquire_repo() {
+  local name="\$1"
+  local src="\$2"
+  local dst="\$3"
+  local repo_url="\$4"
+  if [ -d "\$dst" ]; then
+    if \$BUNDLE_MODE; then
+      ok "\$name already at \$dst (skipping copy)"
+    elif [ -d "\$dst/.git" ]; then
+      info "Updating \$name from remote..."
+      run bash -c "cd '\$dst' && git pull --ff-only"
+    else
+      ok "\$name already at \$dst"
+    fi
+    return
+  fi
+  if \$BUNDLE_MODE; then
+    info "Copying \$name from bundle..."
+    run cp -R "\$src" "\$dst"
+    ok "\$name copied to \$dst"
+  else
+    info "Cloning \$name from \$repo_url..."
+    run git clone "\$repo_url" "\$dst" || {
+      err "Failed to clone \$name — repo may be private. Use BUNDLE_MODE."
+      exit 1
+    }
+    ok "\$name cloned to \$dst"
+  fi
+}
 
-if [ -d "\$CLAWCREW_DIR/.git" ]; then
-  ok "clawcrew already at \$CLAWCREW_DIR"
-  info "Pulling latest changes..."
-  run bash -c "cd '\$CLAWCREW_DIR' && git pull --ff-only"
-else
-  info "Cloning \$CLAWCREW_REPO → \$CLAWCREW_DIR"
-  run git clone "\$CLAWCREW_REPO" "\$CLAWCREW_DIR"
-  ok "Cloned clawcrew"
-fi
+acquire_repo "autonomous-agents" "\$SCRIPT_DIR/autonomous-agents" "\$INSTALL_DIR" "\$REPO_URL"
+acquire_repo "clawcrew"          "\$SCRIPT_DIR/clawcrew"          "\$CLAWCREW_DIR" "\$CLAWCREW_REPO"
+acquire_repo "ai-office"         "\$SCRIPT_DIR/ai-office"         "\$AI_OFFICE_DIR" "\$AI_OFFICE_REPO"
 
-# ── Step 3: Detect OpenClaw token ─────────────────────────────────────────────
-hdr "3/6  Detecting OpenClaw configuration"
+# ── Step 3: OpenClaw gateway (install if missing + bootstrap config) ──────────
+hdr "3/7  OpenClaw gateway"
 
 GATEWAY_TOKEN=""
 GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
 
+# 3.a — install openclaw global if missing
+if ! command -v openclaw &>/dev/null; then
+  info "openclaw CLI not in PATH — installing globally via npm..."
+  run npm install -g openclaw || {
+    err "npm install -g openclaw failed. Check npm prefix permissions."
+    err "Workaround: install Node via nvm so global packages don't need sudo."
+    exit 1
+  }
+  ok "openclaw installed: \$(openclaw --version 2>/dev/null || echo "(installed)")"
+else
+  ok "openclaw already in PATH (\$(openclaw --version 2>/dev/null || echo "version unknown"))"
+fi
+
+# 3.b — bootstrap overlay-specific openclaw.json (separate from HOME default)
+mkdir -p "\$OPENCLAW_OVERLAY_DIR"
 if [ -f "\$OPENCLAW_CONFIG" ]; then
-  ok "Found \$OPENCLAW_CONFIG"
+  ok "Found existing \$OPENCLAW_CONFIG"
   if \$JQ_AVAILABLE; then
     GATEWAY_TOKEN=\$(jq -r '.gateway.auth.token // ""' "\$OPENCLAW_CONFIG" 2>/dev/null || true)
     DETECTED_PORT=\$(jq -r '.gateway.port // 18789' "\$OPENCLAW_CONFIG" 2>/dev/null || echo "\$GATEWAY_PORT")
@@ -487,62 +555,117 @@ if [ -f "\$OPENCLAW_CONFIG" ]; then
       2>/dev/null || echo "\$GATEWAY_PORT")
   fi
   GATEWAY_PORT="\$DETECTED_PORT"
-  GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
-  [ -n "\$GATEWAY_TOKEN" ] \\
-    && ok "Gateway token detected (\${GATEWAY_TOKEN:0:8}...)" \\
-    || warn "Token not found in openclaw.json — fill GATEWAY_TOKEN manually in \$ENV_FILE"
 else
-  warn "~/.openclaw/openclaw.json not found — fill GATEWAY_TOKEN manually in \$ENV_FILE"
+  info "Bootstrapping new \$OPENCLAW_CONFIG with fresh token..."
+  GATEWAY_TOKEN=\$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")
+  if ! \$DRY_RUN; then
+    cat > "\$OPENCLAW_CONFIG" <<JSON
+{
+  "gateway": {
+    "port": \$GATEWAY_PORT,
+    "auth": { "token": "\$GATEWAY_TOKEN" },
+    "remote": { "token": "\$GATEWAY_TOKEN" }
+  },
+  "agents": { "list": [] },
+  "tools": {
+    "profile": "messaging"
+  }
+}
+JSON
+    ok "Created \$OPENCLAW_CONFIG"
+  fi
 fi
+GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
+[ -n "\$GATEWAY_TOKEN" ] && ok "Gateway token ready (\${GATEWAY_TOKEN:0:8}...)" \\
+                        || warn "Gateway token still empty — bridge auth will fail"
 
-# ── Step 4: npm ci + .env ──────────────────────────────────────────────────────
-hdr "4/6  Dependencies & environment"
+# ── Step 4: Dependencies (bridge + overlay UI) ────────────────────────────────
+hdr "4/7  Dependencies"
 
 [ -d "\$WORK_CONSOLE" ] || { err "work-console/ not found at \$WORK_CONSOLE"; exit 1; }
+[ -d "\$OVERLAY_WEB_DIR" ] || { err "ai-office/web/ not found at \$OVERLAY_WEB_DIR"; exit 1; }
 
+# 4.a — bridge dependencies
 if [ ! -d "\$WORK_CONSOLE/node_modules" ]; then
-  info "Running npm ci in work-console/"
+  info "Running npm ci in work-console/ (bridge)..."
   run bash -c "cd '\$WORK_CONSOLE' && npm ci"
-  ok "Dependencies installed"
+  ok "Bridge dependencies installed"
 else
-  ok "node_modules already present (skipping npm ci)"
+  ok "work-console/node_modules present (skipping npm ci)"
 fi
 
-if [ -f "\$ENV_FILE" ]; then
-  warn ".env already exists — skipping (delete it to regenerate)"
+# 4.b — overlay UI dependencies
+if [ ! -d "\$OVERLAY_WEB_DIR/node_modules" ]; then
+  info "Running npm ci in ai-office/web/ (overlay UI)... (this can take a few minutes)"
+  run bash -c "cd '\$OVERLAY_WEB_DIR' && npm ci"
+  ok "Overlay UI dependencies installed"
 else
-  if [ -f "\$ENV_EXAMPLE" ]; then
-    if \$DRY_RUN; then
-      info "[dry-run] Would create \$ENV_FILE from env.example"
-    else
-      cp "\$ENV_EXAMPLE" "\$ENV_FILE"
-      if [ -n "\$GATEWAY_TOKEN" ]; then
-        sed -i '' "s|^GATEWAY_TOKEN=.*|GATEWAY_TOKEN=\$GATEWAY_TOKEN|" "\$ENV_FILE" 2>/dev/null || \\
-        sed -i    "s|^GATEWAY_TOKEN=.*|GATEWAY_TOKEN=\$GATEWAY_TOKEN|" "\$ENV_FILE"
-      fi
-      sed -i '' "s|^GATEWAY_URL=.*|GATEWAY_URL=\$GATEWAY_URL|" "\$ENV_FILE" 2>/dev/null || \\
-      sed -i    "s|^GATEWAY_URL=.*|GATEWAY_URL=\$GATEWAY_URL|" "\$ENV_FILE"
-      ok "Created \$ENV_FILE"
-    fi
+  ok "ai-office/web/node_modules present (skipping npm ci)"
+fi
+
+# ── Step 5: Generate .env files (bridge + overlay coherent paths) ─────────────
+hdr "5/7  Environment files"
+
+if [ -f "\$ENV_FILE" ]; then
+  warn ".env already exists — skipping (delete \$ENV_FILE to regenerate)"
+else
+  if [ ! -f "\$ENV_EXAMPLE_AI_OFFICE" ]; then
+    err "\$ENV_EXAMPLE_AI_OFFICE not found — bundle missing env.example.ai-office"
+    exit 1
+  fi
+  if \$DRY_RUN; then
+    info "[dry-run] Would generate \$ENV_FILE from env.example.ai-office with resolved paths"
   else
-    if ! \$DRY_RUN; then
-      printf 'GATEWAY_TOKEN=%s\\nGATEWAY_URL=%s\\nBRIDGE_PORT=%s\\n' \\
-        "\$GATEWAY_TOKEN" "\$GATEWAY_URL" "\$BRIDGE_PORT" > "\$ENV_FILE"
-      ok "Created minimal \$ENV_FILE"
+    cp "\$ENV_EXAMPLE_AI_OFFICE" "\$ENV_FILE"
+    # Cross-platform sed (BSD on macOS needs '' after -i; GNU doesn't).
+    SED_INPLACE=(-i)
+    if [[ "\$OSTYPE" == "darwin"* ]]; then SED_INPLACE=(-i ''); fi
+    # Substitute paths absolutos del overlay
+    sed "\${SED_INPLACE[@]}" "s|/absolute/path/to/ai-office|\$AI_OFFICE_DIR|g" "\$ENV_FILE"
+    # Storage isolation paths
+    sed "\${SED_INPLACE[@]}" "s|~/.openclaw/ai-office|\$OPENCLAW_OVERLAY_DIR|g" "\$ENV_FILE"
+    # Gateway token + URL + ports
+    [ -n "\$GATEWAY_TOKEN" ] && sed "\${SED_INPLACE[@]}" "s|^GATEWAY_TOKEN=.*|GATEWAY_TOKEN=\$GATEWAY_TOKEN|" "\$ENV_FILE"
+    sed "\${SED_INPLACE[@]}" "s|^GATEWAY_URL=.*|GATEWAY_URL=\$GATEWAY_URL|" "\$ENV_FILE"
+    sed "\${SED_INPLACE[@]}" "s|^GATEWAY_WS_URL=.*|GATEWAY_WS_URL=ws://localhost:\$GATEWAY_PORT|" "\$ENV_FILE"
+    sed "\${SED_INPLACE[@]}" "s|^BRIDGE_PORT=.*|BRIDGE_PORT=\$BRIDGE_PORT|" "\$ENV_FILE"
+    # CORS / iframe ancestors al overlay UI port
+    if ! grep -q "^OVERLAY_HOSTS=" "\$ENV_FILE"; then
+      echo "" >> "\$ENV_FILE"
+      echo "# Auto-añadidos por install.sh (overlay UI en :\$OVERLAY_UI_PORT)" >> "\$ENV_FILE"
+      echo "OVERLAY_HOSTS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
+      echo "CORS_ORIGINS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
+      # XIAOMI_API_KEY=dummy — el gateway lo exige aunque no se use ese provider
+      echo "XIAOMI_API_KEY=dummy" >> "\$ENV_FILE"
+      echo "ELEVENLABS_API_KEY=dummy" >> "\$ENV_FILE"
     fi
+    ok "Generated \$ENV_FILE (paths resueltos: AI_OFFICE_DIR, OPENCLAW_CONFIG, etc.)"
   fi
 fi
 
-# ── Step 5: Install agents (overlay-config.json → configure-overlay.js) ───────
-hdr "5/6  Configure overlay agents"
+# .env.local del overlay UI (para que Next.js apunte al bridge)
+OVERLAY_ENV_LOCAL="\$OVERLAY_WEB_DIR/.env.local"
+if [ -f "\$OVERLAY_ENV_LOCAL" ]; then
+  warn "\$OVERLAY_ENV_LOCAL exists — skipping"
+else
+  if ! \$DRY_RUN; then
+    cat > "\$OVERLAY_ENV_LOCAL" <<ENVEOF
+# Generated by install.sh
+NEXT_PUBLIC_BRIDGE_URL=http://localhost:\$BRIDGE_PORT
+NEXT_PUBLIC_BRIDGE_WS_URL=ws://localhost:\$BRIDGE_PORT
+PORT=\$OVERLAY_UI_PORT
+ENVEOF
+    ok "Generated \$OVERLAY_ENV_LOCAL"
+  fi
+fi
+
+# ── Step 6: Install agents (overlay-config.json → configure-overlay.js) ───────
+hdr "6/7  Configure overlay agents"
 
 if [ ! -f "\$OVERLAY_CONFIG" ]; then
   warn "overlay-config.json not found at \$OVERLAY_CONFIG — skipping agent install"
   warn "(if you generated one, drop it next to install.sh or set OVERLAY_CONFIG env)"
 else
-  if ! \$JQ_AVAILABLE; then
-    info "jq not found — falling back to python for config inspection"
-  fi
   AGENT_COUNT=0
   if \$JQ_AVAILABLE; then
     AGENT_COUNT=\$(jq -r '.agents | length // 0' "\$OVERLAY_CONFIG" 2>/dev/null || echo 0)
@@ -552,44 +675,90 @@ else
   if [ "\$AGENT_COUNT" -eq 0 ]; then
     warn "overlay-config.json has 0 agents — skipping configure-overlay invocation"
   else
-    info "Found \$AGENT_COUNT agents in overlay-config.json"
-    OVERLAY_ABS="\$OVERLAYS_DIR/\$(\$JQ_AVAILABLE && jq -r '.overlay.name // "default"' "\$OVERLAY_CONFIG" || python3 -c "import json; print(json.load(open('\$OVERLAY_CONFIG'))['overlay'].get('name','default'))")"
-    OVERLAY_SLUG=\$(echo "\$OVERLAY_ABS" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
-    info "Installing agents into \$OVERLAYS_DIR (overlay path will be resolved by --overlay flag)"
+    info "Installing \$AGENT_COUNT agents into the LIVE overlay (\$AI_OFFICE_DIR)"
+    # Nota: instalamos AGENTES en el overlay vivo (ai-office), NO en una copia
+    # bajo overlays/. Eso asegura que agent-registry.json + workspaces nuevos
+    # se sumen al overlay que el UI sirve. El bridge .env apunta a ese dir.
     run bash -c "cd '\$WORK_CONSOLE' && node scripts/configure-overlay.js apply \\
       --config '\$OVERLAY_CONFIG' \\
       --library '\$CLAWCREW_DIR' \\
-      --overlay '\$OVERLAYS_DIR/overlay'"
-    ok "Agents configured in \$OVERLAYS_DIR/overlay"
-    info "Restart the bridge to pick up the new agent-registry"
+      --overlay '\$AI_OFFICE_DIR' \\
+      --openclaw-config '\$OPENCLAW_CONFIG' \\
+      --force"
+    ok "Agents installed into \$AI_OFFICE_DIR"
   fi
 fi
 
-# ── Step 6: Start services ─────────────────────────────────────────────────────
-hdr "6/6  Start services"
+# ── Step 7: Start services + open browser ─────────────────────────────────────
+hdr "7/7  Start services"
+
+wait_for_url() {
+  local url="\$1"; local label="\$2"; local tries="\${3:-20}"
+  info "Waiting for \$label..."
+  for i in \$(seq 1 "\$tries"); do
+    if curl -sf --max-time 2 "\$url" &>/dev/null; then
+      ok "\$label is up (\$url)"; return 0
+    fi
+    sleep 1
+  done
+  warn "\$label timed out — check \$LOG_DIR/\$(basename "\$url" | tr -d ':/.').log"
+  return 1
+}
+
+start_bg() {
+  local label="\$1"; shift
+  local log="\$LOG_DIR/\${label}.log"; local pid="\$PID_DIR/\${label}.pid"
+  if \$DRY_RUN; then
+    info "[dry-run] Would start \$label: \$*"
+    return
+  fi
+  nohup "\$@" >"\$log" 2>&1 &
+  echo \$! > "\$pid"
+  ok "Started \$label (pid \$(cat "\$pid"), log \$log)"
+}
 
 if \$DRY_RUN; then
-  info "[dry-run] Would prompt to start services"
+  info "[dry-run] Would start gateway + bridge + overlay UI and open browser"
 else
-  echo -ne "\${CYAN}  →\${RESET} Start Work Console now? [Y/n] "
-  read -r REPLY; REPLY="\${REPLY:-Y}"
-  if [[ "\$REPLY" =~ ^[Yy]\$ ]]; then
-    START_SCRIPT="\$WORK_CONSOLE/bin/start-all.sh"
-    if [ -f "\$START_SCRIPT" ]; then
-      bash "\$START_SCRIPT"
-      info "Waiting for API health check (http://localhost:\$BRIDGE_PORT/api/health)..."
-      for i in \$(seq 1 8); do
-        if curl -sf --max-time 2 "http://localhost:\$BRIDGE_PORT/api/health" &>/dev/null; then
-          ok "API is healthy at http://localhost:\$BRIDGE_PORT/api/health"; break
-        fi
-        sleep 1
-        [ "\$i" -eq 8 ] && warn "Health check timed out — check logs in work-console/.pids/"
-      done
-    else
-      warn "start-all.sh not found — try: cd \$WORK_CONSOLE && npm start"
-    fi
+  # 7.a — Gateway
+  if ! curl -sf --max-time 1 "http://localhost:\$GATEWAY_PORT/" &>/dev/null; then
+    start_bg gateway bash -c "OPENCLAW_CONFIG_PATH='\$OPENCLAW_CONFIG' XIAOMI_API_KEY=dummy openclaw gateway --port \$GATEWAY_PORT"
+    sleep 3
   else
-    info "Skipped. Start later: cd \$WORK_CONSOLE && ./bin/start-all.sh"
+    ok "Gateway already running on :\$GATEWAY_PORT"
+  fi
+
+  # 7.b — Bridge (source .env del overlay para que use AI_OFFICE_DIR)
+  if ! curl -sf --max-time 1 "http://localhost:\$BRIDGE_PORT/api/health" &>/dev/null; then
+    start_bg bridge bash -c "cd '\$WORK_CONSOLE' && set -a && source '\$ENV_FILE' && set +a && node bridge/server.js"
+    wait_for_url "http://localhost:\$BRIDGE_PORT/api/health" "Bridge API"
+  else
+    ok "Bridge already running on :\$BRIDGE_PORT"
+  fi
+
+  # 7.c — Overlay UI Next.js
+  if ! curl -sf --max-time 1 "http://localhost:\$OVERLAY_UI_PORT" &>/dev/null; then
+    # Build only if .next missing (build is slow, cliente lo agradece la 2ª vez)
+    if [ ! -d "\$OVERLAY_WEB_DIR/.next" ]; then
+      info "Building overlay UI (first time, takes 1-3 min)..."
+      run bash -c "cd '\$OVERLAY_WEB_DIR' && npm run build"
+    fi
+    start_bg overlay-ui bash -c "cd '\$OVERLAY_WEB_DIR' && PORT=\$OVERLAY_UI_PORT npm run start"
+    wait_for_url "http://localhost:\$OVERLAY_UI_PORT" "Overlay UI"
+  else
+    ok "Overlay UI already running on :\$OVERLAY_UI_PORT"
+  fi
+
+  # 7.d — Open browser
+  if \$OPEN_BROWSER; then
+    OVERLAY_URL="http://localhost:\$OVERLAY_UI_PORT"
+    info "Opening \$OVERLAY_URL in your browser..."
+    case "\$OSTYPE" in
+      linux*)        command -v xdg-open >/dev/null && xdg-open "\$OVERLAY_URL" &>/dev/null & ;;
+      darwin*)       open "\$OVERLAY_URL" ;;
+      msys*|cygwin*) start "" "\$OVERLAY_URL" ;;
+      *)             info "(could not detect OS for auto-open — visit \$OVERLAY_URL manually)" ;;
+    esac
   fi
 fi
 
@@ -598,12 +767,15 @@ echo -e "\${BOLD}╔════════════════════
 echo -e "\${BOLD}║   Installation complete                          ║\${RESET}"
 echo -e "\${BOLD}╚══════════════════════════════════════════════════╝\${RESET}"
 echo ""
-echo -e "  \${CYAN}UI:\${RESET}      http://localhost:\$UI_PORT"
-echo -e "  \${CYAN}API:\${RESET}     http://localhost:\$BRIDGE_PORT/api/health"
-echo -e "  \${CYAN}Gateway:\${RESET} \$GATEWAY_URL"
+echo -e "  \${CYAN}Overlay UI:\${RESET}     http://localhost:\$OVERLAY_UI_PORT  ← Open this"
+echo -e "  \${CYAN}Bridge API:\${RESET}     http://localhost:\$BRIDGE_PORT/api/health"
+echo -e "  \${CYAN}Work Console:\${RESET}   http://localhost:\$UI_PORT  (técnico, dev)"
+echo -e "  \${CYAN}Gateway:\${RESET}        \$GATEWAY_URL"
 echo ""
-echo -e "  \${CYAN}Start:\${RESET}   cd \$WORK_CONSOLE && ./bin/start-all.sh"
-echo -e "  \${CYAN}Stop:\${RESET}    cd \$WORK_CONSOLE && ./bin/stop-all.sh"
+echo -e "  \${CYAN}Logs:\${RESET}    \$LOG_DIR/"
+echo -e "  \${CYAN}PIDs:\${RESET}    \$PID_DIR/"
+echo -e "  \${CYAN}Stop:\${RESET}    kill \\\$(cat \$PID_DIR/*.pid)"
+echo -e "  \${CYAN}Restart:\${RESET} bash install.sh  (re-runs idempotently)"
 echo ""
 `;
 }
