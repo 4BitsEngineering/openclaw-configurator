@@ -455,7 +455,10 @@ CLAWCREW_REPO="https://github.com/4BitsEngineering/clawcrew.git"
 AI_OFFICE_REPO="https://github.com/4BitsEngineering/ai-office.git"
 
 SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
-STACK_ROOT="\$HOME/openclaw-stack"
+# Todas las rutas y puertos respetan env override para permitir instalaciones
+# paralelas (operator probando en su laptop con bridge real corriendo, dos
+# overlays en el mismo PC, etc.). Si no están en env, defaults sensatos.
+STACK_ROOT="\${STACK_ROOT:-\$HOME/openclaw-stack}"
 INSTALL_DIR="\$STACK_ROOT/autonomous-agents"
 CLAWCREW_DIR="\$STACK_ROOT/clawcrew"
 AI_OFFICE_DIR="\$STACK_ROOT/ai-office"
@@ -464,13 +467,16 @@ WORK_CONSOLE="\$INSTALL_DIR/work-console"
 OVERLAY_WEB_DIR="\$AI_OFFICE_DIR/web"
 LOG_DIR="\$STACK_ROOT/logs"
 PID_DIR="\$STACK_ROOT/pids"
-OPENCLAW_HOME="\$HOME/.openclaw"
-OPENCLAW_OVERLAY_DIR="\$OPENCLAW_HOME/ai-office"
+OPENCLAW_HOME="\${OPENCLAW_HOME:-\$HOME/.openclaw}"
+OPENCLAW_OVERLAY_DIR="\${OPENCLAW_OVERLAY_DIR:-\$OPENCLAW_HOME/ai-office}"
 OPENCLAW_CONFIG="\$OPENCLAW_OVERLAY_DIR/openclaw.json"
 ENV_FILE="\$WORK_CONSOLE/.env"
 ENV_EXAMPLE_AI_OFFICE="\$INSTALL_DIR/env.example.ai-office"
 OVERLAY_CONFIG="\${OVERLAY_CONFIG:-\$SCRIPT_DIR/overlay-config.json}"
-BRIDGE_PORT=3700; UI_PORT=8080; GATEWAY_PORT=18789; OVERLAY_UI_PORT=3001
+BRIDGE_PORT="\${BRIDGE_PORT:-3700}"
+UI_PORT="\${UI_PORT:-8080}"
+GATEWAY_PORT="\${GATEWAY_PORT:-18789}"
+OVERLAY_UI_PORT="\${OVERLAY_UI_PORT:-3001}"
 
 mkdir -p "\$STACK_ROOT" "\$OVERLAYS_DIR" "\$LOG_DIR" "\$PID_DIR"
 
@@ -630,14 +636,30 @@ else
   if ! \$DRY_RUN; then
     cat > "\$OPENCLAW_CONFIG" <<JSON
 {
+  "\$schema": "https://docs.openclaw.ai/schema/openclaw.json",
   "gateway": {
+    "mode": "local",
     "port": \$GATEWAY_PORT,
-    "auth": { "token": "\$GATEWAY_TOKEN" },
+    "auth": {
+      "mode": "token",
+      "token": "\$GATEWAY_TOKEN"
+    },
+    "controlUi": {
+      "allowInsecureAuth": true,
+      "dangerouslyDisableDeviceAuth": true
+    },
+    "reload": { "mode": "hybrid" },
     "remote": { "token": "\$GATEWAY_TOKEN" }
+  },
+  "discovery": {
+    "mdns": { "mode": "off" }
   },
   "agents": { "list": [] },
   "tools": {
     "profile": "messaging"
+  },
+  "channels": {
+    "slack": { "enabled": false }
   }
 }
 JSON
