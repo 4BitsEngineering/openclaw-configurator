@@ -14,6 +14,24 @@ import { WizardConfig } from "./wizard-context";
 // configure-overlay (que ya lo soporta).
 // ──────────────────────────────────────────────────────────────────────────────
 
+// Modelo default hardcodeado para todas las instalaciones generadas por el
+// configurator. Garantiza que el cliente abre el chat y los agentes pueden
+// responder de inmediato sin pasos manuales en el .env. Cuando el wizard
+// step-1 capture provider+modelo del operador, eliminar este literal y leer
+// del config.providers.
+//
+// !! REMOVE BEFORE PUBLIC RELEASE (junto con la key xiaomi en
+// generateInstallScript). Solo para demos managed-asistidas 24-may.
+const DEFAULT_MODEL_HARDCODED = "xiaomi/mimo-v2-pro";
+
+// !! REMOVE BEFORE PUBLIC RELEASE / cuando wizard step-1 capture la key real
+// del operador. Por ahora hardcoded para demos: el .env del cliente queda con
+// esta key directamente, sin que el operador tenga que editar a mano. Esta
+// key se subirá a GitHub cuando se commitee — riesgo asumido conscientemente
+// hasta que se cierre el flujo Capa 2 (wizard captura key + .env la inyecta
+// como `${XIAOMI_API_KEY}` substituido al generar).
+const DEMO_XIAOMI_API_KEY_HARDCODED = "sk-esbnditqmy4kcyyk1i12i2wi2nlxt3mkynwa2pp69gzg7zpr";
+
 export function generateOverlayConfig(config: WizardConfig): string {
   const team = config.clawcrewTeam;
   // Defensivo: si el step-2 no se completó (operator saltó pasos), emitimos
@@ -61,6 +79,11 @@ export function generateOverlayConfig(config: WizardConfig): string {
     },
     library: { path: "./clawcrew" },
     openclawConfig: "./openclaw.json",
+    // configure-overlay.js lee este campo top-level y lo propaga a cada
+    // agent-cli install como --default-model. Hardcoded por ahora (demos
+    // managed); cuando el wizard step-1 capture provider+modelo del operador
+    // (Capa 2), esto leerá de cfg.providers.<provider>.model.
+    defaultModel: DEFAULT_MODEL_HARDCODED,
     agents: agentsBlock,
   };
 
@@ -451,6 +474,12 @@ BRIDGE_PORT=3700; UI_PORT=8080; GATEWAY_PORT=18789; OVERLAY_UI_PORT=3001
 
 mkdir -p "\$STACK_ROOT" "\$OVERLAYS_DIR" "\$LOG_DIR" "\$PID_DIR"
 
+# !! Hardcoded demo key (REMOVER cuando wizard step-1 capture providers).
+# Se inyecta tanto en el .env (bridge) como inline al arrancar el gateway
+# para que las instalaciones managed-asistidas arranquen vivas con un modelo
+# Xiaomi MiMo funcional sin intervención manual del cliente.
+XIAOMI_API_KEY_DEMO="${DEMO_XIAOMI_API_KEY_HARDCODED}"
+
 # ── Detect BUNDLE_MODE ──────────────────────────────────────────────────────
 # Si junto al script viven los 3 repos, asumimos que estamos dentro de un
 # bundle pre-empaquetado por el operador (prepare-client-bundle.js). En ese
@@ -482,6 +511,49 @@ command -v git &>/dev/null || { err "git not found — https://git-scm.com"; exi
 ok "git \$(git --version | awk '{print \$3}')"
 
 JQ_AVAILABLE=false; command -v jq &>/dev/null && JQ_AVAILABLE=true
+
+# JSON helpers — node -e como fallback (Node ya es prereq, evitamos depender
+# de jq o python3 que en Windows típicos NO están).
+#
+# Truco crítico: en MSYS/Git-Bash los paths POSIX (/c/Users/X) Node los
+# interpreta como C:\c\Users\X (busca un dir literal "c" en el cwd). Hay que
+# normalizar a Windows mixed-mode (C:/Users/X) con cygpath -m. Y pasar los
+# args via argv (no interpolados en el string JS) para no romper con
+# backslashes que Node lee como escapes.
+_norm_path() {
+  local p="\$1"
+  if command -v cygpath &>/dev/null; then
+    cygpath -m "\$p" 2>/dev/null || echo "\$p"
+  else
+    echo "\$p"
+  fi
+}
+json_read() {
+  local file
+  file=\$(_norm_path "\$1")
+  local pathexpr="\$2"   # notación dot: gateway.auth.token
+  node -e 'try{const d=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));const parts=process.argv[2].split(".");let v=d;for(const p of parts)v=v?v[p]:undefined;process.stdout.write(v==null?"":String(v));}catch(e){process.exit(1);}' "\$file" "\$pathexpr" 2>/dev/null || echo ""
+}
+json_array_length() {
+  local file
+  file=\$(_norm_path "\$1")
+  local pathexpr="\$2"
+  node -e 'try{const d=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));const parts=process.argv[2].split(".");let v=d;for(const p of parts)v=v?v[p]:undefined;process.stdout.write(String(Array.isArray(v)?v.length:0));}catch(e){process.stdout.write("0");}' "\$file" "\$pathexpr" 2>/dev/null || echo "0"
+}
+
+# Dry-run-aware directory check. En dry-run, si el dir no existe asumimos
+# que un paso previo lo crearía y warneamos sin abortar. En run real, error
+# fatal con código 1.
+require_dir() {
+  local d="\$1"; local hint="\$2"
+  if [ -d "\$d" ]; then return 0; fi
+  if \$DRY_RUN; then
+    warn "\$hint not present yet (would be created by an earlier step in real run) — skipping deeper checks"
+    return 1
+  fi
+  err "\$hint not found: \$d"
+  exit 1
+}
 
 # ── Step 2: Acquire repos (BUNDLE copy or LEGACY clone) ───────────────────────
 hdr "2/7  Repositories"
@@ -529,32 +601,29 @@ GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
 # 3.a — install openclaw global if missing
 if ! command -v openclaw &>/dev/null; then
   info "openclaw CLI not in PATH — installing globally via npm..."
-  run npm install -g openclaw || {
-    err "npm install -g openclaw failed. Check npm prefix permissions."
-    err "Workaround: install Node via nvm so global packages don't need sudo."
-    exit 1
-  }
-  ok "openclaw installed: \$(openclaw --version 2>/dev/null || echo "(installed)")"
+  if \$DRY_RUN; then
+    info "[dry-run] would run: npm install -g openclaw"
+  else
+    npm install -g openclaw || {
+      err "npm install -g openclaw failed. Check npm prefix permissions."
+      err "Workaround: install Node via nvm so global packages don't need sudo."
+      exit 1
+    }
+    ok "openclaw installed: \$(openclaw --version 2>/dev/null || echo "(installed)")"
+  fi
 else
   ok "openclaw already in PATH (\$(openclaw --version 2>/dev/null || echo "version unknown"))"
 fi
 
 # 3.b — bootstrap overlay-specific openclaw.json (separate from HOME default)
-mkdir -p "\$OPENCLAW_OVERLAY_DIR"
+\$DRY_RUN || mkdir -p "\$OPENCLAW_OVERLAY_DIR"
 if [ -f "\$OPENCLAW_CONFIG" ]; then
   ok "Found existing \$OPENCLAW_CONFIG"
-  if \$JQ_AVAILABLE; then
-    GATEWAY_TOKEN=\$(jq -r '.gateway.auth.token // ""' "\$OPENCLAW_CONFIG" 2>/dev/null || true)
-    DETECTED_PORT=\$(jq -r '.gateway.port // 18789' "\$OPENCLAW_CONFIG" 2>/dev/null || echo "\$GATEWAY_PORT")
-  else
-    GATEWAY_TOKEN=\$(python3 -c \\
-      "import json; d=json.load(open('\$OPENCLAW_CONFIG')); print(d.get('gateway',{}).get('auth',{}).get('token',''))" \\
-      2>/dev/null || true)
-    DETECTED_PORT=\$(python3 -c \\
-      "import json; d=json.load(open('\$OPENCLAW_CONFIG')); print(d.get('gateway',{}).get('port',18789))" \\
-      2>/dev/null || echo "\$GATEWAY_PORT")
-  fi
-  GATEWAY_PORT="\$DETECTED_PORT"
+  # Usamos node -e (Node es prereq); evitamos depender de jq/python3 que
+  # en Windows estándar no están instalados.
+  GATEWAY_TOKEN=\$(json_read "\$OPENCLAW_CONFIG" "gateway.auth.token")
+  DETECTED_PORT=\$(json_read "\$OPENCLAW_CONFIG" "gateway.port")
+  [ -n "\$DETECTED_PORT" ] && GATEWAY_PORT="\$DETECTED_PORT"
 else
   info "Bootstrapping new \$OPENCLAW_CONFIG with fresh token..."
   GATEWAY_TOKEN=\$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")
@@ -573,6 +642,8 @@ else
 }
 JSON
     ok "Created \$OPENCLAW_CONFIG"
+  else
+    info "[dry-run] would create \$OPENCLAW_CONFIG with fresh token"
   fi
 fi
 GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
@@ -582,25 +653,26 @@ GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
 # ── Step 4: Dependencies (bridge + overlay UI) ────────────────────────────────
 hdr "4/7  Dependencies"
 
-[ -d "\$WORK_CONSOLE" ] || { err "work-console/ not found at \$WORK_CONSOLE"; exit 1; }
-[ -d "\$OVERLAY_WEB_DIR" ] || { err "ai-office/web/ not found at \$OVERLAY_WEB_DIR"; exit 1; }
-
 # 4.a — bridge dependencies
-if [ ! -d "\$WORK_CONSOLE/node_modules" ]; then
-  info "Running npm ci in work-console/ (bridge)..."
-  run bash -c "cd '\$WORK_CONSOLE' && npm ci"
-  ok "Bridge dependencies installed"
-else
-  ok "work-console/node_modules present (skipping npm ci)"
+if require_dir "\$WORK_CONSOLE" "work-console/"; then
+  if [ ! -d "\$WORK_CONSOLE/node_modules" ]; then
+    info "Running npm ci in work-console/ (bridge)..."
+    run bash -c "cd '\$WORK_CONSOLE' && npm ci"
+    \$DRY_RUN || ok "Bridge dependencies installed"
+  else
+    ok "work-console/node_modules present (skipping npm ci)"
+  fi
 fi
 
 # 4.b — overlay UI dependencies
-if [ ! -d "\$OVERLAY_WEB_DIR/node_modules" ]; then
-  info "Running npm ci in ai-office/web/ (overlay UI)... (this can take a few minutes)"
-  run bash -c "cd '\$OVERLAY_WEB_DIR' && npm ci"
-  ok "Overlay UI dependencies installed"
-else
-  ok "ai-office/web/node_modules present (skipping npm ci)"
+if require_dir "\$OVERLAY_WEB_DIR" "ai-office/web/"; then
+  if [ ! -d "\$OVERLAY_WEB_DIR/node_modules" ]; then
+    info "Running npm ci in ai-office/web/ (overlay UI)... (this can take a few minutes)"
+    run bash -c "cd '\$OVERLAY_WEB_DIR' && npm ci"
+    \$DRY_RUN || ok "Overlay UI dependencies installed"
+  else
+    ok "ai-office/web/node_modules present (skipping npm ci)"
+  fi
 fi
 
 # ── Step 5: Generate .env files (bridge + overlay coherent paths) ─────────────
@@ -610,8 +682,12 @@ if [ -f "\$ENV_FILE" ]; then
   warn ".env already exists — skipping (delete \$ENV_FILE to regenerate)"
 else
   if [ ! -f "\$ENV_EXAMPLE_AI_OFFICE" ]; then
-    err "\$ENV_EXAMPLE_AI_OFFICE not found — bundle missing env.example.ai-office"
-    exit 1
+    if \$DRY_RUN; then
+      warn "[dry-run] env.example.ai-office no presente aún (would be in INSTALL_DIR after step 2)"
+    else
+      err "\$ENV_EXAMPLE_AI_OFFICE not found — bundle missing env.example.ai-office"
+      exit 1
+    fi
   fi
   if \$DRY_RUN; then
     info "[dry-run] Would generate \$ENV_FILE from env.example.ai-office with resolved paths"
@@ -635,8 +711,10 @@ else
       echo "# Auto-añadidos por install.sh (overlay UI en :\$OVERLAY_UI_PORT)" >> "\$ENV_FILE"
       echo "OVERLAY_HOSTS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
       echo "CORS_ORIGINS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
-      # XIAOMI_API_KEY=dummy — el gateway lo exige aunque no se use ese provider
-      echo "XIAOMI_API_KEY=dummy" >> "\$ENV_FILE"
+      # XIAOMI_API_KEY hardcoded (variable XIAOMI_API_KEY_DEMO al inicio del
+      # script; ver constante DEMO_XIAOMI_API_KEY_HARDCODED en lib/generators.ts
+      # del configurator — REMOVER cuando wizard step-1 capture providers).
+      echo "XIAOMI_API_KEY=\$XIAOMI_API_KEY_DEMO" >> "\$ENV_FILE"
       echo "ELEVENLABS_API_KEY=dummy" >> "\$ENV_FILE"
     fi
     ok "Generated \$ENV_FILE (paths resueltos: AI_OFFICE_DIR, OPENCLAW_CONFIG, etc.)"
@@ -666,12 +744,7 @@ if [ ! -f "\$OVERLAY_CONFIG" ]; then
   warn "overlay-config.json not found at \$OVERLAY_CONFIG — skipping agent install"
   warn "(if you generated one, drop it next to install.sh or set OVERLAY_CONFIG env)"
 else
-  AGENT_COUNT=0
-  if \$JQ_AVAILABLE; then
-    AGENT_COUNT=\$(jq -r '.agents | length // 0' "\$OVERLAY_CONFIG" 2>/dev/null || echo 0)
-  else
-    AGENT_COUNT=\$(python3 -c "import json; d=json.load(open('\$OVERLAY_CONFIG')); print(len(d.get('agents') or []))" 2>/dev/null || echo 0)
-  fi
+  AGENT_COUNT=\$(json_array_length "\$OVERLAY_CONFIG" "agents")
   if [ "\$AGENT_COUNT" -eq 0 ]; then
     warn "overlay-config.json has 0 agents — skipping configure-overlay invocation"
   else
@@ -722,7 +795,7 @@ if \$DRY_RUN; then
 else
   # 7.a — Gateway
   if ! curl -sf --max-time 1 "http://localhost:\$GATEWAY_PORT/" &>/dev/null; then
-    start_bg gateway bash -c "OPENCLAW_CONFIG_PATH='\$OPENCLAW_CONFIG' XIAOMI_API_KEY=dummy openclaw gateway --port \$GATEWAY_PORT"
+    start_bg gateway bash -c "OPENCLAW_CONFIG_PATH='\$OPENCLAW_CONFIG' XIAOMI_API_KEY='\$XIAOMI_API_KEY_DEMO' openclaw gateway --port \$GATEWAY_PORT"
     sleep 3
   else
     ok "Gateway already running on :\$GATEWAY_PORT"
