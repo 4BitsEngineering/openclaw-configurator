@@ -4,7 +4,14 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export type TemplateType = "personal" | "developer" | "business" | "custom";
 
-type TouchedKey = "channels" | "security" | "skills" | "personality" | "useCase" | "guardClaw";
+type TouchedKey =
+  | "channels"
+  | "security"
+  | "skills"
+  | "personality"
+  | "useCase"
+  | "guardClaw"
+  | "clawcrewTeam";
 
 export interface AxetProviderConfig {
   axetEnabled: boolean;
@@ -32,6 +39,344 @@ export interface AgentDefinition {
 
 export type DataSensitivity = "S1" | "S2" | "S3";
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Clawcrew team — el wizard "sector → equipo → identidades" que reemplaza el
+// useCase legacy en el step-2. Los 15 roles atómicos viven en la library
+// clawcrew (../clawcrew/agents/<role>/). El install.sh del Step-9 invoca
+// configure-overlay.js (autonomous-agents/scripts) con un overlay-config.json
+// derivado de este bloque para instalar los roles seleccionados en un overlay
+// fresco.
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type ClawcrewSector =
+  | "asesoria"
+  | "ecommerce"
+  | "agencia"
+  | "clinica"
+  | "inmobiliaria"
+  | "general"
+  | "custom";
+
+export type ClawcrewVoiceKind = "male" | "female" | "neutral" | null;
+
+export interface ClawcrewVoice {
+  kind: ClawcrewVoiceKind;
+  elevenlabsId?: string | null;
+}
+
+// 1:1 con el shape del bloque agents[*] del overlay-config.json que consume
+// scripts/configure-overlay.js (ver header del wrapper). Mantener alineado.
+export interface ClawcrewAgentSelection {
+  agent: string;          // id del rol en la library (executive, outbound-sdr, …)
+  enabled: boolean;       // si false, NO se incluirá en el overlay-config generado
+  slug: string;           // {prefix}-<slug>-v1 — runtime agentId final
+  displayName: string;    // "Elena", "Diego", …
+  shortName?: string;     // default = displayName
+  icon: string;           // emoji avatar
+  color?: string | null;  // hex
+  voice?: ClawcrewVoice;
+  workingVerb?: string;   // "ordenando tu día"
+}
+
+export interface ClawcrewPlanMode {
+  enabled: boolean;
+  uiVisible: boolean;
+  autoSuggest: boolean;
+  plannerAgentId: string | null;
+  fallbackPlanFirst: boolean;
+}
+
+export interface ClawcrewTeamConfig {
+  sector: ClawcrewSector;
+  prefix: string;                       // prefijo del overlay: {prefix}-<slug>-v1
+  overlayName: string;                  // human label ("Mi Despacho Acme")
+  agents: ClawcrewAgentSelection[];
+  planMode?: ClawcrewPlanMode;
+}
+
+// Metadata de los 15 roles atómicos de clawcrew. Los `defaults` se usan como
+// punto de partida cuando el operator añade un rol al equipo (puede sobre-
+// escribir desde el step-2 UI). Mantener `agent` (id) alineado 1:1 con
+// clawcrew/agents/<dir>/manifest.json:id.
+export interface ClawcrewRoleSpec {
+  agent: string;          // = directory name in clawcrew/agents/
+  category: "ai-office" | "marketing" | "content" | "ops";
+  description: string;    // 1 frase, qué hace
+  defaultSlug: string;    // slug por defecto si no hay override
+  defaultDisplayName: string;
+  defaultIcon: string;
+  defaultColor: string | null;
+  defaultVoiceKind: ClawcrewVoiceKind;
+  defaultWorkingVerb: string;
+}
+
+export const CLAWCREW_ROLES: Record<string, ClawcrewRoleSpec> = {
+  "executive": {
+    agent: "executive",
+    category: "ai-office",
+    description: "Asistente ejecutiva. Inbox, agenda, drafts. Nunca envía sin aprobación.",
+    defaultSlug: "assistant",
+    defaultDisplayName: "Asistente",
+    defaultIcon: "📋",
+    defaultColor: "#4F6D9E",
+    defaultVoiceKind: "female",
+    defaultWorkingVerb: "ordenando tu día",
+  },
+  "outbound-sdr": {
+    agent: "outbound-sdr",
+    category: "ai-office",
+    description: "Desarrollo de negocio. Leads, cold email, follow-ups.",
+    defaultSlug: "sdr",
+    defaultDisplayName: "SDR",
+    defaultIcon: "🎯",
+    defaultColor: "#10B981",
+    defaultVoiceKind: "male",
+    defaultWorkingVerb: "buscando oportunidades",
+  },
+  "community": {
+    agent: "community",
+    category: "ai-office",
+    description: "Community manager. Posts proactivos, calendario editorial.",
+    defaultSlug: "community",
+    defaultDisplayName: "Community",
+    defaultIcon: "✨",
+    defaultColor: "#EC4899",
+    defaultVoiceKind: "female",
+    defaultWorkingVerb: "creando contenido",
+  },
+  "seo-writer": {
+    agent: "seo-writer",
+    category: "ai-office",
+    description: "Redactor SEO. Briefs y blog posts en Markdown.",
+    defaultSlug: "writer",
+    defaultDisplayName: "SEO Writer",
+    defaultIcon: "✍️",
+    defaultColor: "#8B5CF6",
+    defaultVoiceKind: "female",
+    defaultWorkingVerb: "investigando keywords",
+  },
+  "legal-light": {
+    agent: "legal-light",
+    category: "ai-office",
+    description: "Asesoría legal-light. Contratos, RGPD, revisión de docs.",
+    defaultSlug: "paralegal",
+    defaultDisplayName: "Paralegal",
+    defaultIcon: "⚖️",
+    defaultColor: "#6B7280",
+    defaultVoiceKind: "female",
+    defaultWorkingVerb: "revisando documento",
+  },
+  "copywriter": {
+    agent: "copywriter",
+    category: "content",
+    description: "Copywriting. Captions, hooks, guiones, hashtags.",
+    defaultSlug: "copy",
+    defaultDisplayName: "Copy",
+    defaultIcon: "✍️",
+    defaultColor: "#8B5CF6",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "redactando",
+  },
+  "content-strategist": {
+    agent: "content-strategist",
+    category: "content",
+    description: "Estratega editorial. Calendario, audiencias, tendencias.",
+    defaultSlug: "strategy",
+    defaultDisplayName: "Content Strategy",
+    defaultIcon: "📊",
+    defaultColor: "#3B82F6",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "planificando contenido",
+  },
+  "visual-director": {
+    agent: "visual-director",
+    category: "content",
+    description: "Dirección de arte. Prompts MJ/SD, moodboards, paletas.",
+    defaultSlug: "visual",
+    defaultDisplayName: "Visual",
+    defaultIcon: "🎨",
+    defaultColor: "#EC4899",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "diseñando",
+  },
+  "video-director": {
+    agent: "video-director",
+    category: "content",
+    description: "Realización. Storyboards reels, prompts Runway/Sora.",
+    defaultSlug: "video",
+    defaultDisplayName: "Video",
+    defaultIcon: "🎬",
+    defaultColor: "#EF4444",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "produciendo video",
+  },
+  "community-engagement": {
+    agent: "community-engagement",
+    category: "content",
+    description: "Community reactivo. DMs, comentarios, sentiment.",
+    defaultSlug: "engagement",
+    defaultDisplayName: "Engagement",
+    defaultIcon: "💬",
+    defaultColor: "#EC4899",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "respondiendo comunidad",
+  },
+  "marketing-strategist": {
+    agent: "marketing-strategist",
+    category: "marketing",
+    description: "Estratega marketing. Plan, GTM, allocation, KPIs.",
+    defaultSlug: "mkt-strategy",
+    defaultDisplayName: "Marketing Strategy",
+    defaultIcon: "📈",
+    defaultColor: "#3B82F6",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "definiendo estrategia",
+  },
+  "paid-media": {
+    agent: "paid-media",
+    category: "marketing",
+    description: "Performance. Meta/Google/LinkedIn/TikTok ads.",
+    defaultSlug: "paid",
+    defaultDisplayName: "Paid Media",
+    defaultIcon: "💰",
+    defaultColor: "#10B981",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "optimizando campañas",
+  },
+  "seo-strategist": {
+    agent: "seo-strategist",
+    category: "marketing",
+    description: "SEO strategist. Audit técnica, keyword research, link building.",
+    defaultSlug: "seo",
+    defaultDisplayName: "SEO Strategy",
+    defaultIcon: "🔍",
+    defaultColor: "#8B5CF6",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "auditando posicionamiento",
+  },
+  "analytics-cro": {
+    agent: "analytics-cro",
+    category: "marketing",
+    description: "Analítica + CRO. Dashboards GA4, atribución, A/B tests.",
+    defaultSlug: "analytics",
+    defaultDisplayName: "Analytics",
+    defaultIcon: "📉",
+    defaultColor: "#06B6D4",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "midiendo conversiones",
+  },
+  "crm-email": {
+    agent: "crm-email",
+    category: "marketing",
+    description: "CRM. Workflows email, segmentación, lifecycle, lead scoring.",
+    defaultSlug: "crm",
+    defaultDisplayName: "CRM",
+    defaultIcon: "📧",
+    defaultColor: "#F59E0B",
+    defaultVoiceKind: null,
+    defaultWorkingVerb: "activando lifecycle",
+  },
+};
+
+// Templates por vertical — alineados con clawhub office-templates para que el
+// wizard local proponga el mismo equipo "razonable" que el operador managed
+// vería en clawhub. El operator puede tocar todo en el step-2 UI.
+export interface ClawcrewSectorTemplate {
+  label: string;
+  emoji: string;
+  description: string;
+  agentIds: string[];     // ids del CLAWCREW_ROLES
+  suggestedPrefix: string;
+  suggestedOverlayName: string;
+}
+
+export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = {
+  asesoria: {
+    label: "Asesoría / Despacho",
+    emoji: "📁",
+    description: "Asesoría fiscal, laboral, contable o despacho jurídico.",
+    agentIds: ["executive", "seo-writer", "legal-light"],
+    suggestedPrefix: "asesoria",
+    suggestedOverlayName: "Mi Despacho",
+  },
+  ecommerce: {
+    label: "E-commerce",
+    emoji: "🛒",
+    description: "Tienda online — atención, contenido y SEO de producto.",
+    agentIds: ["executive", "community", "seo-writer"],
+    suggestedPrefix: "shop",
+    suggestedOverlayName: "Mi Tienda",
+  },
+  agencia: {
+    label: "Agencia",
+    emoji: "🏢",
+    description: "Agencia digital — operations + sales + content + SEO.",
+    agentIds: ["executive", "outbound-sdr", "community", "seo-writer"],
+    suggestedPrefix: "agency",
+    suggestedOverlayName: "Mi Agencia",
+  },
+  clinica: {
+    label: "Clínica / Consulta",
+    emoji: "🏥",
+    description: "Clínica privada, consulta — agenda, contenido, captación.",
+    agentIds: ["executive", "community", "seo-writer"],
+    suggestedPrefix: "clinic",
+    suggestedOverlayName: "Mi Clínica",
+  },
+  inmobiliaria: {
+    label: "Inmobiliaria",
+    emoji: "🏘️",
+    description: "Inmobiliaria — prospección, redes, legal de contratos.",
+    agentIds: ["executive", "outbound-sdr", "community", "legal-light"],
+    suggestedPrefix: "estate",
+    suggestedOverlayName: "Mi Inmobiliaria",
+  },
+  general: {
+    label: "General (PYME)",
+    emoji: "🤖",
+    description: "Pack genérico — los 5 roles core ai-office.",
+    agentIds: ["executive", "outbound-sdr", "community", "seo-writer", "legal-light"],
+    suggestedPrefix: "office",
+    suggestedOverlayName: "Mi Oficina",
+  },
+  custom: {
+    label: "Custom",
+    emoji: "🔧",
+    description: "Empiezo de cero — elijo los 15 roles disponibles a mano.",
+    agentIds: [],
+    suggestedPrefix: "custom",
+    suggestedOverlayName: "Mi Overlay",
+  },
+};
+
+// Construye un ClawcrewAgentSelection a partir de un id de role + el prefix
+// del overlay. Genera identidades default coherentes que el operator puede
+// modificar después desde el step-2 UI.
+export function buildAgentSelectionFromRole(
+  roleId: string,
+  enabled = true,
+): ClawcrewAgentSelection {
+  const spec = CLAWCREW_ROLES[roleId];
+  if (!spec) {
+    // Fallback defensivo — no debería pasar (UI valida contra CLAWCREW_ROLES).
+    return {
+      agent: roleId, enabled, slug: roleId, displayName: roleId, icon: "🤖",
+      color: null, voice: { kind: null }, workingVerb: "",
+    };
+  }
+  return {
+    agent: spec.agent,
+    enabled,
+    slug: spec.defaultSlug,
+    displayName: spec.defaultDisplayName,
+    shortName: spec.defaultDisplayName,
+    icon: spec.defaultIcon,
+    color: spec.defaultColor,
+    voice: { kind: spec.defaultVoiceKind, elevenlabsId: null },
+    workingVerb: spec.defaultWorkingVerb,
+  };
+}
+
 export interface WizardConfig {
   providers: {
     anthropic?: { apiKey?: string; sessionToken?: string };
@@ -44,6 +389,10 @@ export interface WizardConfig {
     type: UseCaseType;
     agents: AgentDefinition[];
   };
+  // Nuevo bloque del wizard sector→equipo→identidades. Drives the
+  // overlay-config.json generation in Step-9. Opcional para no romper la
+  // hidratación inicial del config en componentes que no lo conocen.
+  clawcrewTeam?: ClawcrewTeamConfig;
   guardClaw: {
     sensitivity: DataSensitivity;
   };
@@ -117,13 +466,27 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     personality: false,
     useCase: false,
     guardClaw: false,
+    clawcrewTeam: false,
   });
+  // Pre-poblamos clawcrewTeam con el template "general" (5 roles core ai-office)
+  // para que un usuario que aterriza en step-2 ya vea un equipo sugerido en
+  // lugar de un selector vacío. El step-2 UI le deja cambiar de sector, añadir
+  // o quitar roles y editar identidades. Si el sector pasa a "custom" el
+  // operator empieza de cero (agents = []).
+  const generalTpl = SECTOR_TEMPLATES.general;
+  const defaultClawcrewTeam: ClawcrewTeamConfig = {
+    sector: "general",
+    prefix: generalTpl.suggestedPrefix,
+    overlayName: generalTpl.suggestedOverlayName,
+    agents: generalTpl.agentIds.map((id) => buildAgentSelectionFromRole(id, true)),
+  };
   const [config, setConfig] = useState<WizardConfig>({
     providers: {},
     useCase: {
       type: "software-dev",
       agents: ALL_AGENTS["software-dev"],
     },
+    clawcrewTeam: defaultClawcrewTeam,
     guardClaw: {
       sensitivity: "S1",
     },

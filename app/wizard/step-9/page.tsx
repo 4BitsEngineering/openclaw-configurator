@@ -8,6 +8,7 @@ import {
   generateAgentsConfig,
   generateBridgeConfig,
   generateGuardClawConfig,
+  generateOverlayConfig,
 } from "@/lib/generators";
 
 export default function Step9() {
@@ -23,6 +24,11 @@ export default function Step9() {
     URL.revokeObjectURL(url);
   };
 
+  // overlay-config.json sólo cuenta si el operator pasó por el step-2 y eligió
+  // al menos 1 agente. Si está vacío seguimos generándolo pero con shape
+  // mínimo — el install.sh detecta agents=[] y salta el invoke a configure-overlay.
+  const teamHasAgents = !!(config.clawcrewTeam && config.clawcrewTeam.agents.filter((a) => a.enabled).length > 0);
+
   const downloadAllFiles = () => {
     downloadFile("openclaw.yaml", generateConfigYAML(config));
     downloadFile("agents-config.yaml", generateAgentsConfig(config));
@@ -30,15 +36,24 @@ export default function Step9() {
     downloadFile("guardclaw-config.yaml", generateGuardClawConfig(config));
     downloadFile(".env", generateEnvFile(config));
     downloadFile("install.sh", generateInstallScript());
+    downloadFile("overlay-config.json", generateOverlayConfig(config));
   };
 
-  const FILES: { name: string; emoji: string; generator: () => string }[] = [
+  const FILES: { name: string; emoji: string; generator: () => string; subtle?: string }[] = [
     { name: "openclaw.yaml", emoji: "📄", generator: () => generateConfigYAML(config) },
     { name: "agents-config.yaml", emoji: "🤖", generator: () => generateAgentsConfig(config) },
     { name: "bridge-config.yaml", emoji: "🌉", generator: () => generateBridgeConfig(config) },
     { name: "guardclaw-config.yaml", emoji: "🛡️", generator: () => generateGuardClawConfig(config) },
     { name: ".env", emoji: "🔐", generator: () => generateEnvFile(config) },
     { name: "install.sh", emoji: "🛠️", generator: () => generateInstallScript() },
+    {
+      name: "overlay-config.json",
+      emoji: "🧩",
+      generator: () => generateOverlayConfig(config),
+      subtle: teamHasAgents
+        ? `Equipo clawcrew (${config.clawcrewTeam?.agents.filter((a) => a.enabled).length} agentes)`
+        : "Sin equipo configurado (skip)",
+    },
   ];
 
   return (
@@ -61,13 +76,16 @@ export default function Step9() {
             <div className="text-6xl mb-4 animate-float">🎉</div>
             <h1 className="text-3xl font-bold mb-2 gradient-text">Stack Empresarial Listo</h1>
             <p className="text-slate-400">
-              OpenClaw + autonomous-agents + GuardClaw configurados
+              OpenClaw + autonomous-agents + GuardClaw{teamHasAgents ? " + clawcrew" : ""} configurados
             </p>
           </div>
 
           {/* Stack summary badges */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {["OpenClaw", "autonomous-agents", "GuardClaw"].map((component) => (
+            {(teamHasAgents
+              ? ["OpenClaw", "autonomous-agents", "GuardClaw", "clawcrew"]
+              : ["OpenClaw", "autonomous-agents", "GuardClaw"]
+            ).map((component) => (
               <span
                 key={component}
                 className="px-3 py-1 text-xs font-medium rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30"
@@ -85,7 +103,7 @@ export default function Step9() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            Descargar Todos los Ficheros (6)
+            Descargar Todos los Ficheros ({FILES.length})
           </button>
 
           {/* Individual downloads */}
@@ -95,10 +113,16 @@ export default function Step9() {
                 key={f.name}
                 onClick={() => downloadFile(f.name, f.generator())}
                 className="px-3 py-2.5 rounded-lg bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/50 hover:border-slate-500 transition-all text-left group"
+                title={f.subtle}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg shrink-0">{f.emoji}</span>
-                  <span className="text-xs font-mono text-slate-300 group-hover:text-white truncate">{f.name}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-mono text-slate-300 group-hover:text-white truncate">{f.name}</div>
+                    {f.subtle && (
+                      <div className="text-[10px] text-slate-500 truncate">{f.subtle}</div>
+                    )}
+                  </div>
                 </div>
               </button>
             ))}

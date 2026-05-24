@@ -1,5 +1,76 @@
 import { WizardConfig } from "./wizard-context";
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Overlay config (consumed by autonomous-agents/work-console/scripts/configure-overlay.js)
+//
+// Shape definido en el header del wrapper. Los paths se emiten RELATIVOS al
+// dir donde el install.sh deja el archivo (~/openclaw-stack/overlay-config.json
+// por defecto). El install.sh los resuelve a absolutos antes de invocar al
+// wrapper.
+//
+// Nota: el bloque planMode todavía no se pregunta en el step-2 actual; si en
+// el futuro extendemos el wizard con un sub-paso de plan-mode (Planificador
+// activado? plannerAgentId? autoSuggest?) lo añadimos aquí sin tocar
+// configure-overlay (que ya lo soporta).
+// ──────────────────────────────────────────────────────────────────────────────
+
+export function generateOverlayConfig(config: WizardConfig): string {
+  const team = config.clawcrewTeam;
+  // Defensivo: si el step-2 no se completó (operator saltó pasos), emitimos
+  // un esqueleto vacío con instrucciones — install.sh detecta agents=[] y
+  // salta el invoke a configure-overlay.
+  if (!team || team.agents.length === 0) {
+    return JSON.stringify({
+      "$comment": "overlay-config.json — vacío (no se eligió equipo en step-2)",
+      "overlay": { path: "./overlays/empty", prefix: "empty", name: "Empty" },
+      "library": { path: "./clawcrew" },
+      "openclawConfig": "./openclaw.json",
+      "agents": [],
+    }, null, 2);
+  }
+
+  const enabledAgents = team.agents.filter((a) => a.enabled);
+
+  // El bloque agents[*] queda 1:1 con el shape esperado por configure-overlay.js
+  // (ver scripts/configure-overlay.js header).
+  const agentsBlock = enabledAgents.map((a) => {
+    const out: Record<string, unknown> = {
+      agent: a.agent,
+      slug: a.slug,
+      displayName: a.displayName,
+      shortName: a.shortName || a.displayName,
+      icon: a.icon,
+    };
+    if (a.color)        out.color = a.color;
+    if (a.workingVerb)  out.workingVerb = a.workingVerb;
+    if (a.voice && (a.voice.kind || a.voice.elevenlabsId)) {
+      const voice: Record<string, unknown> = {};
+      if (a.voice.kind)         voice.kind = a.voice.kind;
+      if (a.voice.elevenlabsId) voice.elevenlabsId = a.voice.elevenlabsId;
+      out.voice = voice;
+    }
+    return out;
+  });
+
+  const overlayConfig: Record<string, unknown> = {
+    "$comment": `overlay-config.json — generado por openclaw-configurator @ ${new Date().toISOString()}`,
+    overlay: {
+      path: `./overlays/${team.overlayName.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}`,
+      prefix: team.prefix,
+      name: team.overlayName,
+    },
+    library: { path: "./clawcrew" },
+    openclawConfig: "./openclaw.json",
+    agents: agentsBlock,
+  };
+
+  if (team.planMode) {
+    overlayConfig.planMode = team.planMode;
+  }
+
+  return JSON.stringify(overlayConfig, null, 2);
+}
+
 export function generateConfigYAML(config: WizardConfig): string {
   const yaml: string[] = [];
 
@@ -311,7 +382,10 @@ export function generateEnvFile(config: WizardConfig): string {
 
 export function generateInstallScript(): string {
   return `#!/usr/bin/env bash
-# autonomous-agents — Work Console Installer
+# OpenClaw stack installer — clones autonomous-agents + clawcrew + (opcional)
+# instala el equipo de agentes definido en overlay-config.json (vía el wrapper
+# configure-overlay.js, paquete autonomous-agents/work-console/scripts).
+#
 # Usage:
 #   ./install.sh            # full install
 #   ./install.sh --dry-run  # preview what would happen
@@ -337,15 +411,23 @@ echo -e "\${RESET}"
 $DRY_RUN && warn "DRY-RUN mode — no changes will be made\\n"
 
 REPO_URL="https://github.com/jotajota1302/autonomous-agents.git"
-INSTALL_DIR="\$HOME/autonomous-agents"
+CLAWCREW_REPO="https://github.com/jotajota1302/clawcrew.git"
+STACK_ROOT="\$HOME/openclaw-stack"
+INSTALL_DIR="\$STACK_ROOT/autonomous-agents"
+CLAWCREW_DIR="\$STACK_ROOT/clawcrew"
+OVERLAYS_DIR="\$STACK_ROOT/overlays"
 WORK_CONSOLE="\$INSTALL_DIR/work-console"
 OPENCLAW_CONFIG="\$HOME/.openclaw/openclaw.json"
 ENV_FILE="\$WORK_CONSOLE/.env"
 ENV_EXAMPLE="\$INSTALL_DIR/env.example"
+SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
+OVERLAY_CONFIG="\${OVERLAY_CONFIG:-\$SCRIPT_DIR/overlay-config.json}"
 BRIDGE_PORT=3700; UI_PORT=8080; GATEWAY_PORT=18789
 
+mkdir -p "\$STACK_ROOT" "\$OVERLAYS_DIR"
+
 # ── Step 1: Prerequisites ──────────────────────────────────────────────────────
-hdr "1/5  Checking prerequisites"
+hdr "1/6  Checking prerequisites"
 
 if ! command -v node &>/dev/null; then
   err "Node.js not found. Install Node.js 18+ from https://nodejs.org"; exit 1
@@ -362,21 +444,31 @@ ok "git \$(git --version | awk '{print \$3}')"
 
 JQ_AVAILABLE=false; command -v jq &>/dev/null && JQ_AVAILABLE=true
 
-# ── Step 2: Clone or update repo ───────────────────────────────────────────────
-hdr "2/5  Repository"
+# ── Step 2: Clone repos (autonomous-agents + clawcrew) ────────────────────────
+hdr "2/6  Repositories"
 
 if [ -d "\$INSTALL_DIR/.git" ]; then
-  ok "Repo already cloned at \$INSTALL_DIR"
+  ok "autonomous-agents already at \$INSTALL_DIR"
   info "Pulling latest changes..."
   run bash -c "cd '\$INSTALL_DIR' && git pull --ff-only"
 else
   info "Cloning \$REPO_URL → \$INSTALL_DIR"
   run git clone "\$REPO_URL" "\$INSTALL_DIR"
-  ok "Cloned successfully"
+  ok "Cloned autonomous-agents"
+fi
+
+if [ -d "\$CLAWCREW_DIR/.git" ]; then
+  ok "clawcrew already at \$CLAWCREW_DIR"
+  info "Pulling latest changes..."
+  run bash -c "cd '\$CLAWCREW_DIR' && git pull --ff-only"
+else
+  info "Cloning \$CLAWCREW_REPO → \$CLAWCREW_DIR"
+  run git clone "\$CLAWCREW_REPO" "\$CLAWCREW_DIR"
+  ok "Cloned clawcrew"
 fi
 
 # ── Step 3: Detect OpenClaw token ─────────────────────────────────────────────
-hdr "3/5  Detecting OpenClaw configuration"
+hdr "3/6  Detecting OpenClaw configuration"
 
 GATEWAY_TOKEN=""
 GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
@@ -404,7 +496,7 @@ else
 fi
 
 # ── Step 4: npm ci + .env ──────────────────────────────────────────────────────
-hdr "4/5  Dependencies & environment"
+hdr "4/6  Dependencies & environment"
 
 [ -d "\$WORK_CONSOLE" ] || { err "work-console/ not found at \$WORK_CONSOLE"; exit 1; }
 
@@ -441,8 +533,40 @@ else
   fi
 fi
 
-# ── Step 5: Start services ─────────────────────────────────────────────────────
-hdr "5/5  Start services"
+# ── Step 5: Install agents (overlay-config.json → configure-overlay.js) ───────
+hdr "5/6  Configure overlay agents"
+
+if [ ! -f "\$OVERLAY_CONFIG" ]; then
+  warn "overlay-config.json not found at \$OVERLAY_CONFIG — skipping agent install"
+  warn "(if you generated one, drop it next to install.sh or set OVERLAY_CONFIG env)"
+else
+  if ! \$JQ_AVAILABLE; then
+    info "jq not found — falling back to python for config inspection"
+  fi
+  AGENT_COUNT=0
+  if \$JQ_AVAILABLE; then
+    AGENT_COUNT=\$(jq -r '.agents | length // 0' "\$OVERLAY_CONFIG" 2>/dev/null || echo 0)
+  else
+    AGENT_COUNT=\$(python3 -c "import json; d=json.load(open('\$OVERLAY_CONFIG')); print(len(d.get('agents') or []))" 2>/dev/null || echo 0)
+  fi
+  if [ "\$AGENT_COUNT" -eq 0 ]; then
+    warn "overlay-config.json has 0 agents — skipping configure-overlay invocation"
+  else
+    info "Found \$AGENT_COUNT agents in overlay-config.json"
+    OVERLAY_ABS="\$OVERLAYS_DIR/\$(\$JQ_AVAILABLE && jq -r '.overlay.name // "default"' "\$OVERLAY_CONFIG" || python3 -c "import json; print(json.load(open('\$OVERLAY_CONFIG'))['overlay'].get('name','default'))")"
+    OVERLAY_SLUG=\$(echo "\$OVERLAY_ABS" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+    info "Installing agents into \$OVERLAYS_DIR (overlay path will be resolved by --overlay flag)"
+    run bash -c "cd '\$WORK_CONSOLE' && node scripts/configure-overlay.js apply \\
+      --config '\$OVERLAY_CONFIG' \\
+      --library '\$CLAWCREW_DIR' \\
+      --overlay '\$OVERLAYS_DIR/overlay'"
+    ok "Agents configured in \$OVERLAYS_DIR/overlay"
+    info "Restart the bridge to pick up the new agent-registry"
+  fi
+fi
+
+# ── Step 6: Start services ─────────────────────────────────────────────────────
+hdr "6/6  Start services"
 
 if \$DRY_RUN; then
   info "[dry-run] Would prompt to start services"
