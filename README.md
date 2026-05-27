@@ -1,163 +1,83 @@
-# OpenClaw Configurator 🤖
+# OpenClaw Configurator
 
-WordPress-style wizard to configure your OpenClaw instance. No code, no complexity—just a guided 7-step setup.
+Wizard web para generar una instalación cliente-facing de OpenClaw + autonomous-agents + un overlay (p. ej. ai-office). Sustituye un proceso manual de 1-3h por uno guiado de 10-15min.
 
-![OpenClaw Configurator](https://img.shields.io/badge/status-beta-yellow)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
-![License](https://img.shields.io/badge/license-MIT-blue)
+## Qué hace hoy
 
-## 🎯 What is this?
+El operador (o, en el futuro, el cliente final desde una página pública) recorre un wizard que captura:
 
-Setting up OpenClaw manually takes 1-3 hours and requires reading extensive documentation. This wizard reduces that to **under 10 minutes** with a visual, step-by-step interface.
+1. **Datos del negocio** — nombre, sector (asesoría / abogados / e-commerce / clínica / agencia / PYME genérico).
+2. **Equipo** — sobre la plantilla del sector, elegir qué roles activar (los 15 disponibles en `clawcrew/agents/`: executive, outbound-sdr, community, seo-writer, legal-light, automation-engineer, copywriter, paid-media, content-strategist, …) y darles identidad (nombre humano, icono, voz).
+3. **Stack** — provider (axet / Anthropic / OpenAI / Ollama), canales (Slack, Webchat, Email opcional), límites de seguridad.
+4. **Despliegue** — descargar un bundle portable o, en modo managed, generar `install.sh` parametrizado.
 
-**Input:** Answer 7 simple questions  
-**Output:** `openclaw.yaml` + `.env` + `install.sh` ready to deploy
+Outputs concretos:
 
-## ✨ Features
+- `overlay-config.json` — consumido por `autonomous-agents/work-console/scripts/configure-overlay.js apply` para hidratar un overlay completo en una pasada.
+- `openclaw.json` + `.env` — listos para arrancar gateway + bridge.
+- `install.sh` — clona los 3 repos requeridos (`openclaw`, `autonomous-agents`, `clawcrew`), monta el overlay, levanta servicios.
 
-- **7-Step Wizard:** Providers → Channels → Security → Skills → Personality → Review → Download
-- **Provider UX Pack v1:** guided links, credential auto-detection, mismatch warnings, one-click provider switch
-- **No credentials mode:** recommend/start with local Ollama for fastest onboarding
-- **Test Connection (Step 1):** Ollama local connectivity + heuristic credential validation for hosted APIs
-- **Live Preview:** See your configuration before downloading
-- **Secure by Default:** Privacy-first with allowlist recommendations
-- **Multiple Providers:** Anthropic, OpenAI, Google, Ollama support
-- **Channel Support:** Telegram, WhatsApp, Discord, Signal (+ docs links + token format helpers)
-- **Skill Selection:** Pre-configured popular skills (GitHub, Email, Weather, etc.)
+El wizard NO instala nada localmente; produce los artefactos. La instalación real la ejecuta `install.sh` en la máquina destino o el operador con `configure-overlay.js`.
 
-## 🚀 Quick Start
+## Stack
 
-### Development
+- Next.js 16 (App Router) + TypeScript
+- Tailwind CSS
+- React Context API para el estado del wizard
+
+## Quick start
 
 ```bash
-# Clone the repo
 git clone https://github.com/jotajota1302/openclaw-configurator.git
 cd openclaw-configurator
-
-# Install dependencies
 npm install
-
-# Run dev server
 npm run dev
 ```
 
-Visit http://localhost:3000
+Abre `http://localhost:3000`.
 
-### Production
+## Cómo encaja con el resto del ecosistema
 
-```bash
-# Build
-npm run build
-
-# Start production server
-npm start
+```
+        ┌─────────────────────┐
+        │  openclaw-          │   wizard cliente-facing
+        │  configurator       │
+        └──────────┬──────────┘
+                   │ overlay-config.json
+                   ▼
+        ┌─────────────────────┐
+        │  autonomous-agents/ │   wrapper que instala N roles en
+        │  configure-overlay  │   un overlay leyendo el config
+        └──────────┬──────────┘
+                   │ N × agent-cli install
+                   ▼
+        ┌──────────────────────────────┐
+        │  clawcrew/agents/<role>/     │   library source-of-truth
+        │  (15 manifest.json + assets) │   (catálogo de roles)
+        └──────────────────────────────┘
+                   │ snapshot copiado
+                   ▼
+        ┌─────────────────────┐
+        │  ai-office (etc)    │   overlay con agentes instalados
+        │  agent-registry.json│
+        │  .installed-from/   │   trackers de versión
+        └─────────────────────┘
 ```
 
-## 📸 Screenshots
+Para detectar desincronización entre overlay y library: `autonomous-agents/work-console/scripts/drift-check.js <overlay> --library <path-to-clawcrew>`.
 
-### Home Page
-Landing page with feature overview and CTA to start wizard.
+## Estado
 
-### Step 1: Providers
-Select and configure your LLM provider (Claude, GPT, Gemini, Ollama).
+- ✓ Wizard sector → equipo → identidades operativo (commit `3aaeaac`).
+- ✓ `install.sh` modo bundle + overlay UI + gateway auto-bootstrap (`9a318b3`).
+- ✓ Bootstrap de `openclaw.json` con `gateway.mode=local` + env overrides (`47ab692`).
+- Pendiente: integración con clawhub (multi-tenant pairing token + license check).
+- Pendiente: paso opcional `planMode` toggle en step-2.
 
-### Step 7: Download
-Download your complete configuration files with one click.
+## Referencia técnica
 
-## 🛠️ Tech Stack
+`OPENCLAW-CONFIG-GUIDE.md` documenta el contrato de configuración OpenClaw (capas `*.md` del agente, `openclaw.json`, sandbox, MCP). Es referencia interna del operador, no parte del wizard.
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **State:** React Context API
-- **Output:** YAML + ENV generation
+## Licencia
 
-## 📦 Generated Files
-
-The wizard generates 3 files:
-
-### 1. `openclaw.yaml`
-Complete OpenClaw configuration with providers, channels, security, and skills.
-
-### 2. `.env`
-Environment variables template for API keys and tokens.
-
-### 3. `install.sh`
-Automated installation script.
-
-## 🔧 Configuration Steps
-
-1. **Providers** - Choose your LLM (Claude, GPT, Gemini, or local Ollama)
-2. **Channels** - Connect messaging platforms (Telegram, Discord, WhatsApp, Signal)
-3. **Security** - Set DM policy and allowlist for privacy
-4. **Skills** - Select capabilities (GitHub, Email, Weather, etc.)
-5. **Personality** - Customize name, emoji, and vibe
-6. **Review** - Verify all settings
-7. **Download** - Get your config files
-
-## 🎯 Roadmap
-
-### Sprint 1 ✅ (Completed)
-- [x] Basic wizard flow
-- [x] Provider configuration
-- [x] Channel setup
-- [x] Security & allowlist
-- [x] Skill selection
-- [x] Personality customization
-- [x] File generation (YAML + ENV + script)
-
-### Sprint 1.5 ✅ (Refactor UX)
-- [x] Landing page visual overhaul
-- [x] Wizard layout redesign (stepper + navigation polish)
-- [x] Tailwind/theme refactor and animation system
-- [x] Build stability fixes (`tailwindcss-animate` dependency)
-
-### Sprint 2 ✅ (Completed - local scope)
-- [x] Template step base (Personal / Developer / Business / Custom)
-- [x] Template prefill sólido en steps 2–5
-- [x] Guardas `touched` para no pisar edición manual
-- [x] Validación real best-effort en Step 1 (Anthropic/OpenAI/Google) + fallback heurístico
-- [x] Validación real Telegram `getMe` en Step 2
-- [x] Step 7 con CTA informativo de deploy (sin ejecutar despliegue)
-- [x] `install.sh` v2 (detección OS, prompts básicos, start gateway, abrir dashboard)
-
-### Sprint 3
-- [ ] 1-click deploy to Railway/Render
-- [ ] Health check & monitoring setup
-- [ ] Stripe billing integration
-
-### Sprint 4
-- [ ] Dashboard to manage running instances
-- [ ] Real-time config editing
-- [ ] Analytics & usage stats
-
-## 🤝 Contributing
-
-Contributions welcome! This is part of the OpenClaw ecosystem.
-
-1. Fork the repo
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
-## 🔗 Links
-
-- **OpenClaw Docs:** https://docs.openclaw.ai
-- **ClawHub (Skills):** https://clawhub.com
-- **Discord Community:** https://discord.gg/clawd
-- **GitHub:** https://github.com/openclaw/openclaw
-
-## 🙏 Acknowledgments
-
-Part of the OpenClaw ecosystem. Built with ❤️ by the OpenClaw community.
-
----
-
-**Status:** Beta (Sprint 2 completed - local scope)  
-**Version:** 0.3.0-beta  
-**Last Updated:** 2026-02-21
+MIT.
