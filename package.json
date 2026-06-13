@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "sync:catalog": "node scripts/sync-catalog.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
