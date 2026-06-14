@@ -16,13 +16,11 @@ import { randomBytes } from "crypto";
 // configure-overlay (que ya lo soporta).
 // ──────────────────────────────────────────────────────────────────────────────
 
-// !! REMOVE BEFORE PUBLIC RELEASE / cuando wizard step-1 capture la key real
-// del operador. Por ahora hardcoded para demos: el .env del cliente queda con
-// esta key directamente, sin que el operador tenga que editar a mano. Esta
-// key se subirá a GitHub cuando se commitee — riesgo asumido conscientemente
-// hasta que se cierre el flujo Capa 2 (wizard captura key + .env la inyecta
-// como `${XIAOMI_API_KEY}` substituido al generar).
-const DEMO_XIAOMI_API_KEY_HARDCODED = "sk-esbnditqmy4kcyyk1i12i2wi2nlxt3mkynwa2pp69gzg7zpr";
+// Xiaomi: ya NO se hardcodea ninguna key (14-jun, decisión JJ). La instancia
+// usa por defecto el modelo elegido en el wizard (o ollama/gemma4-gpu, keyless),
+// así que el plugin xiaomi solo necesita un placeholder NO-VACÍO para no abortar
+// el arranque del gateway (mismo patrón que ELEVENLABS_API_KEY=dummy). Cuando el
+// cliente quiera usar Xiaomi de verdad, pone su key en XIAOMI_API_KEY del .env.
 
 // Modelo keyless por defecto (Ollama local). Es el fallback universal y el
 // modelo de la instancia cuando el operador no eligió provider en step-1.
@@ -346,11 +344,10 @@ OVERLAY_UI_PORT="\${OVERLAY_UI_PORT:-3001}"
 
 mkdir -p "\$STACK_ROOT" "\$OVERLAYS_DIR" "\$LOG_DIR" "\$PID_DIR"
 
-# !! Hardcoded demo key (REMOVER cuando wizard step-1 capture providers).
-# Se inyecta tanto en el .env (bridge) como inline al arrancar el gateway
-# para que las instalaciones managed-asistidas arranquen vivas con un modelo
-# Xiaomi MiMo funcional sin intervención manual del cliente.
-XIAOMI_API_KEY_DEMO="${DEMO_XIAOMI_API_KEY_HARDCODED}"
+# Xiaomi ya no lleva key hardcodeada. Placeholder dummy no-vacío para que el
+# gateway no aborte si el config referencia \${XIAOMI_API_KEY}; el modelo por
+# defecto es el elegido en el wizard (o ollama/gemma4-gpu, keyless).
+XIAOMI_API_KEY_DEMO="dummy"
 
 # ── Detect BUNDLE_MODE ──────────────────────────────────────────────────────
 # Si junto al script viven los 3 repos, asumimos que estamos dentro de un
@@ -610,9 +607,9 @@ else
       echo "# Auto-añadidos por install.sh (overlay UI en :\$OVERLAY_UI_PORT)" >> "\$ENV_FILE"
       echo "OVERLAY_HOSTS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
       echo "CORS_ORIGINS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
-      # XIAOMI_API_KEY hardcoded (variable XIAOMI_API_KEY_DEMO al inicio del
-      # script; ver constante DEMO_XIAOMI_API_KEY_HARDCODED en lib/generators.ts
-      # del configurator — REMOVER cuando wizard step-1 capture providers).
+      # XIAOMI_API_KEY: placeholder dummy no-vacío (XIAOMI_API_KEY_DEMO arriba).
+      # Evita abortar el gateway si el config referencia \${XIAOMI_API_KEY}; el
+      # modelo por defecto es el del wizard u ollama. El cliente pone su key aquí.
       echo "XIAOMI_API_KEY=\$XIAOMI_API_KEY_DEMO" >> "\$ENV_FILE"
       echo "ELEVENLABS_API_KEY=dummy" >> "\$ENV_FILE"
     fi
