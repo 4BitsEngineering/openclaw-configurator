@@ -2,13 +2,10 @@
 
 import { useWizard } from "@/lib/wizard-context";
 import {
-  generateConfigYAML,
   generateEnvFile,
   generateInstallScript,
-  generateAgentsConfig,
-  generateBridgeConfig,
-  generateGuardClawConfig,
   generateOverlayConfig,
+  generateOpenclawJson,
 } from "@/lib/generators";
 
 export default function Step9() {
@@ -30,20 +27,13 @@ export default function Step9() {
   const teamHasAgents = !!(config.clawcrewTeam && config.clawcrewTeam.agents.filter((a) => a.enabled).length > 0);
 
   const downloadAllFiles = () => {
-    downloadFile("openclaw.yaml", generateConfigYAML(config));
-    downloadFile("agents-config.yaml", generateAgentsConfig(config));
-    downloadFile("bridge-config.yaml", generateBridgeConfig(config));
-    downloadFile("guardclaw-config.yaml", generateGuardClawConfig(config));
     downloadFile(".env", generateEnvFile(config));
     downloadFile("install.sh", generateInstallScript());
     downloadFile("overlay-config.json", generateOverlayConfig(config));
+    downloadFile("openclaw.json", generateOpenclawJson(config));
   };
 
   const FILES: { name: string; emoji: string; generator: () => string; subtle?: string }[] = [
-    { name: "openclaw.yaml", emoji: "📄", generator: () => generateConfigYAML(config) },
-    { name: "agents-config.yaml", emoji: "🤖", generator: () => generateAgentsConfig(config) },
-    { name: "bridge-config.yaml", emoji: "🌉", generator: () => generateBridgeConfig(config) },
-    { name: "guardclaw-config.yaml", emoji: "🛡️", generator: () => generateGuardClawConfig(config) },
     { name: ".env", emoji: "🔐", generator: () => generateEnvFile(config) },
     { name: "install.sh", emoji: "🛠️", generator: () => generateInstallScript() },
     {
@@ -53,6 +43,12 @@ export default function Step9() {
       subtle: teamHasAgents
         ? `Equipo clawcrew (${config.clawcrewTeam?.agents.filter((a) => a.enabled).length} agentes)`
         : "Sin equipo configurado (skip)",
+    },
+    {
+      name: "openclaw.json",
+      emoji: "⚙️",
+      generator: () => generateOpenclawJson(config),
+      subtle: "Config completo del gateway (install.sh sustituye rutas)",
     },
   ];
 

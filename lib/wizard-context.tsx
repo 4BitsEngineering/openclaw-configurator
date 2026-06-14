@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from "react";
+import clawcrewCatalog from "./clawcrew-catalog.json";
 
 export type TemplateType = "personal" | "developer" | "business" | "custom";
 
@@ -110,173 +111,38 @@ export interface ClawcrewRoleSpec {
   defaultWorkingVerb: string;
 }
 
-export const CLAWCREW_ROLES: Record<string, ClawcrewRoleSpec> = {
-  "executive": {
-    agent: "executive",
-    category: "ai-office",
-    description: "Asistente ejecutiva. Inbox, agenda, drafts. Nunca envía sin aprobación.",
-    defaultSlug: "assistant",
-    defaultDisplayName: "Asistente",
-    defaultIcon: "📋",
-    defaultColor: "#4F6D9E",
-    defaultVoiceKind: "female",
-    defaultWorkingVerb: "ordenando tu día",
-  },
-  "outbound-sdr": {
-    agent: "outbound-sdr",
-    category: "ai-office",
-    description: "Desarrollo de negocio. Leads, cold email, follow-ups.",
-    defaultSlug: "sdr",
-    defaultDisplayName: "SDR",
-    defaultIcon: "🎯",
-    defaultColor: "#10B981",
-    defaultVoiceKind: "male",
-    defaultWorkingVerb: "buscando oportunidades",
-  },
-  "community": {
-    agent: "community",
-    category: "ai-office",
-    description: "Community manager. Posts proactivos, calendario editorial.",
-    defaultSlug: "community",
-    defaultDisplayName: "Community",
-    defaultIcon: "✨",
-    defaultColor: "#EC4899",
-    defaultVoiceKind: "female",
-    defaultWorkingVerb: "creando contenido",
-  },
-  "seo-writer": {
-    agent: "seo-writer",
-    category: "ai-office",
-    description: "Redactor SEO. Briefs y blog posts en Markdown.",
-    defaultSlug: "writer",
-    defaultDisplayName: "SEO Writer",
-    defaultIcon: "✍️",
-    defaultColor: "#8B5CF6",
-    defaultVoiceKind: "female",
-    defaultWorkingVerb: "investigando keywords",
-  },
-  "legal-light": {
-    agent: "legal-light",
-    category: "ai-office",
-    description: "Asesoría legal-light. Contratos, RGPD, revisión de docs.",
-    defaultSlug: "paralegal",
-    defaultDisplayName: "Paralegal",
-    defaultIcon: "⚖️",
-    defaultColor: "#6B7280",
-    defaultVoiceKind: "female",
-    defaultWorkingVerb: "revisando documento",
-  },
-  "copywriter": {
-    agent: "copywriter",
-    category: "content",
-    description: "Copywriting. Captions, hooks, guiones, hashtags.",
-    defaultSlug: "copy",
-    defaultDisplayName: "Copy",
-    defaultIcon: "✍️",
-    defaultColor: "#8B5CF6",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "redactando",
-  },
-  "content-strategist": {
-    agent: "content-strategist",
-    category: "content",
-    description: "Estratega editorial. Calendario, audiencias, tendencias.",
-    defaultSlug: "strategy",
-    defaultDisplayName: "Content Strategy",
-    defaultIcon: "📊",
-    defaultColor: "#3B82F6",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "planificando contenido",
-  },
-  "visual-director": {
-    agent: "visual-director",
-    category: "content",
-    description: "Dirección de arte. Prompts MJ/SD, moodboards, paletas.",
-    defaultSlug: "visual",
-    defaultDisplayName: "Visual",
-    defaultIcon: "🎨",
-    defaultColor: "#EC4899",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "diseñando",
-  },
-  "video-director": {
-    agent: "video-director",
-    category: "content",
-    description: "Realización. Storyboards reels, prompts Runway/Sora.",
-    defaultSlug: "video",
-    defaultDisplayName: "Video",
-    defaultIcon: "🎬",
-    defaultColor: "#EF4444",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "produciendo video",
-  },
-  "community-engagement": {
-    agent: "community-engagement",
-    category: "content",
-    description: "Community reactivo. DMs, comentarios, sentiment.",
-    defaultSlug: "engagement",
-    defaultDisplayName: "Engagement",
-    defaultIcon: "💬",
-    defaultColor: "#EC4899",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "respondiendo comunidad",
-  },
-  "marketing-strategist": {
-    agent: "marketing-strategist",
-    category: "marketing",
-    description: "Estratega marketing. Plan, GTM, allocation, KPIs.",
-    defaultSlug: "mkt-strategy",
-    defaultDisplayName: "Marketing Strategy",
-    defaultIcon: "📈",
-    defaultColor: "#3B82F6",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "definiendo estrategia",
-  },
-  "paid-media": {
-    agent: "paid-media",
-    category: "marketing",
-    description: "Performance. Meta/Google/LinkedIn/TikTok ads.",
-    defaultSlug: "paid",
-    defaultDisplayName: "Paid Media",
-    defaultIcon: "💰",
-    defaultColor: "#10B981",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "optimizando campañas",
-  },
-  "seo-strategist": {
-    agent: "seo-strategist",
-    category: "marketing",
-    description: "SEO strategist. Audit técnica, keyword research, link building.",
-    defaultSlug: "seo",
-    defaultDisplayName: "SEO Strategy",
-    defaultIcon: "🔍",
-    defaultColor: "#8B5CF6",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "auditando posicionamiento",
-  },
-  "analytics-cro": {
-    agent: "analytics-cro",
-    category: "marketing",
-    description: "Analítica + CRO. Dashboards GA4, atribución, A/B tests.",
-    defaultSlug: "analytics",
-    defaultDisplayName: "Analytics",
-    defaultIcon: "📉",
-    defaultColor: "#06B6D4",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "midiendo conversiones",
-  },
-  "crm-email": {
-    agent: "crm-email",
-    category: "marketing",
-    description: "CRM. Workflows email, segmentación, lifecycle, lead scoring.",
-    defaultSlug: "crm",
-    defaultDisplayName: "CRM",
-    defaultIcon: "📧",
-    defaultColor: "#F59E0B",
-    defaultVoiceKind: null,
-    defaultWorkingVerb: "activando lifecycle",
-  },
+// CLAWCREW_ROLES se DERIVA del catálogo versionado de clawcrew
+// (clawcrew/catalog.json → ./clawcrew-catalog.json vía `npm run sync:catalog`).
+// Antes era una lista hardcodeada que se desincronizaba al añadir roles a la library.
+const CATALOG_CATEGORY_MAP: Record<string, ClawcrewRoleSpec["category"]> = {
+  office: "ai-office",
+  "ai-office": "ai-office",
+  marketing: "marketing",
+  content: "content",
+  ops: "ops",
+  general: "ops",
 };
+
+type CatalogAgent = (typeof clawcrewCatalog)["agents"][number];
+
+function roleSpecFromCatalog(a: CatalogAgent): ClawcrewRoleSpec {
+  const d = a.defaults ?? ({} as CatalogAgent["defaults"]);
+  return {
+    agent: a.id,
+    category: CATALOG_CATEGORY_MAP[a.category] ?? "ops",
+    description: a.description ?? "",
+    defaultSlug: d.slug,
+    defaultDisplayName: d.displayName,
+    defaultIcon: d.icon ?? "🤖",
+    defaultColor: (d.color ?? null) as string | null,
+    defaultVoiceKind: (d.voice?.kind ?? "neutral") as ClawcrewVoiceKind,
+    defaultWorkingVerb: d.workingVerb ?? "working",
+  };
+}
+
+export const CLAWCREW_ROLES: Record<string, ClawcrewRoleSpec> = Object.fromEntries(
+  clawcrewCatalog.agents.map((a) => [a.id, roleSpecFromCatalog(a)]),
+);
 
 // Templates por vertical — alineados con clawhub office-templates para que el
 // wizard local proponga el mismo equipo "razonable" que el operador managed
@@ -379,10 +245,10 @@ export function buildAgentSelectionFromRole(
 
 export interface WizardConfig {
   providers: {
-    anthropic?: { apiKey?: string; sessionToken?: string };
-    openai?: { apiKey: string };
-    google?: { apiKey: string };
-    ollama?: { baseUrl: string };
+    anthropic?: { apiKey?: string; sessionToken?: string; model?: string; fallbacks?: string[] };
+    openai?: { apiKey: string; model?: string; fallbacks?: string[] };
+    google?: { apiKey: string; model?: string; fallbacks?: string[] };
+    ollama?: { baseUrl: string; model?: string; fallbacks?: string[] };
     axet?: AxetProviderConfig;
   };
   useCase: {

@@ -1,4 +1,6 @@
-import { WizardConfig } from "./wizard-context";
+import type { WizardConfig } from "./wizard-context";
+import openclawTemplate from "./templates/openclaw.template.json";
+import { randomBytes } from "crypto";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Overlay config (consumed by autonomous-agents/work-console/scripts/configure-overlay.js)
@@ -14,23 +16,117 @@ import { WizardConfig } from "./wizard-context";
 // configure-overlay (que ya lo soporta).
 // ──────────────────────────────────────────────────────────────────────────────
 
-// Modelo default hardcodeado para todas las instalaciones generadas por el
-// configurator. Garantiza que el cliente abre el chat y los agentes pueden
-// responder de inmediato sin pasos manuales en el .env. Cuando el wizard
-// step-1 capture provider+modelo del operador, eliminar este literal y leer
-// del config.providers.
-//
-// !! REMOVE BEFORE PUBLIC RELEASE (junto con la key xiaomi en
-// generateInstallScript). Solo para demos managed-asistidas 24-may.
-const DEFAULT_MODEL_HARDCODED = "xiaomi/mimo-v2-pro";
+// Xiaomi: ya NO se hardcodea ninguna key (14-jun, decisión JJ). La instancia
+// usa por defecto el modelo elegido en el wizard (o ollama/gemma4-gpu, keyless),
+// así que el plugin xiaomi solo necesita un placeholder NO-VACÍO para no abortar
+// el arranque del gateway (mismo patrón que ELEVENLABS_API_KEY=dummy). Cuando el
+// cliente quiera usar Xiaomi de verdad, pone su key en XIAOMI_API_KEY del .env.
 
-// !! REMOVE BEFORE PUBLIC RELEASE / cuando wizard step-1 capture la key real
-// del operador. Por ahora hardcoded para demos: el .env del cliente queda con
-// esta key directamente, sin que el operador tenga que editar a mano. Esta
-// key se subirá a GitHub cuando se commitee — riesgo asumido conscientemente
-// hasta que se cierre el flujo Capa 2 (wizard captura key + .env la inyecta
-// como `${XIAOMI_API_KEY}` substituido al generar).
-const DEMO_XIAOMI_API_KEY_HARDCODED = "sk-esbnditqmy4kcyyk1i12i2wi2nlxt3mkynwa2pp69gzg7zpr";
+// Modelo keyless por defecto (Ollama local). Es el fallback universal y el
+// modelo de la instancia cuando el operador no eligió provider en step-1.
+const DEFAULT_KEYLESS_MODEL = "ollama/gemma4-gpu";
+
+// Resuelve el modelo de la instancia desde el wizard. Es la ÚNICA fuente de
+// verdad compartida por los tres generadores (openclaw.json primary,
+// overlay defaultModel, .env key) para que no se descuadren. Default keyless:
+// ollama/gemma4-gpu.
+function resolveInstanceModel(config: WizardConfig): { providerId: string; modelId: string; ref: string; envKey?: string } {
+  const p = config.providers || {};
+  const KEY: Record<string, string> = { anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY", google: "GOOGLE_API_KEY" };
+  for (const id of ["anthropic", "openai", "google"] as const) {
+    if (p[id]) {
+      const def = id === "anthropic" ? "claude-sonnet-4-6" : id === "openai" ? "gpt-5.2-chat-latest" : "gemini-2.5-pro";
+      const modelId = p[id]!.model || def;
+      return { providerId: id, modelId, ref: `${id}/${modelId}`, envKey: KEY[id] };
+    }
+  }
+  if (p.ollama) {
+    const modelId = p.ollama.model || "gemma4-gpu";
+    return { providerId: "ollama", modelId, ref: `ollama/${modelId}` };
+  }
+  return { providerId: "ollama", modelId: "gemma4-gpu", ref: DEFAULT_KEYLESS_MODEL };
+}
+
+// Genera un openclaw.json COMPLETO partiendo de la plantilla (derivada de la
+// config probada de ai-office) y parametrizando lo por-instancia. agents.list
+// queda [] — configure-overlay.js los inyecta tras instalar los agentes.
+export function generateOpenclawJson(config: WizardConfig): string {
+  const tpl = JSON.parse(JSON.stringify(openclawTemplate));
+  const token = randomBytes(24).toString("base64url");
+  if (tpl.gateway?.auth) tpl.gateway.auth.token = token;
+  if (tpl.gateway?.remote) tpl.gateway.remote.token = token;
+  const chosen = pickProviderModel(config);
+  if (chosen) {
+    tpl.models = tpl.models || { mode: "replace", providers: {} };
+    tpl.models.providers = tpl.models.providers || {};
+    const existing = tpl.models.providers[chosen.providerId];
+    if (existing && typeof existing === "object") {
+      // El provider ya vive en la plantilla (p.ej. ollama con varios modelos):
+      // NO reemplazar en bloque (perderíamos el resto de modelos). Preservamos
+      // la entry y solo aseguramos que el modelo elegido esté presente.
+      const chosenModels = (chosen.providerEntry as { models?: Array<{ id?: string }> }).models || [];
+      const existingModels: Array<{ id?: string }> = Array.isArray(existing.models) ? existing.models : [];
+      for (const m of chosenModels) {
+        const present = existingModels.some((em) => em.id === m.id);
+        if (!present) existingModels.unshift(m);
+      }
+      existing.models = existingModels;
+    } else {
+      // El provider no existe en la plantilla (anthropic/openai/google): aditivo.
+      tpl.models.providers[chosen.providerId] = chosen.providerEntry;
+    }
+  }
+
+  // El modelo elegido en step-1 dirige el PRIMARY de la instancia. Sin elección,
+  // resolveInstanceModel devuelve el keyless por defecto (ollama/gemma4-gpu).
+  const instance = resolveInstanceModel(config);
+  tpl.agents = tpl.agents || {};
+  tpl.agents.defaults = tpl.agents.defaults || {};
+  const modelBlock = (tpl.agents.defaults.model && typeof tpl.agents.defaults.model === "object")
+    ? tpl.agents.defaults.model
+    : { fallbacks: [] as string[] };
+  modelBlock.primary = instance.ref;
+  const fallbacks: string[] = Array.isArray(modelBlock.fallbacks) ? modelBlock.fallbacks : [];
+  // Red de seguridad keyless: asegurar ollama/gemma4-gpu como fallback (sin
+  // duplicar, y nunca como fallback de sí mismo si ya es el primary).
+  if (instance.ref !== DEFAULT_KEYLESS_MODEL && !fallbacks.includes(DEFAULT_KEYLESS_MODEL)) {
+    fallbacks.push(DEFAULT_KEYLESS_MODEL);
+  }
+  modelBlock.fallbacks = fallbacks;
+  tpl.agents.defaults.model = modelBlock;
+
+  return JSON.stringify(tpl, null, 2) + "\n";
+}
+
+function pickProviderModel(config: WizardConfig): { providerId: string; providerEntry: unknown } | null {
+  const p = config.providers || {};
+  if (p.ollama) {
+    return { providerId: "ollama", providerEntry: {
+      baseUrl: p.ollama.baseUrl || "http://127.0.0.1:11434/v1",
+      apiKey: "ollama-local", api: "openai-completions",
+      models: [{ id: p.ollama.model || "gemma4-gpu", name: p.ollama.model || "gemma4-gpu", reasoning: false, input: ["text"] }],
+    } };
+  }
+  if (p.anthropic) {
+    return { providerId: "anthropic", providerEntry: {
+      apiKey: "${ANTHROPIC_API_KEY}", api: "anthropic-messages",
+      models: [{ id: p.anthropic.model || "claude-sonnet-4-6", name: p.anthropic.model || "claude-sonnet-4-6" }],
+    } };
+  }
+  if (p.openai) {
+    return { providerId: "openai", providerEntry: {
+      apiKey: "${OPENAI_API_KEY}", api: "openai-completions",
+      models: [{ id: p.openai.model || "gpt-5.2-chat-latest", name: p.openai.model || "gpt-5.2-chat-latest" }],
+    } };
+  }
+  if (p.google) {
+    return { providerId: "google", providerEntry: {
+      apiKey: "${GOOGLE_API_KEY}", api: "openai-completions",
+      models: [{ id: p.google.model || "gemini-2.5-pro", name: p.google.model || "gemini-2.5-pro" }],
+    } };
+  }
+  return null;
+}
 
 export function generateOverlayConfig(config: WizardConfig): string {
   const team = config.clawcrewTeam;
@@ -80,10 +176,10 @@ export function generateOverlayConfig(config: WizardConfig): string {
     library: { path: "./clawcrew" },
     openclawConfig: "./openclaw.json",
     // configure-overlay.js lee este campo top-level y lo propaga a cada
-    // agent-cli install como --default-model. Hardcoded por ahora (demos
-    // managed); cuando el wizard step-1 capture provider+modelo del operador
-    // (Capa 2), esto leerá de cfg.providers.<provider>.model.
-    defaultModel: DEFAULT_MODEL_HARDCODED,
+    // agent-cli install como --default-model. Coherente con el primary del
+    // openclaw.json: lo dirige el modelo elegido en step-1 (resolveInstanceModel),
+    // con default keyless ollama/gemma4-gpu si no se eligió provider.
+    defaultModel: resolveInstanceModel(config).ref,
     agents: agentsBlock,
   };
 
@@ -92,250 +188,6 @@ export function generateOverlayConfig(config: WizardConfig): string {
   }
 
   return JSON.stringify(overlayConfig, null, 2);
-}
-
-export function generateConfigYAML(config: WizardConfig): string {
-  const yaml: string[] = [];
-
-  // Meta
-  yaml.push(`meta:`);
-  yaml.push(`  generated: "${new Date().toISOString()}"`);
-  yaml.push(`  version: "2026.3"`);
-  yaml.push(``);
-
-  // Providers
-  if (Object.keys(config.providers).length > 0) {
-    yaml.push(`providers:`);
-
-    if (config.providers.anthropic) {
-      yaml.push(`  - provider: anthropic`);
-      if (config.providers.anthropic.sessionToken) {
-        yaml.push(`    sessionToken: \${ANTHROPIC_SESSION_TOKEN}`);
-      } else if (config.providers.anthropic.apiKey) {
-        yaml.push(`    apiKey: \${ANTHROPIC_API_KEY}`);
-      }
-    }
-
-    if (config.providers.openai) {
-      yaml.push(`  - provider: openai`);
-      yaml.push(`    apiKey: \${OPENAI_API_KEY}`);
-    }
-
-    if (config.providers.google) {
-      yaml.push(`  - provider: google`);
-      yaml.push(`    apiKey: \${GOOGLE_API_KEY}`);
-    }
-
-    if (config.providers.ollama) {
-      yaml.push(`  - provider: ollama`);
-      yaml.push(`    baseUrl: http://localhost:11434`);
-    }
-
-    if (config.providers.axet) {
-      yaml.push(`  - provider: axet`);
-      yaml.push(`    gatewayUrl: \${AXET_GATEWAY_URL}`);
-      yaml.push(`    gatewayToken: \${AXET_GATEWAY_TOKEN}`);
-      yaml.push(`    oktaIssuer: \${OKTA_ISSUER}`);
-      yaml.push(`    oktaClientId: \${OKTA_CLIENT_ID}`);
-      yaml.push(`    oktaScope: "${config.providers.axet.oktaScope}"`);
-      yaml.push(`    apiBaseUrl: \${AXET_API_BASE_URL}`);
-      yaml.push(`    # Auth: Device Flow / Okta — initiated at gateway runtime`);
-    }
-
-    yaml.push(``);
-  }
-
-  // Channels
-  if (Object.keys(config.channels).length > 0) {
-    yaml.push(`channels:`);
-
-    if (config.channels.telegram) {
-      yaml.push(`  - channel: telegram`);
-      yaml.push(`    token: \${TELEGRAM_BOT_TOKEN}`);
-      yaml.push(`    dmPolicy: ${config.security.dmPolicy}`);
-      if (config.security.allowlist.length > 0) {
-        yaml.push(`    allowlist:`);
-        config.security.allowlist.forEach((user) => {
-          yaml.push(`      - "${user}"`);
-        });
-      }
-    }
-
-    if (config.channels.discord) {
-      yaml.push(`  - channel: discord`);
-      yaml.push(`    token: \${DISCORD_BOT_TOKEN}`);
-    }
-
-    if (config.channels.whatsapp?.enabled) {
-      yaml.push(`  - channel: whatsapp`);
-      yaml.push(`    # Will configure via QR code on first run`);
-    }
-
-    if (config.channels.signal?.enabled) {
-      yaml.push(`  - channel: signal`);
-      yaml.push(`    # Will configure via linking on first run`);
-    }
-
-    yaml.push(``);
-  }
-
-  // Agent personality
-  yaml.push(`agent:`);
-  yaml.push(`  name: "${config.personality.name}"`);
-  yaml.push(`  emoji: "${config.personality.emoji}"`);
-  yaml.push(`  vibe: "${config.personality.vibe}"`);
-  yaml.push(``);
-
-  // Skills
-  if (config.skills.length > 0) {
-    yaml.push(`skills:`);
-    config.skills.forEach((skill) => {
-      yaml.push(`  - ${skill}`);
-    });
-  }
-
-  return yaml.join("\n");
-}
-
-export function generateAgentsConfig(config: WizardConfig): string {
-  const yaml: string[] = [];
-  const activeAgents = config.useCase.agents.filter((a) => a.enabled);
-
-  yaml.push(`# autonomous-agents configuration`);
-  yaml.push(`# Generated: ${new Date().toISOString()}`);
-  yaml.push(`# Use case: ${config.useCase.type}`);
-  yaml.push(``);
-  yaml.push(`use_case: ${config.useCase.type}`);
-  yaml.push(``);
-
-  yaml.push(`agents:`);
-  if (activeAgents.length === 0) {
-    yaml.push(`  [] # No agents selected`);
-  } else {
-    activeAgents.forEach((agent) => {
-      yaml.push(`  - id: ${agent.id}`);
-      yaml.push(`    name: "${agent.name}"`);
-      yaml.push(`    role: "${agent.role}"`);
-      yaml.push(`    enabled: true`);
-      yaml.push(`    prompt_base: |`);
-      yaml.push(`      You are ${agent.name}, an AI agent specialized in: ${agent.role}.`);
-      yaml.push(`      Act as part of a team of agents for the ${config.useCase.type} use case.`);
-      yaml.push(`      Coordinate with other agents when needed and escalate to the Reviewer for QA.`);
-      yaml.push(``);
-    });
-  }
-
-  yaml.push(`# Bridge settings (see bridge-config.yaml)`);
-  yaml.push(`bridge_ref: ./bridge-config.yaml`);
-
-  return yaml.join("\n");
-}
-
-export function generateBridgeConfig(config: WizardConfig): string {
-  const yaml: string[] = [];
-
-  yaml.push(`# autonomous-agents bridge configuration`);
-  yaml.push(`# Generated: ${new Date().toISOString()}`);
-  yaml.push(``);
-  yaml.push(`bridge:`);
-  yaml.push(`  mode: ${config.guardClaw.sensitivity === "S3" ? "local" : "cloud"}`);
-  yaml.push(`  max_concurrent_agents: ${config.useCase.agents.filter((a) => a.enabled).length}`);
-  yaml.push(`  timeout_seconds: 120`);
-  yaml.push(`  retry_on_failure: true`);
-  yaml.push(`  max_retries: 3`);
-  yaml.push(``);
-  yaml.push(`routing:`);
-
-  if (config.guardClaw.sensitivity === "S3") {
-    yaml.push(`  # S3: local-only routing`);
-    yaml.push(`  provider: ollama`);
-    yaml.push(`  endpoint: http://localhost:11434`);
-    yaml.push(`  allow_external: false`);
-  } else if (config.guardClaw.sensitivity === "S2") {
-    yaml.push(`  # S2: cloud with PII redaction`);
-    yaml.push(`  provider: ${Object.keys(config.providers)[0] || "anthropic"}`);
-    yaml.push(`  pii_redaction: true`);
-    yaml.push(`  allow_external: true`);
-  } else {
-    yaml.push(`  # S1: standard cloud routing`);
-    yaml.push(`  provider: ${Object.keys(config.providers)[0] || "anthropic"}`);
-    yaml.push(`  pii_redaction: false`);
-    yaml.push(`  allow_external: true`);
-  }
-
-  yaml.push(``);
-  yaml.push(`coordination:`);
-  yaml.push(`  handoff_strategy: sequential`);
-  yaml.push(`  shared_context: true`);
-  yaml.push(`  audit_log: ${config.guardClaw.sensitivity !== "S1"}`);
-
-  return yaml.join("\n");
-}
-
-export function generateGuardClawConfig(config: WizardConfig): string {
-  const yaml: string[] = [];
-  const { sensitivity } = config.guardClaw;
-
-  yaml.push(`# GuardClaw configuration`);
-  yaml.push(`# Generated: ${new Date().toISOString()}`);
-  yaml.push(`# Sensitivity level: ${sensitivity}`);
-  yaml.push(``);
-  yaml.push(`guardclaw:`);
-  yaml.push(`  sensitivity: ${sensitivity}`);
-  yaml.push(``);
-
-  if (sensitivity === "S1") {
-    yaml.push(`  # S1 — Público: sin restricciones`);
-    yaml.push(`  pii_redaction: false`);
-    yaml.push(`  local_only: false`);
-    yaml.push(`  logging:`);
-    yaml.push(`    level: full`);
-    yaml.push(`    retain_days: 30`);
-    yaml.push(`  data_routing:`);
-    yaml.push(`    allow_cloud: true`);
-    yaml.push(`    allow_external_apis: true`);
-  } else if (sensitivity === "S2") {
-    yaml.push(`  # S2 — Privado: redacción de PII antes de enviar al cloud`);
-    yaml.push(`  pii_redaction: true`);
-    yaml.push(`  local_only: false`);
-    yaml.push(`  pii_patterns:`);
-    yaml.push(`    - type: email`);
-    yaml.push(`      action: redact`);
-    yaml.push(`    - type: phone`);
-    yaml.push(`      action: redact`);
-    yaml.push(`    - type: full_name`);
-    yaml.push(`      action: tokenize`);
-    yaml.push(`    - type: id_number`);
-    yaml.push(`      action: redact`);
-    yaml.push(`    - type: address`);
-    yaml.push(`      action: redact`);
-    yaml.push(`  logging:`);
-    yaml.push(`    level: anonymized`);
-    yaml.push(`    retain_days: 90`);
-    yaml.push(`  data_routing:`);
-    yaml.push(`    allow_cloud: true`);
-    yaml.push(`    allow_external_apis: false`);
-    yaml.push(`    require_tls: true`);
-  } else {
-    yaml.push(`  # S3 — Sensible/Regulado: ejecución local únicamente`);
-    yaml.push(`  pii_redaction: true`);
-    yaml.push(`  local_only: true`);
-    yaml.push(`  logging:`);
-    yaml.push(`    level: minimal`);
-    yaml.push(`    retain_days: 365`);
-    yaml.push(`    storage: local`);
-    yaml.push(`  data_routing:`);
-    yaml.push(`    allow_cloud: false`);
-    yaml.push(`    allow_external_apis: false`);
-    yaml.push(`    require_local_llm: true`);
-    yaml.push(`    local_llm_endpoint: http://localhost:11434`);
-    yaml.push(`  compliance:`);
-    yaml.push(`    hipaa: true`);
-    yaml.push(`    pci_dss: true`);
-    yaml.push(`    audit_trail: true`);
-  }
-
-  return yaml.join("\n");
 }
 
 export function generateEnvFile(config: WizardConfig): string {
@@ -397,6 +249,18 @@ export function generateEnvFile(config: WizardConfig): string {
   if (config.guardClaw.sensitivity === "S3") {
     lines.push(`# GuardClaw S3 — local LLM required`);
     lines.push(`OLLAMA_BASE_URL=http://localhost:11434`);
+    lines.push(``);
+  }
+
+  // Modelo de la instancia (step-1): garantiza que la API key del provider
+  // elegido tiene su línea en el .env, vacía para que el cliente la rellene.
+  // El openclaw.json referencia ${envKey} en el provider primary; sin esta
+  // línea los agentes no responderían. Para ollama (keyless) no se emite nada.
+  // No duplicamos si alguno de los bloques anteriores ya emitió la línea.
+  const instance = resolveInstanceModel(config);
+  if (instance.envKey && !lines.some((l) => l.startsWith(`${instance.envKey}=`))) {
+    lines.push(`# Required for the selected model (${instance.ref}) — fill in your key`);
+    lines.push(`${instance.envKey}=`);
     lines.push(``);
   }
 
@@ -480,11 +344,10 @@ OVERLAY_UI_PORT="\${OVERLAY_UI_PORT:-3001}"
 
 mkdir -p "\$STACK_ROOT" "\$OVERLAYS_DIR" "\$LOG_DIR" "\$PID_DIR"
 
-# !! Hardcoded demo key (REMOVER cuando wizard step-1 capture providers).
-# Se inyecta tanto en el .env (bridge) como inline al arrancar el gateway
-# para que las instalaciones managed-asistidas arranquen vivas con un modelo
-# Xiaomi MiMo funcional sin intervención manual del cliente.
-XIAOMI_API_KEY_DEMO="${DEMO_XIAOMI_API_KEY_HARDCODED}"
+# Xiaomi ya no lleva key hardcodeada. Placeholder dummy no-vacío para que el
+# gateway no aborte si el config referencia \${XIAOMI_API_KEY}; el modelo por
+# defecto es el elegido en el wizard (o ollama/gemma4-gpu, keyless).
+XIAOMI_API_KEY_DEMO="dummy"
 
 # ── Detect BUNDLE_MODE ──────────────────────────────────────────────────────
 # Si junto al script viven los 3 repos, asumimos que estamos dentro de un
@@ -622,7 +485,18 @@ else
 fi
 
 # 3.b — bootstrap overlay-specific openclaw.json (separate from HOME default)
+#
+# Preferimos el openclaw.json COMPLETO que el configurator empaqueta junto a
+# este script (generateOpenclawJson → plantilla probada de ai-office). Lleva
+# placeholders de install-time (__STACK_ROOT__, __NODE_BIN__, __NODE_DIR__)
+# que sustituimos abajo con las rutas reales de ESTA máquina. Si no viaja en
+# el bundle, caemos a un esqueleto mínimo y warneamos.
 \$DRY_RUN || mkdir -p "\$OPENCLAW_OVERLAY_DIR"
+
+# Rutas reales de node en esta máquina para resolver los placeholders.
+NODE_BIN="\$(command -v node)"
+NODE_DIR="\$(dirname "\$NODE_BIN")"
+
 if [ -f "\$OPENCLAW_CONFIG" ]; then
   ok "Found existing \$OPENCLAW_CONFIG"
   # Usamos node -e (Node es prereq); evitamos depender de jq/python3 que
@@ -631,41 +505,41 @@ if [ -f "\$OPENCLAW_CONFIG" ]; then
   DETECTED_PORT=\$(json_read "\$OPENCLAW_CONFIG" "gateway.port")
   [ -n "\$DETECTED_PORT" ] && GATEWAY_PORT="\$DETECTED_PORT"
 else
-  info "Bootstrapping new \$OPENCLAW_CONFIG with fresh token..."
-  GATEWAY_TOKEN=\$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")
-  if ! \$DRY_RUN; then
-    cat > "\$OPENCLAW_CONFIG" <<JSON
-{
-  "\$schema": "https://docs.openclaw.ai/schema/openclaw.json",
-  "gateway": {
-    "mode": "local",
-    "port": \$GATEWAY_PORT,
-    "auth": {
-      "mode": "token",
-      "token": "\$GATEWAY_TOKEN"
-    },
-    "controlUi": {
-      "allowInsecureAuth": true,
-      "dangerouslyDisableDeviceAuth": true
-    },
-    "reload": { "mode": "hybrid" },
-    "remote": { "token": "\$GATEWAY_TOKEN" }
-  },
-  "discovery": {
-    "mdns": { "mode": "off" }
-  },
-  "agents": { "list": [] },
-  "tools": {
-    "profile": "messaging"
-  },
-  "channels": {
-    "slack": { "enabled": false }
-  }
-}
-JSON
-    ok "Created \$OPENCLAW_CONFIG"
+  if [ -f "\$SCRIPT_DIR/openclaw.json" ]; then
+    info "Copying bundled openclaw.json → \$OPENCLAW_CONFIG"
+    if ! \$DRY_RUN; then
+      cp "\$SCRIPT_DIR/openclaw.json" "\$OPENCLAW_CONFIG"
+      # Sustituir placeholders de install-time. Delimitador '#' (no '/') para
+      # no chocar con las barras de las rutas. -i.bak + rm para portabilidad
+      # GNU/BSD sed.
+      sed -i.bak \\
+        -e "s#__STACK_ROOT__#\${STACK_ROOT}#g" \\
+        -e "s#__NODE_BIN__#\${NODE_BIN}#g" \\
+        -e "s#__NODE_DIR__#\${NODE_DIR}#g" \\
+        "\$OPENCLAW_CONFIG" && rm -f "\$OPENCLAW_CONFIG.bak"
+      info "Substituted install paths: STACK_ROOT=\$STACK_ROOT, NODE_BIN=\$NODE_BIN, NODE_DIR=\$NODE_DIR"
+      if grep -q "__STACK_ROOT__" "\$OPENCLAW_CONFIG" 2>/dev/null; then
+        warn "__STACK_ROOT__ still present in \$OPENCLAW_CONFIG — placeholder substitution may have failed"
+      fi
+      GATEWAY_TOKEN=\$(json_read "\$OPENCLAW_CONFIG" "gateway.auth.token")
+      DETECTED_PORT=\$(json_read "\$OPENCLAW_CONFIG" "gateway.port")
+      [ -n "\$DETECTED_PORT" ] && GATEWAY_PORT="\$DETECTED_PORT"
+      ok "Created \$OPENCLAW_CONFIG from bundle"
+    else
+      info "[dry-run] would copy \$SCRIPT_DIR/openclaw.json → \$OPENCLAW_CONFIG and substitute __STACK_ROOT__/__NODE_BIN__/__NODE_DIR__"
+    fi
   else
-    info "[dry-run] would create \$OPENCLAW_CONFIG with fresh token"
+    warn "No openclaw.json next to install.sh — falling back to minimal skeleton"
+    info "Bootstrapping minimal \$OPENCLAW_CONFIG with fresh token..."
+    GATEWAY_TOKEN=\$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")
+    if ! \$DRY_RUN; then
+      cat > "\$OPENCLAW_CONFIG" <<JSON
+{ "gateway": { "mode": "local", "auth": { "mode": "token", "token": "CHANGE_ME" } }, "agents": { "list": [] } }
+JSON
+      ok "Created minimal \$OPENCLAW_CONFIG"
+    else
+      info "[dry-run] would create minimal \$OPENCLAW_CONFIG with fresh token"
+    fi
   fi
 fi
 GATEWAY_URL="http://localhost:\$GATEWAY_PORT"
@@ -733,9 +607,9 @@ else
       echo "# Auto-añadidos por install.sh (overlay UI en :\$OVERLAY_UI_PORT)" >> "\$ENV_FILE"
       echo "OVERLAY_HOSTS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
       echo "CORS_ORIGINS=http://localhost:\$OVERLAY_UI_PORT,http://127.0.0.1:\$OVERLAY_UI_PORT" >> "\$ENV_FILE"
-      # XIAOMI_API_KEY hardcoded (variable XIAOMI_API_KEY_DEMO al inicio del
-      # script; ver constante DEMO_XIAOMI_API_KEY_HARDCODED en lib/generators.ts
-      # del configurator — REMOVER cuando wizard step-1 capture providers).
+      # XIAOMI_API_KEY: placeholder dummy no-vacío (XIAOMI_API_KEY_DEMO arriba).
+      # Evita abortar el gateway si el config referencia \${XIAOMI_API_KEY}; el
+      # modelo por defecto es el del wizard u ollama. El cliente pone su key aquí.
       echo "XIAOMI_API_KEY=\$XIAOMI_API_KEY_DEMO" >> "\$ENV_FILE"
       echo "ELEVENLABS_API_KEY=dummy" >> "\$ENV_FILE"
     fi

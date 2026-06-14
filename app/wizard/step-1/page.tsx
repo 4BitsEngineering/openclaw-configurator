@@ -50,6 +50,13 @@ const PROVIDERS: Array<{ id: ProviderId; name: string; emoji: string; docs: stri
   },
 ];
 
+const MODELS_BY_PROVIDER: Record<string, string[]> = {
+  anthropic: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"],
+  openai: ["gpt-5.2-chat-latest", "gpt-5.2"],
+  google: ["gemini-2.5-pro", "gemini-2.5-flash"],
+  ollama: ["gemma4-gpu", "gemma4:e4b", "qwen2.5-coder:7b"],
+};
+
 function detectCredential(value: string): Detection {
   const v = value.trim();
   if (!v) return { label: "Sin detectar" };
@@ -189,6 +196,27 @@ export default function Step1() {
     setTestMessage("");
   };
 
+  const selectedModel =
+    selectedProvider === "anthropic" || selectedProvider === "openai" || selectedProvider === "google" || selectedProvider === "ollama"
+      ? config.providers[selectedProvider]?.model || ""
+      : "";
+
+  const handleModelChange = (model: string) => {
+    const providers = { ...config.providers };
+    if (selectedProvider === "anthropic") {
+      providers.anthropic = { ...providers.anthropic, model: model || undefined };
+    } else if (selectedProvider === "openai") {
+      providers.openai = { apiKey: "", ...providers.openai, model: model || undefined };
+    } else if (selectedProvider === "google") {
+      providers.google = { apiKey: "", ...providers.google, model: model || undefined };
+    } else if (selectedProvider === "ollama") {
+      providers.ollama = { baseUrl: ollamaBaseUrl, ...providers.ollama, model: model || undefined };
+    } else {
+      return;
+    }
+    updateConfig({ providers });
+  };
+
   const handleAxetTest = () => {
     setAxetTestStatus("testing");
     setAxetTestMessage("");
@@ -266,7 +294,7 @@ export default function Step1() {
     }
 
     if (selectedProvider === "ollama") {
-      providers.ollama = { baseUrl: ollamaBaseUrl };
+      providers.ollama = { ...providers.ollama, baseUrl: ollamaBaseUrl };
       delete providers.anthropic;
       delete providers.openai;
       delete providers.google;
@@ -278,7 +306,9 @@ export default function Step1() {
     if (!credential.trim()) return false;
 
     if (selectedProvider === "anthropic") {
-      providers.anthropic = anthropicMode === "sessionToken" ? { sessionToken: credential.trim() } : { apiKey: credential.trim() };
+      providers.anthropic = anthropicMode === "sessionToken"
+        ? { ...providers.anthropic, sessionToken: credential.trim() }
+        : { ...providers.anthropic, apiKey: credential.trim() };
       delete providers.openai;
       delete providers.google;
       delete providers.ollama;
@@ -286,7 +316,7 @@ export default function Step1() {
     }
 
     if (selectedProvider === "openai") {
-      providers.openai = { apiKey: credential.trim() };
+      providers.openai = { ...providers.openai, apiKey: credential.trim() };
       delete providers.anthropic;
       delete providers.google;
       delete providers.ollama;
@@ -294,7 +324,7 @@ export default function Step1() {
     }
 
     if (selectedProvider === "google") {
-      providers.google = { apiKey: credential.trim() };
+      providers.google = { ...providers.google, apiKey: credential.trim() };
       delete providers.anthropic;
       delete providers.openai;
       delete providers.ollama;
@@ -477,6 +507,24 @@ export default function Step1() {
               {axetTestStatus === "ok" && <span className="text-emerald-400 text-sm">✅ {axetTestMessage}</span>}
               {axetTestStatus === "error" && <span className="text-rose-400 text-sm">❌ {axetTestMessage}</span>}
             </div>
+          </div>
+        )}
+
+        {MODELS_BY_PROVIDER[selectedProvider] && (
+          <div className="space-y-1">
+            <label className="block text-sm text-slate-300">Modelo</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => handleModelChange(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none"
+            >
+              <option value="">Modelo por defecto del proveedor</option>
+              {MODELS_BY_PROVIDER[selectedProvider].map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
