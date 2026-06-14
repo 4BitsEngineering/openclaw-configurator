@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateOpenclawJson } from '../lib/generators.ts';
+import { generateOpenclawJson, generateInstallScript } from '../lib/generators.ts';
+import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const baseConfig = {
   providers: { ollama: { baseUrl: 'http://127.0.0.1:11434/v1', model: 'gemma4-gpu' } },
@@ -39,4 +42,19 @@ test('ollama conserva sus modelos del template y añade el elegido', () => {
   const ids = (out.models.providers.ollama.models || []).map(m => m.id);
   assert.ok(ids.includes('gemma4-gpu'), 'modelo elegido presente');
   assert.ok(ids.length >= 2, 'se conservan otros modelos del template (no replace destructivo)');
+});
+
+test('install.sh generado copia el openclaw.json del bundle (no esqueleto)', () => {
+  const sh = generateInstallScript();
+  assert.ok(sh.includes('$SCRIPT_DIR/openclaw.json'), 'install.sh referencia el openclaw.json del bundle');
+  assert.ok(sh.includes('__STACK_ROOT__'), 'install.sh sustituye el placeholder de ruta');
+});
+
+test('bundle E2E: openclaw.json completo escribible junto al install.sh', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cfg-bundle-'));
+  writeFileSync(join(dir, 'openclaw.json'), generateOpenclawJson(baseConfig));
+  writeFileSync(join(dir, 'install.sh'), generateInstallScript());
+  const oc = JSON.parse(readFileSync(join(dir, 'openclaw.json'), 'utf8'));
+  assert.ok(oc.models && oc.models.providers, 'openclaw.json del bundle tiene models.providers');
+  assert.ok(oc.plugins && oc.plugins.entries, 'tiene plugins.entries');
 });
