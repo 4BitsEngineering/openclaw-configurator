@@ -686,7 +686,18 @@ else
 fi
 
 # 3.b — bootstrap overlay-specific openclaw.json (separate from HOME default)
+#
+# Preferimos el openclaw.json COMPLETO que el configurator empaqueta junto a
+# este script (generateOpenclawJson → plantilla probada de ai-office). Lleva
+# placeholders de install-time (__STACK_ROOT__, __NODE_BIN__, __NODE_DIR__)
+# que sustituimos abajo con las rutas reales de ESTA máquina. Si no viaja en
+# el bundle, caemos a un esqueleto mínimo y warneamos.
 \$DRY_RUN || mkdir -p "\$OPENCLAW_OVERLAY_DIR"
+
+# Rutas reales de node en esta máquina para resolver los placeholders.
+NODE_BIN="\$(command -v node)"
+NODE_DIR="\$(dirname "\$NODE_BIN")"
+
 if [ -f "\$OPENCLAW_CONFIG" ]; then
   ok "Found existing \$OPENCLAW_CONFIG"
   # Usamos node -e (Node es prereq); evitamos depender de jq/python3 que
@@ -695,41 +706,41 @@ if [ -f "\$OPENCLAW_CONFIG" ]; then
   DETECTED_PORT=\$(json_read "\$OPENCLAW_CONFIG" "gateway.port")
   [ -n "\$DETECTED_PORT" ] && GATEWAY_PORT="\$DETECTED_PORT"
 else
-  info "Bootstrapping new \$OPENCLAW_CONFIG with fresh token..."
-  GATEWAY_TOKEN=\$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")
-  if ! \$DRY_RUN; then
-    cat > "\$OPENCLAW_CONFIG" <<JSON
-{
-  "\$schema": "https://docs.openclaw.ai/schema/openclaw.json",
-  "gateway": {
-    "mode": "local",
-    "port": \$GATEWAY_PORT,
-    "auth": {
-      "mode": "token",
-      "token": "\$GATEWAY_TOKEN"
-    },
-    "controlUi": {
-      "allowInsecureAuth": true,
-      "dangerouslyDisableDeviceAuth": true
-    },
-    "reload": { "mode": "hybrid" },
-    "remote": { "token": "\$GATEWAY_TOKEN" }
-  },
-  "discovery": {
-    "mdns": { "mode": "off" }
-  },
-  "agents": { "list": [] },
-  "tools": {
-    "profile": "messaging"
-  },
-  "channels": {
-    "slack": { "enabled": false }
-  }
-}
-JSON
-    ok "Created \$OPENCLAW_CONFIG"
+  if [ -f "\$SCRIPT_DIR/openclaw.json" ]; then
+    info "Copying bundled openclaw.json → \$OPENCLAW_CONFIG"
+    if ! \$DRY_RUN; then
+      cp "\$SCRIPT_DIR/openclaw.json" "\$OPENCLAW_CONFIG"
+      # Sustituir placeholders de install-time. Delimitador '#' (no '/') para
+      # no chocar con las barras de las rutas. -i.bak + rm para portabilidad
+      # GNU/BSD sed.
+      sed -i.bak \\
+        -e "s#__STACK_ROOT__#\${STACK_ROOT}#g" \\
+        -e "s#__NODE_BIN__#\${NODE_BIN}#g" \\
+        -e "s#__NODE_DIR__#\${NODE_DIR}#g" \\
+        "\$OPENCLAW_CONFIG" && rm -f "\$OPENCLAW_CONFIG.bak"
+      info "Substituted install paths: STACK_ROOT=\$STACK_ROOT, NODE_BIN=\$NODE_BIN, NODE_DIR=\$NODE_DIR"
+      if grep -q "__STACK_ROOT__" "\$OPENCLAW_CONFIG" 2>/dev/null; then
+        warn "__STACK_ROOT__ still present in \$OPENCLAW_CONFIG — placeholder substitution may have failed"
+      fi
+      GATEWAY_TOKEN=\$(json_read "\$OPENCLAW_CONFIG" "gateway.auth.token")
+      DETECTED_PORT=\$(json_read "\$OPENCLAW_CONFIG" "gateway.port")
+      [ -n "\$DETECTED_PORT" ] && GATEWAY_PORT="\$DETECTED_PORT"
+      ok "Created \$OPENCLAW_CONFIG from bundle"
+    else
+      info "[dry-run] would copy \$SCRIPT_DIR/openclaw.json → \$OPENCLAW_CONFIG and substitute __STACK_ROOT__/__NODE_BIN__/__NODE_DIR__"
+    fi
   else
-    info "[dry-run] would create \$OPENCLAW_CONFIG with fresh token"
+    warn "No openclaw.json next to install.sh — falling back to minimal skeleton"
+    info "Bootstrapping minimal \$OPENCLAW_CONFIG with fresh token..."
+    GATEWAY_TOKEN=\$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")
+    if ! \$DRY_RUN; then
+      cat > "\$OPENCLAW_CONFIG" <<JSON
+{ "gateway": { "mode": "local", "auth": { "mode": "token", "token": "CHANGE_ME" } }, "agents": { "list": [] } }
+JSON
+      ok "Created minimal \$OPENCLAW_CONFIG"
+    else
+      info "[dry-run] would create minimal \$OPENCLAW_CONFIG with fresh token"
+    fi
   fi
 fi
 GATEWAY_URL="http://localhost:\$GATEWAY_PORT"

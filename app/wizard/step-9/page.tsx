@@ -9,6 +9,7 @@ import {
   generateBridgeConfig,
   generateGuardClawConfig,
   generateOverlayConfig,
+  generateOpenclawJson,
 } from "@/lib/generators";
 
 export default function Step9() {
@@ -37,6 +38,7 @@ export default function Step9() {
     downloadFile(".env", generateEnvFile(config));
     downloadFile("install.sh", generateInstallScript());
     downloadFile("overlay-config.json", generateOverlayConfig(config));
+    downloadFile("openclaw.json", generateOpenclawJson(config));
   };
 
   const FILES: { name: string; emoji: string; generator: () => string; subtle?: string }[] = [
@@ -53,6 +55,12 @@ export default function Step9() {
       subtle: teamHasAgents
         ? `Equipo clawcrew (${config.clawcrewTeam?.agents.filter((a) => a.enabled).length} agentes)`
         : "Sin equipo configurado (skip)",
+    },
+    {
+      name: "openclaw.json",
+      emoji: "⚙️",
+      generator: () => generateOpenclawJson(config),
+      subtle: "Config completo del gateway (install.sh sustituye rutas)",
     },
   ];
 
