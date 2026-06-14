@@ -95,6 +95,34 @@ export default function Step2() {
     }));
   };
 
+  // ── Plan-mode (un agente coordina al equipo) ───────────────────────────────
+  const togglePlanMode = () => {
+    setTeam((t) => {
+      const existing = t.planMode;
+      if (existing?.enabled === true) {
+        return { ...t, planMode: { ...existing, enabled: false } };
+      }
+      return {
+        ...t,
+        planMode: {
+          enabled: true,
+          uiVisible: existing?.uiVisible ?? false,
+          autoSuggest: existing?.autoSuggest ?? false,
+          plannerAgentId: existing?.plannerAgentId ?? null,
+          fallbackPlanFirst: existing?.fallbackPlanFirst ?? false,
+        },
+      };
+    });
+    markTouched("clawcrewTeam");
+  };
+
+  const setPlannerAgentId = (plannerAgentId: string) => {
+    setTeam((t) => {
+      if (!t.planMode) return t;
+      return { ...t, planMode: { ...t.planMode, plannerAgentId: plannerAgentId || null } };
+    });
+  };
+
   // ── Commit + sync legacy useCase ──────────────────────────────────────────
   const handleNext = () => {
     if (!team.prefix || !/^[a-z][a-z0-9-]*$/.test(team.prefix)) {
@@ -377,6 +405,57 @@ export default function Step2() {
             </div>
           )}
         </section>
+
+        {/* ── D. Planificador (plan-mode) ───────────────────────────────── */}
+        {activeAgents.length > 0 && (
+          <section>
+            <h3 className="text-sm font-semibold text-slate-300 mb-2">D. Planificador</h3>
+            <div className="rounded-lg border-2 border-slate-600/60 bg-slate-800/40 p-3 space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <button
+                  type="button"
+                  onClick={togglePlanMode}
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                    team.planMode?.enabled === true ? "border-cyan-500 bg-cyan-500" : "border-slate-500"
+                  }`}
+                  title={team.planMode?.enabled === true ? "Desactivar planificador" : "Activar planificador"}
+                >
+                  {team.planMode?.enabled === true && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                  )}
+                </button>
+                <span className="text-sm">
+                  Activar planificador
+                  <span className="block text-xs text-slate-400">
+                    un agente coordina al equipo en tareas complejas
+                  </span>
+                </span>
+              </label>
+
+              {team.planMode?.enabled === true && (
+                <div className="animate-fadeInUp">
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">
+                    Agente planificador
+                  </label>
+                  <select
+                    value={team.planMode?.plannerAgentId || ""}
+                    onChange={(e) => setPlannerAgentId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm focus:border-cyan-500 focus:outline-none"
+                  >
+                    <option value="">(elige un agente)</option>
+                    {activeAgents.map((a) => (
+                      <option key={a.slug} value={`${team.prefix}-${a.slug}-v1`}>
+                        {a.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* ── Summary footer ────────────────────────────────────────────── */}
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
