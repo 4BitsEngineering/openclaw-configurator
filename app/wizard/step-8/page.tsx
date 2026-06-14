@@ -160,7 +160,7 @@ export default function Step8() {
         <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
           <p className="text-xs text-slate-500 mb-2">Se generarán los siguientes ficheros:</p>
           <div className="flex flex-wrap gap-2">
-            {["openclaw.yaml", "agents-config.yaml", "bridge-config.yaml", "guardclaw-config.yaml", ".env", "install.sh"].map((f) => (
+            {["overlay-config.json", "openclaw.json", ".env", "install.sh"].map((f) => (
               <span key={f} className="px-2 py-0.5 text-xs rounded bg-slate-700/80 text-slate-300 border border-slate-600/50 font-mono">{f}</span>
             ))}
           </div>

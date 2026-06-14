@@ -294,7 +294,7 @@ export default function Step1() {
     }
 
     if (selectedProvider === "ollama") {
-      providers.ollama = { baseUrl: ollamaBaseUrl };
+      providers.ollama = { ...providers.ollama, baseUrl: ollamaBaseUrl };
       delete providers.anthropic;
       delete providers.openai;
       delete providers.google;
@@ -306,7 +306,9 @@ export default function Step1() {
     if (!credential.trim()) return false;
 
     if (selectedProvider === "anthropic") {
-      providers.anthropic = anthropicMode === "sessionToken" ? { sessionToken: credential.trim() } : { apiKey: credential.trim() };
+      providers.anthropic = anthropicMode === "sessionToken"
+        ? { ...providers.anthropic, sessionToken: credential.trim() }
+        : { ...providers.anthropic, apiKey: credential.trim() };
       delete providers.openai;
       delete providers.google;
       delete providers.ollama;
@@ -314,7 +316,7 @@ export default function Step1() {
     }
 
     if (selectedProvider === "openai") {
-      providers.openai = { apiKey: credential.trim() };
+      providers.openai = { ...providers.openai, apiKey: credential.trim() };
       delete providers.anthropic;
       delete providers.google;
       delete providers.ollama;
@@ -322,7 +324,7 @@ export default function Step1() {
     }
 
     if (selectedProvider === "google") {
-      providers.google = { apiKey: credential.trim() };
+      providers.google = { ...providers.google, apiKey: credential.trim() };
       delete providers.anthropic;
       delete providers.openai;
       delete providers.ollama;

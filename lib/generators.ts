@@ -16,16 +16,6 @@ import { randomBytes } from "crypto";
 // configure-overlay (que ya lo soporta).
 // ──────────────────────────────────────────────────────────────────────────────
 
-// Modelo default hardcodeado para todas las instalaciones generadas por el
-// configurator. Garantiza que el cliente abre el chat y los agentes pueden
-// responder de inmediato sin pasos manuales en el .env. Cuando el wizard
-// step-1 capture provider+modelo del operador, eliminar este literal y leer
-// del config.providers.
-//
-// !! REMOVE BEFORE PUBLIC RELEASE (junto con la key xiaomi en
-// generateInstallScript). Solo para demos managed-asistidas 24-may.
-const DEFAULT_MODEL_HARDCODED = "xiaomi/mimo-v2-pro";
-
 // !! REMOVE BEFORE PUBLIC RELEASE / cuando wizard step-1 capture la key real
 // del operador. Por ahora hardcoded para demos: el .env del cliente queda con
 // esta key directamente, sin que el operador tenga que editar a mano. Esta
@@ -33,6 +23,31 @@ const DEFAULT_MODEL_HARDCODED = "xiaomi/mimo-v2-pro";
 // hasta que se cierre el flujo Capa 2 (wizard captura key + .env la inyecta
 // como `${XIAOMI_API_KEY}` substituido al generar).
 const DEMO_XIAOMI_API_KEY_HARDCODED = "sk-esbnditqmy4kcyyk1i12i2wi2nlxt3mkynwa2pp69gzg7zpr";
+
+// Modelo keyless por defecto (Ollama local). Es el fallback universal y el
+// modelo de la instancia cuando el operador no eligió provider en step-1.
+const DEFAULT_KEYLESS_MODEL = "ollama/gemma4-gpu";
+
+// Resuelve el modelo de la instancia desde el wizard. Es la ÚNICA fuente de
+// verdad compartida por los tres generadores (openclaw.json primary,
+// overlay defaultModel, .env key) para que no se descuadren. Default keyless:
+// ollama/gemma4-gpu.
+function resolveInstanceModel(config: WizardConfig): { providerId: string; modelId: string; ref: string; envKey?: string } {
+  const p = config.providers || {};
+  const KEY: Record<string, string> = { anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY", google: "GOOGLE_API_KEY" };
+  for (const id of ["anthropic", "openai", "google"] as const) {
+    if (p[id]) {
+      const def = id === "anthropic" ? "claude-sonnet-4-6" : id === "openai" ? "gpt-5.2-chat-latest" : "gemini-2.5-pro";
+      const modelId = p[id]!.model || def;
+      return { providerId: id, modelId, ref: `${id}/${modelId}`, envKey: KEY[id] };
+    }
+  }
+  if (p.ollama) {
+    const modelId = p.ollama.model || "gemma4-gpu";
+    return { providerId: "ollama", modelId, ref: `ollama/${modelId}` };
+  }
+  return { providerId: "ollama", modelId: "gemma4-gpu", ref: DEFAULT_KEYLESS_MODEL };
+}
 
 // Genera un openclaw.json COMPLETO partiendo de la plantilla (derivada de la
 // config probada de ai-office) y parametrizando lo por-instancia. agents.list
@@ -63,6 +78,25 @@ export function generateOpenclawJson(config: WizardConfig): string {
       tpl.models.providers[chosen.providerId] = chosen.providerEntry;
     }
   }
+
+  // El modelo elegido en step-1 dirige el PRIMARY de la instancia. Sin elección,
+  // resolveInstanceModel devuelve el keyless por defecto (ollama/gemma4-gpu).
+  const instance = resolveInstanceModel(config);
+  tpl.agents = tpl.agents || {};
+  tpl.agents.defaults = tpl.agents.defaults || {};
+  const modelBlock = (tpl.agents.defaults.model && typeof tpl.agents.defaults.model === "object")
+    ? tpl.agents.defaults.model
+    : { fallbacks: [] as string[] };
+  modelBlock.primary = instance.ref;
+  const fallbacks: string[] = Array.isArray(modelBlock.fallbacks) ? modelBlock.fallbacks : [];
+  // Red de seguridad keyless: asegurar ollama/gemma4-gpu como fallback (sin
+  // duplicar, y nunca como fallback de sí mismo si ya es el primary).
+  if (instance.ref !== DEFAULT_KEYLESS_MODEL && !fallbacks.includes(DEFAULT_KEYLESS_MODEL)) {
+    fallbacks.push(DEFAULT_KEYLESS_MODEL);
+  }
+  modelBlock.fallbacks = fallbacks;
+  tpl.agents.defaults.model = modelBlock;
+
   return JSON.stringify(tpl, null, 2) + "\n";
 }
 
@@ -144,10 +178,10 @@ export function generateOverlayConfig(config: WizardConfig): string {
     library: { path: "./clawcrew" },
     openclawConfig: "./openclaw.json",
     // configure-overlay.js lee este campo top-level y lo propaga a cada
-    // agent-cli install como --default-model. Hardcoded por ahora (demos
-    // managed); cuando el wizard step-1 capture provider+modelo del operador
-    // (Capa 2), esto leerá de cfg.providers.<provider>.model.
-    defaultModel: DEFAULT_MODEL_HARDCODED,
+    // agent-cli install como --default-model. Coherente con el primary del
+    // openclaw.json: lo dirige el modelo elegido en step-1 (resolveInstanceModel),
+    // con default keyless ollama/gemma4-gpu si no se eligió provider.
+    defaultModel: resolveInstanceModel(config).ref,
     agents: agentsBlock,
   };
 
@@ -217,6 +251,18 @@ export function generateEnvFile(config: WizardConfig): string {
   if (config.guardClaw.sensitivity === "S3") {
     lines.push(`# GuardClaw S3 — local LLM required`);
     lines.push(`OLLAMA_BASE_URL=http://localhost:11434`);
+    lines.push(``);
+  }
+
+  // Modelo de la instancia (step-1): garantiza que la API key del provider
+  // elegido tiene su línea en el .env, vacía para que el cliente la rellene.
+  // El openclaw.json referencia ${envKey} en el provider primary; sin esta
+  // línea los agentes no responderían. Para ollama (keyless) no se emite nada.
+  // No duplicamos si alguno de los bloques anteriores ya emitió la línea.
+  const instance = resolveInstanceModel(config);
+  if (instance.envKey && !lines.some((l) => l.startsWith(`${instance.envKey}=`))) {
+    lines.push(`# Required for the selected model (${instance.ref}) — fill in your key`);
+    lines.push(`${instance.envKey}=`);
     lines.push(``);
   }
 
