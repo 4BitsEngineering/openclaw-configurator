@@ -1,4 +1,6 @@
-import { WizardConfig } from "./wizard-context";
+import type { WizardConfig } from "./wizard-context";
+import openclawTemplate from "./templates/openclaw.template.json";
+import { randomBytes } from "crypto";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Overlay config (consumed by autonomous-agents/work-console/scripts/configure-overlay.js)
@@ -31,6 +33,68 @@ const DEFAULT_MODEL_HARDCODED = "xiaomi/mimo-v2-pro";
 // hasta que se cierre el flujo Capa 2 (wizard captura key + .env la inyecta
 // como `${XIAOMI_API_KEY}` substituido al generar).
 const DEMO_XIAOMI_API_KEY_HARDCODED = "sk-esbnditqmy4kcyyk1i12i2wi2nlxt3mkynwa2pp69gzg7zpr";
+
+// Genera un openclaw.json COMPLETO partiendo de la plantilla (derivada de la
+// config probada de ai-office) y parametrizando lo por-instancia. agents.list
+// queda [] — configure-overlay.js los inyecta tras instalar los agentes.
+export function generateOpenclawJson(config: WizardConfig): string {
+  const tpl = JSON.parse(JSON.stringify(openclawTemplate));
+  const token = randomBytes(24).toString("base64url");
+  if (tpl.gateway?.auth) tpl.gateway.auth.token = token;
+  if (tpl.gateway?.remote) tpl.gateway.remote.token = token;
+  const chosen = pickProviderModel(config);
+  if (chosen) {
+    tpl.models = tpl.models || { mode: "replace", providers: {} };
+    tpl.models.providers = tpl.models.providers || {};
+    const existing = tpl.models.providers[chosen.providerId];
+    if (existing && typeof existing === "object") {
+      // El provider ya vive en la plantilla (p.ej. ollama con varios modelos):
+      // NO reemplazar en bloque (perderíamos el resto de modelos). Preservamos
+      // la entry y solo aseguramos que el modelo elegido esté presente.
+      const chosenModels = (chosen.providerEntry as { models?: Array<{ id?: string }> }).models || [];
+      const existingModels: Array<{ id?: string }> = Array.isArray(existing.models) ? existing.models : [];
+      for (const m of chosenModels) {
+        const present = existingModels.some((em) => em.id === m.id);
+        if (!present) existingModels.unshift(m);
+      }
+      existing.models = existingModels;
+    } else {
+      // El provider no existe en la plantilla (anthropic/openai/google): aditivo.
+      tpl.models.providers[chosen.providerId] = chosen.providerEntry;
+    }
+  }
+  return JSON.stringify(tpl, null, 2) + "\n";
+}
+
+function pickProviderModel(config: WizardConfig): { providerId: string; providerEntry: unknown } | null {
+  const p = config.providers || {};
+  if (p.ollama) {
+    return { providerId: "ollama", providerEntry: {
+      baseUrl: p.ollama.baseUrl || "http://127.0.0.1:11434/v1",
+      apiKey: "ollama-local", api: "openai-completions",
+      models: [{ id: p.ollama.model || "gemma4-gpu", name: p.ollama.model || "gemma4-gpu", reasoning: false, input: ["text"] }],
+    } };
+  }
+  if (p.anthropic) {
+    return { providerId: "anthropic", providerEntry: {
+      apiKey: "${ANTHROPIC_API_KEY}", api: "anthropic-messages",
+      models: [{ id: p.anthropic.model || "claude-sonnet-4-6", name: p.anthropic.model || "claude-sonnet-4-6" }],
+    } };
+  }
+  if (p.openai) {
+    return { providerId: "openai", providerEntry: {
+      apiKey: "${OPENAI_API_KEY}", api: "openai-completions",
+      models: [{ id: p.openai.model || "gpt-5.2-chat-latest", name: p.openai.model || "gpt-5.2-chat-latest" }],
+    } };
+  }
+  if (p.google) {
+    return { providerId: "google", providerEntry: {
+      apiKey: "${GOOGLE_API_KEY}", api: "openai-completions",
+      models: [{ id: p.google.model || "gemini-2.5-pro", name: p.google.model || "gemini-2.5-pro" }],
+    } };
+  }
+  return null;
+}
 
 export function generateOverlayConfig(config: WizardConfig): string {
   const team = config.clawcrewTeam;

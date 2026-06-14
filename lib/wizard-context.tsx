@@ -245,10 +245,10 @@ export function buildAgentSelectionFromRole(
 
 export interface WizardConfig {
   providers: {
-    anthropic?: { apiKey?: string; sessionToken?: string };
-    openai?: { apiKey: string };
-    google?: { apiKey: string };
-    ollama?: { baseUrl: string };
+    anthropic?: { apiKey?: string; sessionToken?: string; model?: string; fallbacks?: string[] };
+    openai?: { apiKey: string; model?: string; fallbacks?: string[] };
+    google?: { apiKey: string; model?: string; fallbacks?: string[] };
+    ollama?: { baseUrl: string; model?: string; fallbacks?: string[] };
     axet?: AxetProviderConfig;
   };
   useCase: {
