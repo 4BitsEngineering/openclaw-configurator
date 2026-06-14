@@ -30,9 +30,8 @@ import { useState } from "react";
 // usará para invocar scripts/configure-overlay.js en autonomous-agents.
 //
 // IMPORTANTE: por compat retro mantenemos el useCase legacy populado con un
-// reflejo de los displayNames del nuevo clawcrewTeam, para que los generators
-// existentes (generateAgentsConfig, generateBridgeConfig) sigan trabajando
-// sin reescribirlos en este paso.
+// reflejo de los displayNames del nuevo clawcrewTeam (otros pasos del wizard
+// todavía lo leen) sin reescribirlo en este paso.
 // ──────────────────────────────────────────────────────────────────────────────
 
 const SECTORS: ClawcrewSector[] = [
