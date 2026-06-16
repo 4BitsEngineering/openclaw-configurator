@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateOpenclawJson, generateInstallScript, generateOverlayConfig, generateEnvFile } from '../lib/generators.ts';
+import { generateOpenclawJson, generateInstallScript, generateOverlayConfig, generateEnvFile, generateInstanceManifest, generateInstancePackage } from '../lib/generators.ts';
 import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -80,6 +80,87 @@ test('el .env emite la API key del modelo elegido (vacía) y nada extra para oll
   assert.ok(/ANTHROPIC_API_KEY=/.test(anth), 'ANTHROPIC_API_KEY presente');
   const oll = generateEnvFile({ ...baseConfig, providers: { ollama: { baseUrl: 'http://127.0.0.1:11434/v1', model: 'gemma4-gpu' } } });
   assert.equal(/ANTHROPIC_API_KEY|OPENAI_API_KEY|GOOGLE_API_KEY/.test(oll), false, 'ollama keyless: no emite keys');
+});
+
+// ── Contrato de salidas (entregable #1) ─────────────────────────────────────────
+
+const contractConfig = {
+  ...baseConfig,
+  clawcrewTeam: teamWithAgent,
+  providers: { anthropic: { apiKey: 'x', model: 'claude-opus-4-8' } },
+  channels: { telegram: { token: 'x' } },
+};
+
+test('manifest: estructura mínima y compat/registro correctos', () => {
+  const m = JSON.parse(generateInstanceManifest(contractConfig));
+  assert.ok(m.instance && m.instance.slug && m.instance.prefix, 'instance');
+  assert.equal(m.compat.configSchemaVersion, '1.0', 'schema version');
+  assert.ok(m.compat.generatedBy.startsWith('openclaw-configurator@'), 'generatedBy');
+  assert.equal(m.artifacts.base, 'base/openclaw.json');
+  assert.equal(m.artifacts.overlay, 'overlay/overlay-config.json');
+  assert.equal(m.registration.target, 'clawhub');
+  assert.equal(m.registration.mode, 'install-time');
+});
+
+test('manifest.env: declara provider+channel elegidos, sin valores y sin duplicados', () => {
+  const m = JSON.parse(generateInstanceManifest(contractConfig));
+  const keys = m.env.map(e => e.key);
+  assert.ok(keys.includes('ANTHROPIC_API_KEY'), 'key del provider');
+  assert.ok(keys.includes('TELEGRAM_BOT_TOKEN'), 'token del canal');
+  assert.equal(new Set(keys).size, keys.length, 'sin duplicados');
+  // Cada entrada es solo declaración: nada parecido a un valor real.
+  for (const e of m.env) {
+    assert.ok(e.key && e.scope && e.desc, `entrada ${e.key} declarada`);
+    assert.equal(/^(sk-ant-api03|xoxb)-[A-Za-z0-9]{20,}/.test(e.example), false, `example de ${e.key} no es un secreto real`);
+  }
+});
+
+test('manifest.env: ollama keyless no aporta ENV de provider', () => {
+  const m = JSON.parse(generateInstanceManifest({ ...baseConfig, clawcrewTeam: teamWithAgent, providers: { ollama: { baseUrl: 'http://127.0.0.1:11434/v1', model: 'gemma4-gpu' } }, channels: {} }));
+  const keys = m.env.map(e => e.key);
+  assert.equal(keys.some(k => /API_KEY$/.test(k)), false, 'ollama keyless: sin API keys');
+});
+
+test('overlay-config: settingsSeed con defaults seguros y claves reales del bridge', () => {
+  const overlay = JSON.parse(generateOverlayConfig(contractConfig));
+  assert.ok(overlay.settingsSeed, 'settingsSeed presente');
+  // Defaults seguros cuando el wizard no pobló bridgeSettings.
+  assert.equal(overlay.settingsSeed.AUTONOMY_LEVEL, 'n0', 'autonomía humano-en-bucle por defecto');
+  assert.equal(overlay.settingsSeed.GUARDCLAW_ENABLED, true);
+  assert.equal(overlay.settingsSeed.GUARDCLAW_OUTPUT_REDACT, true);
+  assert.equal(overlay.settingsSeed.AGENT_TIMEOUT, 1800);
+  assert.equal(overlay.settingsSeed.CONVERSATIONS_IDLE_DAYS, 90);
+  assert.ok(overlay.integrations && overlay.knowledge, 'integrations + knowledge');
+});
+
+test('overlay-config: settingsSeed refleja el perfil de arranque elegido', () => {
+  const cfg = {
+    ...contractConfig,
+    bridgeSettings: { autonomyLevel: 'n1', guardClawEnabled: true, outputRedact: false, webEgress: true, language: 'en-US', agentTimeout: 600, conversationIdleDays: 30 },
+  };
+  const overlay = JSON.parse(generateOverlayConfig(cfg));
+  assert.equal(overlay.settingsSeed.AUTONOMY_LEVEL, 'n1');
+  assert.equal(overlay.settingsSeed.GUARDCLAW_OUTPUT_REDACT, false);
+  assert.equal(overlay.settingsSeed.AGENTS_DEFAULT_LANGUAGE, 'en-US');
+  assert.equal(overlay.settingsSeed.AGENT_TIMEOUT, 600);
+});
+
+test('manifest.env: integraciones habilitadas declaran sus ENV', () => {
+  const cfg = { ...contractConfig, integrations: { n8n: { enabled: true }, slack: { enabled: false } } };
+  const m = JSON.parse(generateInstanceManifest(cfg));
+  const keys = m.env.map(e => e.key);
+  assert.ok(keys.includes('N8N_BASE_URL') && keys.includes('N8N_AUTH_TOKEN'), 'n8n ENV declaradas');
+  assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack deshabilitado no declara ENV');
+});
+
+test('generateInstancePackage: emite los 3 artefactos del contrato', () => {
+  const pkg = generateInstancePackage(contractConfig);
+  assert.ok(pkg['base/openclaw.json'], 'base');
+  assert.ok(pkg['overlay/overlay-config.json'], 'overlay');
+  assert.ok(pkg['instance-manifest.json'], 'manifest');
+  // Ninguna API key con forma real fuera de los example del manifiesto.
+  const base = pkg['base/openclaw.json'];
+  assert.equal(/sk-ant-api03-[A-Za-z0-9]{20,}|xoxb-[0-9]{8,}/.test(base), false, 'base sin secretos crudos');
 });
 
 test('bundle E2E: openclaw.json completo escribible junto al install.sh', () => {

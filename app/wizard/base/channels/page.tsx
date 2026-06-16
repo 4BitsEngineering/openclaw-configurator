@@ -1,6 +1,6 @@
 "use client";
 
-import { WizardLayout } from "@/components/wizard-layout";
+import { PhaseLayout } from "@/components/wizard/phase-layout";
 import { useWizard } from "@/lib/wizard-context";
 import { useEffect, useMemo, useState } from "react";
 
@@ -24,7 +24,7 @@ function templateChannelDefaults(template: "personal" | "developer" | "business"
   return { telegram: false, discord: false, whatsapp: false, signal: false };
 }
 
-export default function Step4() {
+export default function ChannelsStep() {
   const { config, updateConfig, selectedTemplate, touched, markTouched } = useWizard();
 
   const [telegramToken, setTelegramToken] = useState(config.channels.telegram?.token || "");
@@ -89,7 +89,7 @@ export default function Step4() {
   };
 
   return (
-    <WizardLayout step={4} title="Messaging Channels" description="Conecta canales con guías rápidas y validación de tokens" onNext={handleNext}>
+    <PhaseLayout stepId="channels" title="Canales de mensajería" description="Conecta los canales por los que responderá tu instancia, con validación de tokens" onNext={handleNext}>
       <div className="space-y-6">
         <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
           <div className="flex items-center justify-between mb-3">
@@ -106,7 +106,7 @@ export default function Step4() {
               disabled={telegramTestStatus === "testing"}
               className="px-3 py-1 rounded border border-slate-500 hover:border-cyan-500 text-xs"
             >
-              {telegramTestStatus === "testing" ? "Probando..." : "Test Telegram token"}
+              {telegramTestStatus === "testing" ? "Probando..." : "Probar token de Telegram"}
             </button>
             {telegramTestStatus === "ok" && <span className="text-xs text-emerald-400">✅ {telegramTestMessage}</span>}
             {telegramTestStatus === "error" && <span className="text-xs text-rose-400">❌ {telegramTestMessage}</span>}
@@ -139,6 +139,6 @@ export default function Step4() {
           <a href={SIGNAL_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Guía de configuración Signal</a>
         </div>
       </div>
-    </WizardLayout>
+    </PhaseLayout>
   );
 }

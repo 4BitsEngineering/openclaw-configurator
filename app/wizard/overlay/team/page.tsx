@@ -1,6 +1,6 @@
 "use client";
 
-import { WizardLayout } from "@/components/wizard-layout";
+import { PhaseLayout } from "@/components/wizard/phase-layout";
 import {
   useWizard,
   CLAWCREW_ROLES,
@@ -15,7 +15,7 @@ import {
 import { useState } from "react";
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Step-2 — Equipo de agentes para tu negocio
+// Fase 2 (Overlay) — Equipo de agentes para tu negocio
 //
 // Wizard "sector → equipo → identidades":
 //   A. Sector picker (chips de 7: 6 verticales + custom). Selección rellena
@@ -26,8 +26,8 @@ import { useState } from "react";
 //      / voz. Defaults vienen del manifest del rol (CLAWCREW_ROLES) — el
 //      operator puede sobre-escribir todo.
 //
-// El bloque resultante (clawcrewTeam) es lo que el install.sh del Step-9
-// usará para invocar scripts/configure-overlay.js en autonomous-agents.
+// El bloque resultante (clawcrewTeam) es lo que el install.sh usará para
+// invocar scripts/configure-overlay.js en autonomous-agents.
 //
 // IMPORTANTE: por compat retro mantenemos el useCase legacy populado con un
 // reflejo de los displayNames del nuevo clawcrewTeam (otros pasos del wizard
@@ -38,7 +38,7 @@ const SECTORS: ClawcrewSector[] = [
   "general", "asesoria", "ecommerce", "agencia", "clinica", "inmobiliaria", "custom",
 ];
 
-export default function Step2() {
+export default function TeamStep() {
   const { config, updateConfig, markTouched } = useWizard();
 
   // Estado inicial — clawcrewTeam viene pre-poblado del provider con sector
@@ -159,11 +159,12 @@ export default function Step2() {
     .filter((spec) => !team.agents.some((a) => a.agent === spec.agent));
 
   return (
-    <WizardLayout
-      step={2}
+    <PhaseLayout
+      stepId="team"
       title="Equipo de agentes"
       description="Elige tu sector, selecciona quiénes trabajan contigo y dale identidad a cada uno"
       onNext={handleNext}
+      nextLabel="Continuar a Autonomía"
     >
       <div className="space-y-6">
 
@@ -472,7 +473,7 @@ export default function Step2() {
           )}
         </div>
       </div>
-    </WizardLayout>
+    </PhaseLayout>
   );
 }
 

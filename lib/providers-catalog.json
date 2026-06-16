@@ -1,0 +1,3218 @@
+{
+  "generatedFrom": "openclaw/extensions/*/openclaw.plugin.json",
+  "providerCount": 61,
+  "modelCount": 244,
+  "featuredOrder": [
+    "openai",
+    "anthropic",
+    "xai",
+    "google"
+  ],
+  "providers": [
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "featured": true,
+      "authMethods": [
+        "oauth",
+        "device-code",
+        "api-key"
+      ],
+      "envVars": [
+        "OPENAI_API_KEY"
+      ],
+      "baseUrl": "https://api.openai.com/v1",
+      "api": "openai-responses",
+      "models": [
+        {
+          "id": "gpt-5.3-chat-latest",
+          "name": "GPT-5.3 Chat (latest)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gpt-5.3-codex",
+          "name": "GPT-5.3 Codex",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 400000
+        },
+        {
+          "id": "gpt-5.4",
+          "name": "GPT-5.4",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 272000
+        },
+        {
+          "id": "gpt-5.4-mini",
+          "name": "GPT-5.4 mini",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 400000
+        },
+        {
+          "id": "gpt-5.4-nano",
+          "name": "GPT-5.4 nano",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 400000
+        },
+        {
+          "id": "gpt-5.4-pro",
+          "name": "GPT-5.4 Pro",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1050000
+        },
+        {
+          "id": "gpt-5.5",
+          "name": "GPT-5.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "o1",
+          "name": "o1",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "o1-pro",
+          "name": "o1-pro",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "o3",
+          "name": "o3",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "o3-deep-research",
+          "name": "o3-deep-research",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "o3-mini",
+          "name": "o3-mini",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "o3-pro",
+          "name": "o3-pro",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "o4-mini",
+          "name": "o4-mini",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "o4-mini-deep-research",
+          "name": "o4-mini-deep-research",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "gpt-5.5-pro",
+          "name": "gpt-5.5-pro",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        }
+      ]
+    },
+    {
+      "id": "anthropic",
+      "label": "Anthropic",
+      "featured": true,
+      "authMethods": [
+        "cli",
+        "setup-token",
+        "api-key"
+      ],
+      "envVars": [
+        "ANTHROPIC_OAUTH_TOKEN",
+        "ANTHROPIC_API_KEY"
+      ],
+      "baseUrl": "https://api.anthropic.com",
+      "api": "anthropic-messages",
+      "models": [
+        {
+          "id": "claude-opus-4-8",
+          "name": "Claude Opus 4.8",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1048576
+        },
+        {
+          "id": "claude-opus-4-7",
+          "name": "Claude Opus 4.7",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "claude-sonnet-4-6",
+          "name": "Claude Sonnet 4.6",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "claude-opus-4-6",
+          "name": "Claude Opus 4.6",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        }
+      ]
+    },
+    {
+      "id": "xai",
+      "label": "xAI (Grok)",
+      "featured": true,
+      "authMethods": [
+        "api-key",
+        "oauth",
+        "device-code"
+      ],
+      "envVars": [
+        "XAI_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "google",
+      "label": "Google",
+      "featured": true,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "alibaba",
+      "label": "Alibaba Model Studio",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "MODELSTUDIO_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "QWEN_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "arcee",
+      "label": "Arcee AI",
+      "featured": false,
+      "authMethods": [
+        "arcee-platform",
+        "openrouter"
+      ],
+      "envVars": [
+        "ARCEEAI_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "brave",
+      "label": "Brave",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "BRAVE_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "byteplus",
+      "label": "BytePlus",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "BYTEPLUS_API_KEY"
+      ],
+      "baseUrl": "https://ark.ap-southeast.bytepluses.com/api/v3",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "seed-1-8-251228",
+          "name": "Seed 1.8",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "kimi-k2-5-260127",
+          "name": "Kimi K2.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "glm-4-7-251222",
+          "name": "GLM 4.7",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        }
+      ]
+    },
+    {
+      "id": "byteplus-plan",
+      "label": "Byteplus Plan",
+      "featured": false,
+      "authMethods": [],
+      "envVars": [],
+      "baseUrl": "https://ark.ap-southeast.bytepluses.com/api/coding/v3",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "ark-code-latest",
+          "name": "Ark Coding Plan",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "doubao-seed-code",
+          "name": "Doubao Seed Code",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "glm-4.7",
+          "name": "GLM 4.7 Coding",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "kimi-k2-thinking",
+          "name": "Kimi K2 Thinking",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "kimi-k2.5",
+          "name": "Kimi K2.5 Coding",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        }
+      ]
+    },
+    {
+      "id": "cerebras",
+      "label": "Cerebras",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "CEREBRAS_API_KEY"
+      ],
+      "baseUrl": "https://api.cerebras.ai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "zai-glm-4.7",
+          "name": "Z.ai GLM 4.7",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gpt-oss-120b",
+          "name": "GPT OSS 120B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "qwen-3-235b-a22b-instruct-2507",
+          "name": "Qwen 3 235B Instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "llama3.1-8b",
+          "name": "Llama 3.1 8B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        }
+      ]
+    },
+    {
+      "id": "chutes",
+      "label": "Chutes",
+      "featured": false,
+      "authMethods": [
+        "oauth",
+        "api-key"
+      ],
+      "envVars": [
+        "CHUTES_API_KEY",
+        "CHUTES_OAUTH_TOKEN"
+      ],
+      "baseUrl": "https://llm.chutes.ai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "Qwen/Qwen3-32B",
+          "name": "Qwen/Qwen3-32B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 40960
+        },
+        {
+          "id": "unsloth/Mistral-Nemo-Instruct-2407",
+          "name": "unsloth/Mistral-Nemo-Instruct-2407",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3-0324-TEE",
+          "name": "deepseek-ai/DeepSeek-V3-0324-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE",
+          "name": "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "openai/gpt-oss-120b-TEE",
+          "name": "openai/gpt-oss-120b-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "chutesai/Mistral-Small-3.1-24B-Instruct-2503",
+          "name": "chutesai/Mistral-Small-3.1-24B-Instruct-2503",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.2-TEE",
+          "name": "deepseek-ai/DeepSeek-V3.2-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "zai-org/GLM-4.7-TEE",
+          "name": "zai-org/GLM-4.7-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "moonshotai/Kimi-K2.5-TEE",
+          "name": "moonshotai/Kimi-K2.5-TEE",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "unsloth/gemma-3-27b-it",
+          "name": "unsloth/gemma-3-27b-it",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "XiaomiMiMo/MiMo-V2-Flash-TEE",
+          "name": "XiaomiMiMo/MiMo-V2-Flash-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "chutesai/Mistral-Small-3.2-24B-Instruct-2506",
+          "name": "chutesai/Mistral-Small-3.2-24B-Instruct-2506",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-R1-0528-TEE",
+          "name": "deepseek-ai/DeepSeek-R1-0528-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "zai-org/GLM-5-TEE",
+          "name": "zai-org/GLM-5-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.1-TEE",
+          "name": "deepseek-ai/DeepSeek-V3.1-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.1-Terminus-TEE",
+          "name": "deepseek-ai/DeepSeek-V3.1-Terminus-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "unsloth/gemma-3-4b-it",
+          "name": "unsloth/gemma-3-4b-it",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 96000
+        },
+        {
+          "id": "MiniMaxAI/MiniMax-M2.5-TEE",
+          "name": "MiniMaxAI/MiniMax-M2.5-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 196608
+        },
+        {
+          "id": "tngtech/DeepSeek-TNG-R1T2-Chimera",
+          "name": "tngtech/DeepSeek-TNG-R1T2-Chimera",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "Qwen/Qwen3-Coder-Next-TEE",
+          "name": "Qwen/Qwen3-Coder-Next-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "NousResearch/Hermes-4-405B-FP8-TEE",
+          "name": "NousResearch/Hermes-4-405B-FP8-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3",
+          "name": "deepseek-ai/DeepSeek-V3",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "openai/gpt-oss-20b",
+          "name": "openai/gpt-oss-20b",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "unsloth/Llama-3.2-3B-Instruct",
+          "name": "unsloth/Llama-3.2-3B-Instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "unsloth/Mistral-Small-24B-Instruct-2501",
+          "name": "unsloth/Mistral-Small-24B-Instruct-2501",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 32768
+        },
+        {
+          "id": "zai-org/GLM-4.7-FP8",
+          "name": "zai-org/GLM-4.7-FP8",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "zai-org/GLM-4.6-TEE",
+          "name": "zai-org/GLM-4.6-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "Qwen/Qwen3.5-397B-A17B-TEE",
+          "name": "Qwen/Qwen3.5-397B-A17B-TEE",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "Qwen/Qwen2.5-72B-Instruct",
+          "name": "Qwen/Qwen2.5-72B-Instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768
+        },
+        {
+          "id": "NousResearch/DeepHermes-3-Mistral-24B-Preview",
+          "name": "NousResearch/DeepHermes-3-Mistral-24B-Preview",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768
+        },
+        {
+          "id": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+          "name": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "zai-org/GLM-4.6-FP8",
+          "name": "zai-org/GLM-4.6-FP8",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "Qwen/Qwen3-235B-A22B-Thinking-2507",
+          "name": "Qwen/Qwen3-235B-A22B-Thinking-2507",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+          "name": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "tngtech/R1T2-Chimera-Speed",
+          "name": "tngtech/R1T2-Chimera-Speed",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "zai-org/GLM-4.6V",
+          "name": "zai-org/GLM-4.6V",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "Qwen/Qwen2.5-VL-32B-Instruct",
+          "name": "Qwen/Qwen2.5-VL-32B-Instruct",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 16384
+        },
+        {
+          "id": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "name": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "Qwen/Qwen3-14B",
+          "name": "Qwen/Qwen3-14B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 40960
+        },
+        {
+          "id": "Qwen/Qwen2.5-Coder-32B-Instruct",
+          "name": "Qwen/Qwen2.5-Coder-32B-Instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768
+        },
+        {
+          "id": "Qwen/Qwen3-30B-A3B",
+          "name": "Qwen/Qwen3-30B-A3B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 40960
+        },
+        {
+          "id": "unsloth/gemma-3-12b-it",
+          "name": "unsloth/gemma-3-12b-it",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "unsloth/Llama-3.2-1B-Instruct",
+          "name": "unsloth/Llama-3.2-1B-Instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16-TEE",
+          "name": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16-TEE",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "NousResearch/Hermes-4-14B",
+          "name": "NousResearch/Hermes-4-14B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 40960
+        },
+        {
+          "id": "Qwen/Qwen3Guard-Gen-0.6B",
+          "name": "Qwen/Qwen3Guard-Gen-0.6B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "rednote-hilab/dots.ocr",
+          "name": "rednote-hilab/dots.ocr",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 131072
+        }
+      ]
+    },
+    {
+      "id": "claude-cli",
+      "label": "Claude Cli",
+      "featured": false,
+      "authMethods": [],
+      "envVars": [],
+      "baseUrl": null,
+      "api": null,
+      "models": [
+        {
+          "id": "claude-opus-4-8",
+          "name": "Claude Opus 4.8 (Claude CLI)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1048576
+        },
+        {
+          "id": "claude-opus-4-7",
+          "name": "Claude Opus 4.7 (Claude CLI)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "claude-sonnet-4-6",
+          "name": "Claude Sonnet 4.6 (Claude CLI)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "claude-opus-4-6",
+          "name": "Claude Opus 4.6 (Claude CLI)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        }
+      ]
+    },
+    {
+      "id": "cloudflare-ai-gateway",
+      "label": "Cloudflare AI Gateway",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "CLOUDFLARE_AI_GATEWAY_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "comfy",
+      "label": "ComfyUI",
+      "featured": false,
+      "authMethods": [
+        "cloud-api-key"
+      ],
+      "envVars": [
+        "COMFY_API_KEY",
+        "COMFY_CLOUD_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "copilot-proxy",
+      "label": "Copilot",
+      "featured": false,
+      "authMethods": [
+        "local"
+      ],
+      "envVars": [],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "github-copilot",
+      "label": "Copilot",
+      "featured": false,
+      "authMethods": [
+        "device"
+      ],
+      "envVars": [
+        "COPILOT_GITHUB_TOKEN",
+        "GH_TOKEN",
+        "GITHUB_TOKEN"
+      ],
+      "baseUrl": "https://api.individual.githubcopilot.com",
+      "api": "openai-responses",
+      "models": [
+        {
+          "id": "claude-opus-4.6",
+          "name": "Claude Opus 4.6",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "claude-opus-4.7",
+          "name": "Claude Opus 4.7",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "claude-opus-4.8",
+          "name": "Claude Opus 4.8",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "claude-sonnet-4.6",
+          "name": "Claude Sonnet 4.6",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gemini-2.5-pro",
+          "name": "Gemini 2.5 Pro",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gemini-3-flash",
+          "name": "Gemini 3 Flash",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gemini-3.1-pro",
+          "name": "Gemini 3.1 Pro",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gpt-5.3-codex",
+          "name": "GPT-5.3-Codex",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gpt-5.4",
+          "name": "GPT-5.4",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gpt-5.5",
+          "name": "GPT-5.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 400000
+        },
+        {
+          "id": "gpt-5.4-mini",
+          "name": "GPT-5.4 mini",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gpt-5.4-nano",
+          "name": "GPT-5.4 nano",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "raptor-mini",
+          "name": "Raptor mini",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "goldeneye",
+          "name": "Goldeneye",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        }
+      ]
+    },
+    {
+      "id": "deepinfra",
+      "label": "DeepInfra",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "DEEPINFRA_API_KEY"
+      ],
+      "baseUrl": "https://api.deepinfra.com/v1/openai",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "deepseek-ai/DeepSeek-V4-Flash",
+          "name": "DeepSeek V4 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1048576
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.2",
+          "name": "DeepSeek V3.2",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "zai-org/GLM-5.1",
+          "name": "GLM-5.1",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "stepfun-ai/Step-3.5-Flash",
+          "name": "Step 3.5 Flash",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "MiniMaxAI/MiniMax-M2.5",
+          "name": "MiniMax M2.5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 196608
+        },
+        {
+          "id": "moonshotai/Kimi-K2.5",
+          "name": "Kimi K2.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+          "name": "NVIDIA Nemotron 3 Super 120B A12B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          "name": "Llama 3.3 70B Instruct Turbo",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        }
+      ]
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "DEEPSEEK_API_KEY"
+      ],
+      "baseUrl": "https://api.deepseek.com",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "deepseek-chat",
+          "name": "DeepSeek Chat",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "deepseek-reasoner",
+          "name": "DeepSeek Reasoner",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        }
+      ]
+    },
+    {
+      "id": "fal",
+      "label": "fal",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "FAL_KEY",
+        "FAL_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "fireworks",
+      "label": "Fireworks",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "FIREWORKS_API_KEY"
+      ],
+      "baseUrl": "https://api.fireworks.ai/inference/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "accounts/fireworks/models/kimi-k2p6",
+          "name": "Kimi K2.6",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "accounts/fireworks/routers/kimi-k2p5-turbo",
+          "name": "Kimi K2.5 Turbo (Fire Pass)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        }
+      ]
+    },
+    {
+      "id": "gmi",
+      "label": "GMI Cloud",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "GMI_API_KEY"
+      ],
+      "baseUrl": "https://api.gmi-serving.com/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "zai-org/GLM-5.1-FP8",
+          "name": "GLM-5.1 FP8",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.2",
+          "name": "DeepSeek V3.2",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "moonshotai/Kimi-K2.5",
+          "name": "Kimi K2.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "google/gemini-3.1-flash-lite",
+          "name": "Gemini 3.1 Flash Lite",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1048576
+        },
+        {
+          "id": "anthropic/claude-sonnet-4.6",
+          "name": "Claude Sonnet 4.6",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "openai/gpt-5.4",
+          "name": "GPT-5.4",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 400000
+        }
+      ]
+    },
+    {
+      "id": "google-gemini-cli",
+      "label": "Google",
+      "featured": true,
+      "authMethods": [
+        "oauth"
+      ],
+      "envVars": [],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "google-vertex",
+      "label": "Google Vertex",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "GOOGLE_CLOUD_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "groq",
+      "label": "Groq",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "GROQ_API_KEY"
+      ],
+      "baseUrl": "https://api.groq.com/openai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "groq/compound",
+          "name": "Compound",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "groq/compound-mini",
+          "name": "Compound Mini",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "llama-3.1-8b-instant",
+          "name": "Llama 3.1 8B Instant",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "llama-3.3-70b-versatile",
+          "name": "Llama 3.3 70B Versatile",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "meta-llama/llama-4-scout-17b-16e-instruct",
+          "name": "Llama 4 Scout 17B",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "openai/gpt-oss-120b",
+          "name": "GPT OSS 120B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "openai/gpt-oss-20b",
+          "name": "GPT OSS 20B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "openai/gpt-oss-safeguard-20b",
+          "name": "Safety GPT OSS 20B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "qwen/qwen3-32b",
+          "name": "Qwen3 32B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        }
+      ]
+    },
+    {
+      "id": "huggingface",
+      "label": "Hugging Face",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "HUGGINGFACE_HUB_TOKEN",
+        "HF_TOKEN"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "kilocode",
+      "label": "Kilo Gateway",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "KILOCODE_API_KEY"
+      ],
+      "baseUrl": "https://api.kilo.ai/api/gateway/",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "kilo/auto",
+          "name": "Kilo Auto",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        }
+      ]
+    },
+    {
+      "id": "litellm",
+      "label": "LiteLLM",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "LITELLM_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "lmstudio",
+      "label": "LM Studio",
+      "featured": false,
+      "authMethods": [
+        "custom"
+      ],
+      "envVars": [
+        "LM_API_TOKEN"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "microsoft-foundry",
+      "label": "Microsoft Foundry",
+      "featured": false,
+      "authMethods": [
+        "entra-id",
+        "api-key"
+      ],
+      "envVars": [
+        "AZURE_OPENAI_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "minimax-portal",
+      "label": "MiniMax",
+      "featured": false,
+      "authMethods": [
+        "oauth",
+        "oauth-cn"
+      ],
+      "envVars": [
+        "MINIMAX_OAUTH_TOKEN",
+        "MINIMAX_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "minimax",
+      "label": "MiniMax",
+      "featured": false,
+      "authMethods": [
+        "api-global",
+        "api-cn"
+      ],
+      "envVars": [
+        "MINIMAX_CODE_PLAN_KEY",
+        "MINIMAX_CODING_API_KEY",
+        "MINIMAX_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "mistral",
+      "label": "Mistral AI",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "MISTRAL_API_KEY"
+      ],
+      "baseUrl": "https://api.mistral.ai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "codestral-latest",
+          "name": "Codestral (latest)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "devstral-medium-latest",
+          "name": "Devstral 2 (latest)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "magistral-small",
+          "name": "Magistral Small",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "mistral-large-latest",
+          "name": "Mistral Large (latest)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "mistral-medium-2508",
+          "name": "Mistral Medium 3.1",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "mistral-medium-3-5",
+          "name": "Mistral Medium 3.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "mistral-small-latest",
+          "name": "Mistral Small (latest)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "pixtral-large-latest",
+          "name": "Pixtral Large (latest)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        }
+      ]
+    },
+    {
+      "id": "kimi",
+      "label": "Moonshot AI (Kimi K2.6)",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "KIMI_API_KEY",
+        "KIMICODE_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "moonshot",
+      "label": "Moonshot AI (Kimi K2.6)",
+      "featured": false,
+      "authMethods": [
+        "api-key",
+        "api-key-cn"
+      ],
+      "envVars": [
+        "MOONSHOT_API_KEY",
+        "KIMI_API_KEY"
+      ],
+      "baseUrl": "https://api.moonshot.ai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "kimi-k2.6",
+          "name": "Kimi K2.6",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "kimi-k2.5",
+          "name": "Kimi K2.5",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "kimi-k2-thinking",
+          "name": "Kimi K2 Thinking",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "kimi-k2-thinking-turbo",
+          "name": "Kimi K2 Thinking Turbo",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "kimi-k2-turbo",
+          "name": "Kimi K2 Turbo",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        }
+      ]
+    },
+    {
+      "id": "novita",
+      "label": "NovitaAI",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "NOVITA_API_KEY"
+      ],
+      "baseUrl": "https://api.novita.ai/openai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "moonshotai/kimi-k2.5",
+          "name": "Kimi K2.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "minimax/minimax-m2.7",
+          "name": "MiniMax M2.7",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "zai-org/glm-5",
+          "name": "GLM-5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "deepseek/deepseek-v3-0324",
+          "name": "DeepSeek V3 0324",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "deepseek/deepseek-r1-0528",
+          "name": "DeepSeek R1 0528",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 163840
+        },
+        {
+          "id": "qwen/qwen3-235b-a22b-fp8",
+          "name": "Qwen3 235B A22B FP8",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        }
+      ]
+    },
+    {
+      "id": "nvidia",
+      "label": "NVIDIA",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "NVIDIA_API_KEY"
+      ],
+      "baseUrl": "https://integrate.api.nvidia.com/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "nvidia/nemotron-3-super-120b-a12b",
+          "name": "NVIDIA Nemotron 3 Super 120B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "moonshotai/kimi-k2.5",
+          "name": "Kimi K2.5",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "minimaxai/minimax-m2.7",
+          "name": "Minimax M2.7",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 196608
+        },
+        {
+          "id": "z-ai/glm-5.1",
+          "name": "GLM 5.1",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "minimaxai/minimax-m2.5",
+          "name": "MiniMax M2.5",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 196608
+        },
+        {
+          "id": "z-ai/glm5",
+          "name": "GLM-5",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        }
+      ]
+    },
+    {
+      "id": "ollama",
+      "label": "Ollama",
+      "featured": false,
+      "authMethods": [
+        "local"
+      ],
+      "envVars": [
+        "OLLAMA_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "ollama-cloud",
+      "label": "Ollama",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "OLLAMA_API_KEY"
+      ],
+      "baseUrl": "https://ollama.com",
+      "api": "ollama",
+      "models": [
+        {
+          "id": "kimi-k2.5:cloud",
+          "name": "kimi-k2.5:cloud",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "minimax-m2.7:cloud",
+          "name": "minimax-m2.7:cloud",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "glm-5.1:cloud",
+          "name": "glm-5.1:cloud",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        }
+      ]
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "OPENCODE_API_KEY",
+        "OPENCODE_ZEN_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "opencode-go",
+      "label": "OpenCode",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "OPENCODE_API_KEY",
+        "OPENCODE_ZEN_API_KEY"
+      ],
+      "baseUrl": "https://opencode.ai/zen/go/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000
+        }
+      ]
+    },
+    {
+      "id": "openrouter",
+      "label": "OpenRouter",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "OPENROUTER_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "pixverse",
+      "label": "PixVerse",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "qianfan",
+      "label": "Qianfan",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "QIANFAN_API_KEY"
+      ],
+      "baseUrl": "https://qianfan.baidubce.com/v2",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "deepseek-v3.2",
+          "name": "DEEPSEEK V3.2",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 98304
+        },
+        {
+          "id": "ernie-5.0-thinking-preview",
+          "name": "ERNIE-5.0-Thinking-Preview",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 119000
+        }
+      ]
+    },
+    {
+      "id": "qwen",
+      "label": "Qwen Cloud",
+      "featured": false,
+      "authMethods": [
+        "standard-api-key-cn",
+        "standard-api-key",
+        "api-key-cn",
+        "api-key"
+      ],
+      "envVars": [
+        "QWEN_API_KEY",
+        "MODELSTUDIO_API_KEY",
+        "DASHSCOPE_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "qwen-oauth",
+      "label": "Qwen Cloud",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "QWEN_API_KEY"
+      ],
+      "baseUrl": "https://portal.qwen.ai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "qwen3.5-plus",
+          "name": "qwen3.5-plus",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "qwen3.6-plus",
+          "name": "qwen3.6-plus",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "qwen3-max-2026-01-23",
+          "name": "qwen3-max-2026-01-23",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "qwen3-coder-next",
+          "name": "qwen3-coder-next",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "qwen3-coder-plus",
+          "name": "qwen3-coder-plus",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "MiniMax-M2.5",
+          "name": "MiniMax-M2.5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "glm-5",
+          "name": "glm-5",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "glm-4.7",
+          "name": "glm-4.7",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        },
+        {
+          "id": "kimi-k2.5",
+          "name": "kimi-k2.5",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        }
+      ]
+    },
+    {
+      "id": "runway",
+      "label": "Runway",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "RUNWAYML_API_SECRET",
+        "RUNWAY_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "sglang",
+      "label": "SGLang",
+      "featured": false,
+      "authMethods": [
+        "custom"
+      ],
+      "envVars": [
+        "SGLANG_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "stepfun",
+      "label": "StepFun",
+      "featured": false,
+      "authMethods": [
+        "standard-api-key-cn",
+        "standard-api-key-intl"
+      ],
+      "envVars": [
+        "STEPFUN_API_KEY"
+      ],
+      "baseUrl": "https://api.stepfun.ai/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "step-3.5-flash",
+          "name": "Step 3.5 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        }
+      ]
+    },
+    {
+      "id": "stepfun-plan",
+      "label": "StepFun",
+      "featured": false,
+      "authMethods": [
+        "plan-api-key-cn",
+        "plan-api-key-intl"
+      ],
+      "envVars": [
+        "STEPFUN_API_KEY"
+      ],
+      "baseUrl": "https://api.stepfun.ai/step_plan/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "step-3.5-flash",
+          "name": "Step 3.5 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "step-3.5-flash-2603",
+          "name": "Step 3.5 Flash 2603",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        }
+      ]
+    },
+    {
+      "id": "synthetic",
+      "label": "Synthetic",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "SYNTHETIC_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "tencent-tokenhub",
+      "label": "Tencent Cloud",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "TOKENHUB_API_KEY"
+      ],
+      "baseUrl": "https://tokenhub.tencentmaas.com/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "hy3-preview",
+          "name": "Hy3 preview (TokenHub)",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        }
+      ]
+    },
+    {
+      "id": "together",
+      "label": "Together AI",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "TOGETHER_API_KEY"
+      ],
+      "baseUrl": "https://api.together.xyz/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "moonshotai/Kimi-K2.6",
+          "name": "Kimi K2.6 FP4",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          "name": "Llama 3.3 70B Instruct Turbo",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V4-Pro",
+          "name": "DeepSeek V4 Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 512000
+        },
+        {
+          "id": "Qwen/Qwen2.5-7B-Instruct-Turbo",
+          "name": "Qwen2.5 7B Instruct Turbo",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768
+        },
+        {
+          "id": "zai-org/GLM-5.1",
+          "name": "GLM 5.1 FP4",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202752
+        }
+      ]
+    },
+    {
+      "id": "venice",
+      "label": "Venice AI",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "VENICE_API_KEY"
+      ],
+      "baseUrl": "https://api.venice.ai/api/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "llama-3.3-70b",
+          "name": "Llama 3.3 70B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "llama-3.2-3b",
+          "name": "Llama 3.2 3B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "hermes-3-llama-3.1-405b",
+          "name": "Hermes 3 Llama 3.1 405B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "qwen3-235b-a22b-thinking-2507",
+          "name": "Qwen3 235B Thinking",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "qwen3-235b-a22b-instruct-2507",
+          "name": "Qwen3 235B Instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "qwen3-coder-480b-a35b-instruct",
+          "name": "Qwen3 Coder 480B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "qwen3-coder-480b-a35b-instruct-turbo",
+          "name": "Qwen3 Coder 480B Turbo",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "qwen3-5-35b-a3b",
+          "name": "Qwen3.5 35B A3B",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "qwen3-next-80b",
+          "name": "Qwen3 Next 80B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "qwen3-vl-235b-a22b",
+          "name": "Qwen3 VL 235B (Vision)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "qwen3-4b",
+          "name": "Venice Small (Qwen3 4B)",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32000
+        },
+        {
+          "id": "deepseek-v3.2",
+          "name": "DeepSeek V3.2",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 160000
+        },
+        {
+          "id": "venice-uncensored",
+          "name": "Venice Uncensored (Dolphin-Mistral)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32000
+        },
+        {
+          "id": "mistral-31-24b",
+          "name": "Venice Medium (Mistral)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "google-gemma-3-27b-it",
+          "name": "Google Gemma 3 27B Instruct",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 198000
+        },
+        {
+          "id": "openai-gpt-oss-120b",
+          "name": "OpenAI GPT OSS 120B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "nvidia-nemotron-3-nano-30b-a3b",
+          "name": "NVIDIA Nemotron 3 Nano 30B",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "olafangensan-glm-4.7-flash-heretic",
+          "name": "GLM 4.7 Flash Heretic",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "zai-org-glm-4.6",
+          "name": "GLM 4.6",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 198000
+        },
+        {
+          "id": "zai-org-glm-4.7",
+          "name": "GLM 4.7",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 198000
+        },
+        {
+          "id": "zai-org-glm-4.7-flash",
+          "name": "GLM 4.7 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "zai-org-glm-5",
+          "name": "GLM 5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 198000
+        },
+        {
+          "id": "kimi-k2-5",
+          "name": "Kimi K2.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "kimi-k2-thinking",
+          "name": "Kimi K2 Thinking",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "minimax-m21",
+          "name": "MiniMax M2.1",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 198000
+        },
+        {
+          "id": "minimax-m25",
+          "name": "MiniMax M2.5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 198000
+        },
+        {
+          "id": "claude-opus-4-6",
+          "name": "Claude Opus 4.6 (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "claude-sonnet-4-6",
+          "name": "Claude Sonnet 4.6 (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "openai-gpt-52",
+          "name": "GPT-5.2 (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "openai-gpt-52-codex",
+          "name": "GPT-5.2 Codex (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "openai-gpt-53-codex",
+          "name": "GPT-5.3 Codex (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 400000
+        },
+        {
+          "id": "openai-gpt-54",
+          "name": "GPT-5.4 (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "openai-gpt-4o-2024-11-20",
+          "name": "GPT-4o (via Venice)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "openai-gpt-4o-mini-2024-07-18",
+          "name": "GPT-4o Mini (via Venice)",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "gemini-3-pro-preview",
+          "name": "Gemini 3 Pro (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 198000
+        },
+        {
+          "id": "gemini-3-1-pro-preview",
+          "name": "Gemini 3.1 Pro (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        },
+        {
+          "id": "gemini-3-flash-preview",
+          "name": "Gemini 3 Flash (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "grok-41-fast",
+          "name": "Grok 4.1 Fast (via Venice)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000
+        }
+      ]
+    },
+    {
+      "id": "vercel-ai-gateway",
+      "label": "Vercel AI Gateway",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "AI_GATEWAY_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "vllm",
+      "label": "vLLM",
+      "featured": false,
+      "authMethods": [
+        "custom"
+      ],
+      "envVars": [
+        "VLLM_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "volcengine",
+      "label": "Volcano Engine",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "VOLCANO_ENGINE_API_KEY"
+      ],
+      "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "doubao-seed-code-preview-251028",
+          "name": "doubao-seed-code-preview-251028",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "doubao-seed-1-8-251228",
+          "name": "Doubao Seed 1.8",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "kimi-k2-5-260127",
+          "name": "Kimi K2.5",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "glm-4-7-251222",
+          "name": "GLM 4.7",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "deepseek-v3-2-251201",
+          "name": "DeepSeek V3.2",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        }
+      ]
+    },
+    {
+      "id": "volcengine-plan",
+      "label": "Volcengine Plan",
+      "featured": false,
+      "authMethods": [],
+      "envVars": [],
+      "baseUrl": "https://ark.cn-beijing.volces.com/api/coding/v3",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "ark-code-latest",
+          "name": "Ark Coding Plan",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "doubao-seed-code",
+          "name": "Doubao Seed Code",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "glm-4.7",
+          "name": "GLM 4.7 Coding",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "kimi-k2-thinking",
+          "name": "Kimi K2 Thinking",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "kimi-k2.5",
+          "name": "Kimi K2.5 Coding",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        },
+        {
+          "id": "doubao-seed-code-preview-251028",
+          "name": "Doubao Seed Code Preview",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 256000
+        }
+      ]
+    },
+    {
+      "id": "vydra",
+      "label": "Vydra",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "VYDRA_API_KEY"
+      ],
+      "baseUrl": null,
+      "api": null,
+      "models": []
+    },
+    {
+      "id": "xiaomi",
+      "label": "Xiaomi",
+      "featured": false,
+      "authMethods": [
+        "api-key"
+      ],
+      "envVars": [
+        "XIAOMI_API_KEY"
+      ],
+      "baseUrl": "https://api.xiaomimimo.com/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "mimo-v2-flash",
+          "name": "Xiaomi MiMo V2 Flash",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144
+        },
+        {
+          "id": "mimo-v2-pro",
+          "name": "Xiaomi MiMo V2 Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1048576
+        },
+        {
+          "id": "mimo-v2-omni",
+          "name": "Xiaomi MiMo V2 Omni",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144
+        }
+      ]
+    },
+    {
+      "id": "xiaomi-token-plan",
+      "label": "Xiaomi",
+      "featured": false,
+      "authMethods": [
+        "token-plan-ams",
+        "token-plan-cn",
+        "token-plan-sgp"
+      ],
+      "envVars": [
+        "XIAOMI_TOKEN_PLAN_API_KEY"
+      ],
+      "baseUrl": "https://token-plan-sgp.xiaomimimo.com/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "mimo-v2.5-pro",
+          "name": "Xiaomi MiMo V2.5 Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1048576
+        },
+        {
+          "id": "mimo-v2.5",
+          "name": "Xiaomi MiMo V2.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1048576
+        }
+      ]
+    },
+    {
+      "id": "zai",
+      "label": "Z.AI",
+      "featured": false,
+      "authMethods": [
+        "api-key",
+        "coding-global",
+        "coding-cn",
+        "global",
+        "cn"
+      ],
+      "envVars": [
+        "ZAI_API_KEY",
+        "Z_AI_API_KEY"
+      ],
+      "baseUrl": "https://api.z.ai/api/paas/v4",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "glm-5.1",
+          "name": "GLM-5.1",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202800
+        },
+        {
+          "id": "glm-5",
+          "name": "GLM-5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202800
+        },
+        {
+          "id": "glm-5-turbo",
+          "name": "GLM-5 Turbo",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 202800
+        },
+        {
+          "id": "glm-5v-turbo",
+          "name": "GLM-5V Turbo",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 202800
+        },
+        {
+          "id": "glm-4.7",
+          "name": "GLM-4.7",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800
+        },
+        {
+          "id": "glm-4.7-flash",
+          "name": "GLM-4.7 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "glm-4.7-flashx",
+          "name": "GLM-4.7 FlashX",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 200000
+        },
+        {
+          "id": "glm-4.6",
+          "name": "GLM-4.6",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800
+        },
+        {
+          "id": "glm-4.6v",
+          "name": "GLM-4.6V",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 128000
+        },
+        {
+          "id": "glm-4.5",
+          "name": "GLM-4.5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "glm-4.5-air",
+          "name": "GLM-4.5 Air",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "glm-4.5-flash",
+          "name": "GLM-4.5 Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 131072
+        },
+        {
+          "id": "glm-4.5v",
+          "name": "GLM-4.5V",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 64000
+        }
+      ]
+    }
+  ]
+}

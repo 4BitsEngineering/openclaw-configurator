@@ -250,6 +250,10 @@ export interface WizardConfig {
     google?: { apiKey: string; model?: string; fallbacks?: string[] };
     ollama?: { baseUrl: string; model?: string; fallbacks?: string[] };
     axet?: AxetProviderConfig;
+    // Provider custom OpenAI-compatible (cualquier endpoint local o remoto).
+    __custom__?: { baseUrl: string; model: string; envKey?: string };
+    // Permite cualquier provider id del catálogo (groq, minimax, deepseek…).
+    [key: string]: unknown;
   };
   useCase: {
     type: UseCaseType;
@@ -261,6 +265,30 @@ export interface WizardConfig {
   clawcrewTeam?: ClawcrewTeamConfig;
   guardClaw: {
     sensitivity: DataSensitivity;
+  };
+  // Perfil de arranque (Fase 2): subconjunto de settings del bridge que se
+  // pre-configuran. Se mapea 1:1 a BridgeSettingsSeed en generators.ts.
+  // Opcional: sin él rigen los defaults seguros del generador.
+  bridgeSettings?: {
+    autonomyLevel: "n0" | "n1" | "n2";
+    guardClawEnabled: boolean;
+    outputRedact: boolean;
+    webEgress: boolean;
+    language: string;
+    agentTimeout: number;
+    conversationIdleDays: number;
+  };
+  // Integraciones del overlay (Fase 2): solo flags; los secretos se declaran
+  // como ENV en el manifiesto.
+  integrations?: {
+    n8n: { enabled: boolean };
+    slack: { enabled: boolean };
+  };
+  // Registro (Fase 3): metadata declarativa para clawhub. El alta/pairing real
+  // ocurre en install-time; aquí solo se recoge plan + features pretendidos.
+  registration?: {
+    plan: string | null;
+    features: string[];
   };
   channels: {
     telegram?: { token: string; allowlist?: string[] };

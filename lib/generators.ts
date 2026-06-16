@@ -1,6 +1,22 @@
 import type { WizardConfig } from "./wizard-context";
 import openclawTemplate from "./templates/openclaw.template.json";
 import { randomBytes } from "crypto";
+import { deriveEnvSpec } from "./contract/env-spec";
+import {
+  CONFIG_SCHEMA_VERSION,
+  PACKAGE_PATHS,
+  type BridgeSettingsSeed,
+  type IntegrationsBlock,
+  type KnowledgeBlock,
+  type InstanceManifest,
+  type InstancePackage,
+  type ManifestProvider,
+  type ManifestChannel,
+} from "./contract/types";
+
+// Versión del configurator que estampa el manifiesto (compat.generatedBy).
+// Mantener alineada con package.json:version.
+const CONFIGURATOR_VERSION = "0.1.0";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Overlay config (consumed by autonomous-agents/work-console/scripts/configure-overlay.js)
@@ -187,7 +203,48 @@ export function generateOverlayConfig(config: WizardConfig): string {
     overlayConfig.planMode = team.planMode;
   }
 
+  // Perfil de arranque: subconjunto de los settings del bridge que el
+  // configurator pre-configura. El instalador los siembra en el bridge en
+  // destino. Los SECRETOS asociados (keys/tokens) NO viven aquí: van en
+  // manifest.env.
+  overlayConfig.settingsSeed = deriveSettingsSeed(config);
+  overlayConfig.integrations = deriveIntegrations(config);
+  overlayConfig.knowledge = deriveKnowledge(config);
+
   return JSON.stringify(overlayConfig, null, 2);
+}
+
+// ── Perfil de arranque de autonomous-agents (Salida B) ──────────────────────────
+
+// Defaults seguros (humano-en-bucle, GuardClaw ON con redacción). El wizard de
+// la Fase 2 puebla `config.bridgeSettings`; sin él rigen estos defaults.
+function deriveSettingsSeed(config: WizardConfig): BridgeSettingsSeed {
+  const s = config.bridgeSettings;
+  return {
+    AUTONOMY_LEVEL: s?.autonomyLevel ?? "n0",
+    GUARDCLAW_ENABLED: s?.guardClawEnabled ?? true,
+    GUARDCLAW_OUTPUT_REDACT: s?.outputRedact ?? true,
+    WEB_EGRESS_ENABLED: s?.webEgress ?? true,
+    AGENTS_DEFAULT_LANGUAGE: s?.language ?? "es-ES",
+    AGENT_TIMEOUT: s?.agentTimeout ?? 1800,
+    CONVERSATIONS_IDLE_DAYS: s?.conversationIdleDays ?? 90,
+  };
+}
+
+function deriveIntegrations(config: WizardConfig): IntegrationsBlock {
+  const i = (config as { integrations?: Partial<IntegrationsBlock> }).integrations;
+  return {
+    n8n: { enabled: i?.n8n?.enabled ?? false, envBaseUrl: "N8N_BASE_URL", envToken: "N8N_AUTH_TOKEN" },
+    slack: { enabled: i?.slack?.enabled ?? false, envAppToken: "SLACK_APP_TOKEN", envBotToken: "SLACK_BOT_TOKEN" },
+  };
+}
+
+function deriveKnowledge(config: WizardConfig): KnowledgeBlock {
+  const k = (config as { knowledge?: Partial<KnowledgeBlock> }).knowledge;
+  return {
+    ragEnabled: k?.ragEnabled ?? false,
+    embeddingsProvider: k?.embeddingsProvider ?? null,
+  };
 }
 
 export function generateEnvFile(config: WizardConfig): string {
@@ -265,6 +322,76 @@ export function generateEnvFile(config: WizardConfig): string {
   }
 
   return lines.join("\n");
+}
+
+// ── Manifiesto de instancia (Salida C) ──────────────────────────────────────────
+
+function slugify(s: string): string {
+  return (s || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "instance";
+}
+
+const PROVIDER_DEFAULT_MODEL: Record<string, string> = {
+  anthropic: "claude-sonnet-4-6",
+  openai: "gpt-5.2-chat-latest",
+  google: "gemini-2.5-pro",
+  ollama: "gemma4-gpu",
+};
+
+function manifestProviders(config: WizardConfig): ManifestProvider[] {
+  const p = config.providers || {};
+  return Object.keys(p).map((id) => {
+    const entry = p[id as keyof typeof p] as { model?: string } | undefined;
+    return { id, model: entry?.model || PROVIDER_DEFAULT_MODEL[id] || "(default)" };
+  });
+}
+
+function manifestChannels(config: WizardConfig): ManifestChannel[] {
+  const c = config.channels || {};
+  return Object.keys(c)
+    .filter((id) => Boolean(c[id as keyof typeof c]))
+    .map((id) => ({ id }));
+}
+
+// Genera el manifiesto de instancia: identidad, compat/versionado, declaración
+// de ENV requeridas (sin valores), resumen de providers/channels y metadata de
+// registro (install-time). Es el handoff que el instalador consume.
+export function generateInstanceManifest(config: WizardConfig): string {
+  const team = config.clawcrewTeam;
+  const name = team?.overlayName || "Instancia";
+  const prefix = team?.prefix || "office";
+  const manifest: InstanceManifest = {
+    instance: { slug: slugify(name), name, prefix },
+    compat: {
+      configSchemaVersion: CONFIG_SCHEMA_VERSION,
+      generatedBy: `openclaw-configurator@${CONFIGURATOR_VERSION}`,
+      targetStack: {
+        openclaw: ">=2026.5",
+        aiOffice: null,
+        autonomousAgents: null,
+        clawcrewCatalogCommit: null,
+      },
+    },
+    artifacts: { base: PACKAGE_PATHS.base, overlay: PACKAGE_PATHS.overlay },
+    env: deriveEnvSpec(config),
+    providers: manifestProviders(config),
+    channels: manifestChannels(config),
+    registration: {
+      target: "clawhub",
+      plan: config.registration?.plan ?? null,
+      features: config.registration?.features ?? [],
+      mode: "install-time",
+    },
+  };
+  return JSON.stringify(manifest, null, 2) + "\n";
+}
+
+// Orquesta los tres artefactos del contrato en un árbol path→contenido.
+export function generateInstancePackage(config: WizardConfig): InstancePackage {
+  return {
+    [PACKAGE_PATHS.base]: generateOpenclawJson(config),
+    [PACKAGE_PATHS.overlay]: generateOverlayConfig(config),
+    [PACKAGE_PATHS.manifest]: generateInstanceManifest(config),
+  };
 }
 
 export function generateInstallScript(): string {

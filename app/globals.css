@@ -4,251 +4,109 @@
 
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --radius: 0.5rem;
-  }
-}
+    /* Sistema de diseño idéntico a ai-office — warm neutral, no slate */
+    --background: 36 33% 97%;           /* #FAFAF7 */
+    --foreground: 222 25% 11%;          /* #15171F */
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 11%;
+    --primary: 222 35% 12%;
+    --primary-foreground: 36 33% 97%;
+    --muted: 36 20% 94%;
+    --muted-foreground: 222 12% 42%;
+    --accent: 36 22% 92%;
+    --accent-foreground: 222 25% 11%;
+    --border: 36 18% 89%;
+    --input: 36 18% 89%;
+    --ring: 11 76% 58%;
+    --radius: 0.875rem;
 
-@layer base {
-  * {
-    @apply border-border;
+    /* Brand: terracotta — mismo que ai-office */
+    --brand: 11 76% 58%;                /* #E85D3F */
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 11 76% 95%;
+
+    /* Typography (seteadas por next/font) */
+    --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+
+    --paper:   #FAFAF7;
+    --paper-2: #F4F1EA;
+    --ink:     #0E0F14;
   }
+
+  .dark {
+    --background: 222 35% 6%;
+    --foreground: 36 25% 96%;
+    --card: 222 30% 9%;
+    --card-foreground: 36 25% 96%;
+    --brand: 11 80% 62%;
+    --brand-foreground: 222 35% 6%;
+    --brand-soft: 11 50% 18%;
+    --primary: 36 25% 96%;
+    --primary-foreground: 222 35% 6%;
+    --muted: 222 25% 13%;
+    --muted-foreground: 36 12% 62%;
+    --accent: 222 25% 13%;
+    --accent-foreground: 36 25% 96%;
+    --border: 222 25% 17%;
+    --input: 222 25% 17%;
+    --ring: 11 80% 62%;
+  }
+
+  * { @apply border-border; }
+
+  html { scrollbar-gutter: stable; }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "cv11" 1;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
   }
 }
 
-/* ========== Keyframe Animations ========== */
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-@keyframes slideInFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
+  .card-soft {
+    @apply rounded-2xl border bg-card shadow-[0_1px_2px_rgba(15,17,31,0.04),0_8px_32px_-12px_rgba(15,17,31,0.06)];
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+
+  .grain {
+    background-image: radial-gradient(rgba(0,0,0,0.025) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  .panel-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
   }
 }
-
-@keyframes slideInFromLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 8px rgba(6, 182, 212, 0.4), 0 0 24px rgba(59, 130, 246, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 16px rgba(6, 182, 212, 0.6), 0 0 40px rgba(59, 130, 246, 0.3);
-  }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes checkPop {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes confettiFall {
-  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-}
-
-@keyframes progressFill {
-  from { stroke-dashoffset: 283; }
-}
-
-@keyframes staggerFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ========== Utility Classes ========== */
 
 @layer utilities {
-  .glass {
-    @apply backdrop-blur-xl border border-white/10;
-    background: rgba(15, 23, 42, 0.7);
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out both;
   }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.4s ease-out both;
+  }
+}
 
-  .glass-card {
-    @apply backdrop-blur-xl border border-white/[0.08] rounded-xl;
-    background: linear-gradient(
-      135deg,
-      rgba(15, 23, 42, 0.8) 0%,
-      rgba(30, 41, 59, 0.6) 100%
-    );
-  }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
-  .glow-border {
-    position: relative;
-  }
-  .glow-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.6;
-    transition: opacity 0.3s;
-  }
-  .glow-border:hover::before {
-    opacity: 1;
-  }
-
-  .gradient-text {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
-  }
-
-  .gradient-text-animated {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6, #06b6d4);
-    background-size: 300% 300%;
-    animation: gradientShift 4s ease infinite;
-  }
-
-  .dot-pattern {
-    background-image: radial-gradient(circle, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-
-  .animate-fadeIn {
-    animation: fadeIn 0.4s ease-out forwards;
-  }
-
-  .animate-fadeInUp {
-    animation: fadeInUp 0.5s ease-out forwards;
-  }
-
-  .animate-slideInRight {
-    animation: slideInFromRight 0.4s ease-out forwards;
-  }
-
-  .animate-slideInLeft {
-    animation: slideInFromLeft 0.4s ease-out forwards;
-  }
-
-  .animate-pulseGlow {
-    animation: pulseGlow 2s ease-in-out infinite;
-  }
-
-  .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .animate-checkPop {
-    animation: checkPop 0.3s ease-out forwards;
-  }
-
-  .btn-primary {
-    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300;
-    background: linear-gradient(135deg, #06b6d4, #3b82f6);
-  }
-  .btn-primary:hover {
-    background: linear-gradient(135deg, #22d3ee, #60a5fa);
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 40px rgba(59, 130, 246, 0.15);
-    transform: translateY(-1px);
-  }
-  .btn-primary:active {
-    transform: translateY(0);
-  }
-  .btn-primary:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-
-  .btn-ghost {
-    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300 border border-slate-600;
-    background: transparent;
-  }
-  .btn-ghost:hover {
-    @apply border-slate-400 bg-slate-800/50;
-  }
-  .btn-ghost:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 bg-slate-800/80 rounded-xl border border-slate-600/50
-           focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20
-           placeholder:text-slate-500 transition-all duration-200;
-  }
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
