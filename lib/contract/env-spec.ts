@@ -32,6 +32,10 @@ const CHANNEL_ENV: Record<string, ManifestEnvVar[]> = {
   telegram: [
     { key: "TELEGRAM_BOT_TOKEN", scope: "base", desc: "Token del bot de Telegram (@BotFather).", example: "123456:ABC-DEF...", required: true },
   ],
+  slack: [
+    { key: "SLACK_BOT_TOKEN", scope: "base", desc: "Bot token de Slack (xoxb-...).", example: "xoxb-...", required: true },
+    { key: "SLACK_APP_TOKEN", scope: "base", desc: "App-level token de Slack (Socket Mode).", example: "xapp-1-...", required: true },
+  ],
   discord: [
     { key: "DISCORD_BOT_TOKEN", scope: "base", desc: "Token del bot de Discord.", example: "<token>", required: true },
   ],

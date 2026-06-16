@@ -111,6 +111,20 @@ export function generateOpenclawJson(config: WizardConfig): string {
   modelBlock.fallbacks = fallbacks;
   tpl.agents.defaults.model = modelBlock;
 
+  // Canales: la presencia de un canal en config.channels = activado. Reflejamos
+  // ese estado en el bloque channels del openclaw.json (enabled:true). Los que
+  // no se eligieron quedan como vengan en la plantilla (enabled:false). Map
+  // vacío = sin canales (interacción solo por la web de ai-office).
+  const selectedChannels = Object.keys(config.channels || {}).filter(
+    (id) => config.channels[id as keyof typeof config.channels],
+  );
+  if (selectedChannels.length) {
+    tpl.channels = tpl.channels || {};
+    for (const id of selectedChannels) {
+      tpl.channels[id] = { ...(tpl.channels[id] || {}), enabled: true };
+    }
+  }
+
   return JSON.stringify(tpl, null, 2) + "\n";
 }
 

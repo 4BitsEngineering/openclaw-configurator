@@ -2,142 +2,138 @@
 
 import { PhaseLayout } from "@/components/wizard/phase-layout";
 import { useWizard } from "@/lib/wizard-context";
-import { useEffect, useMemo, useState } from "react";
-
-const TELEGRAM_DOCS = "https://core.telegram.org/bots#6-botfather";
-const DISCORD_DOCS = "https://discord.com/developers/applications";
-const WHATSAPP_DOCS = "https://docs.openclaw.ai/channels/whatsapp";
-const SIGNAL_DOCS = "https://docs.openclaw.ai/channels/signal";
-
-function isTelegramToken(token: string) {
-  return /^\d{7,}:[A-Za-z0-9_-]{20,}$/.test(token.trim());
-}
-
-function isDiscordToken(token: string) {
-  return /^[A-Za-z0-9._-]{20,}$/.test(token.trim());
-}
-
-function templateChannelDefaults(template: "personal" | "developer" | "business" | "custom") {
-  if (template === "personal") return { telegram: true, discord: false, whatsapp: false, signal: false };
-  if (template === "developer") return { telegram: true, discord: true, whatsapp: false, signal: false };
-  if (template === "business") return { telegram: true, discord: false, whatsapp: true, signal: false };
-  return { telegram: false, discord: false, whatsapp: false, signal: false };
-}
+import { ChannelIcon } from "@/lib/channel-icon";
+import { SUPPORTED_LIST, UPCOMING_LIST } from "@/lib/channels-meta";
+import { useState } from "react";
 
 export default function ChannelsStep() {
-  const { config, updateConfig, selectedTemplate, touched, markTouched } = useWizard();
+  const { config, updateConfig, markTouched } = useWizard();
 
-  const [telegramToken, setTelegramToken] = useState(config.channels.telegram?.token || "");
-  const [discordToken, setDiscordToken] = useState(config.channels.discord?.token || "");
-  const [enableWhatsApp, setEnableWhatsApp] = useState(!!config.channels.whatsapp?.enabled);
-  const [enableSignal, setEnableSignal] = useState(!!config.channels.signal?.enabled);
-  const [telegramTestStatus, setTelegramTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
-  const [telegramTestMessage, setTelegramTestMessage] = useState("");
-
-  useEffect(() => {
-    if (touched.channels) return;
-    const d = templateChannelDefaults(selectedTemplate);
-    setEnableWhatsApp(d.whatsapp);
-    setEnableSignal(d.signal);
-    if (!telegramToken && d.telegram) setTelegramToken("");
-    if (!discordToken && d.discord) setDiscordToken("");
-  }, [selectedTemplate, touched.channels]);
-
-  const telegramValid = useMemo(() => (telegramToken ? isTelegramToken(telegramToken) : null), [telegramToken]);
-  const discordValid = useMemo(() => (discordToken ? isDiscordToken(discordToken) : null), [discordToken]);
-
-  const handleTelegramTest = async () => {
-    if (!telegramToken.trim() || !telegramValid) {
-      setTelegramTestStatus("error");
-      setTelegramTestMessage("Token inválido. Revisa formato antes de probar.");
-      return;
+  // Set de ids de canal soportados que el operador ha activado.
+  const [selected, setSelected] = useState<Set<string>>(() => {
+    const init = new Set<string>();
+    for (const c of SUPPORTED_LIST) {
+      if (config.channels?.[c.id]) init.add(c.id);
     }
+    return init;
+  });
 
-    setTelegramTestStatus("testing");
-    setTelegramTestMessage("");
-    try {
-      const r = await fetch(`https://api.telegram.org/bot${telegramToken.trim()}/getMe`);
-      const j = await r.json();
-      if (r.ok && j?.ok) {
-        setTelegramTestStatus("ok");
-        setTelegramTestMessage(`Token válido (${j?.result?.username || "bot"}).`);
-      } else {
-        setTelegramTestStatus("error");
-        setTelegramTestMessage(j?.description || "Token inválido o bloqueado.");
-      }
-    } catch {
-      setTelegramTestStatus("error");
-      setTelegramTestMessage("No se pudo validar por red en este navegador.");
-    }
+  const toggle = (id: string) => {
+    markTouched("channels");
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const handleNext = () => {
-    const channels: {
-      telegram?: { token: string; allowlist?: string[] };
-      discord?: { token: string; allowlist?: string[] };
-      whatsapp?: { enabled: boolean };
-      signal?: { enabled: boolean };
-    } = {};
-
-    if (telegramToken.trim() && telegramValid) channels.telegram = { token: telegramToken.trim(), allowlist: [] };
-    if (discordToken.trim() && discordValid) channels.discord = { token: discordToken.trim(), allowlist: [] };
-    if (enableWhatsApp) channels.whatsapp = { enabled: true };
-    if (enableSignal) channels.signal = { enabled: true };
-
+    // CERO secretos: solo marcamos qué canales (presencia = activado). Los tokens
+    // los pedirá el instalador en destino vía manifest.env.
+    const channels: Record<string, { enabled: boolean }> = {};
+    for (const id of selected) channels[id] = { enabled: true };
     updateConfig({ channels });
     return true;
   };
 
+  const authBadge: Record<string, string> = {
+    qr: "Por QR",
+    token: "Por token",
+    config: "Configuración",
+  };
+
   return (
-    <PhaseLayout stepId="channels" title="Canales de mensajería" description="Conecta los canales por los que responderá tu instancia, con validación de tokens" onNext={handleNext}>
-      <div className="space-y-6">
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3"><span className="text-2xl">💬</span><span className="font-semibold">Telegram</span></div>
-            <a href={TELEGRAM_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Obtener token en BotFather</a>
-          </div>
-          <input type="password" value={telegramToken} onChange={(e) => { setTelegramToken(e.target.value); markTouched("channels"); }} placeholder="123456789:AA..." className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none" />
-          {telegramValid === true && <p className="text-xs text-emerald-400 mt-1">✅ Formato válido</p>}
-          {telegramValid === false && <p className="text-xs text-rose-400 mt-1">❌ Formato no válido</p>}
-          <div className="mt-2 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleTelegramTest}
-              disabled={telegramTestStatus === "testing"}
-              className="px-3 py-1 rounded border border-slate-500 hover:border-cyan-500 text-xs"
-            >
-              {telegramTestStatus === "testing" ? "Probando..." : "Probar token de Telegram"}
-            </button>
-            {telegramTestStatus === "ok" && <span className="text-xs text-emerald-400">✅ {telegramTestMessage}</span>}
-            {telegramTestStatus === "error" && <span className="text-xs text-rose-400">❌ {telegramTestMessage}</span>}
-          </div>
+    <PhaseLayout
+      stepId="channels"
+      title="Canales de mensajería"
+      description="Elige por qué canales hablará la instancia. Los tokens no se piden aquí: el instalador los solicitará en destino."
+      onNext={handleNext}
+    >
+      <div className="flex min-h-[51rem] flex-col gap-8">
+        {/* Nota: ninguno es válido */}
+        <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Todos los canales son opcionales.</span>{" "}
+          Si no eliges ninguno, la instancia funcionará igualmente y la interacción irá
+          únicamente por la <span className="font-medium text-foreground">web de AI Office</span>.
         </div>
 
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3"><span className="text-2xl">🎮</span><span className="font-semibold">Discord</span></div>
-            <a href={DISCORD_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Abrir Developer Portal</a>
-          </div>
-          <input type="password" value={discordToken} onChange={(e) => { setDiscordToken(e.target.value); markTouched("channels"); }} placeholder="Bot token" className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none" />
-          {discordValid === true && <p className="text-xs text-emerald-400 mt-1">✅ Formato razonable</p>}
-          {discordValid === false && <p className="text-xs text-rose-400 mt-1">❌ Parece incompleto</p>}
-        </div>
+        {/* Disponibles ahora */}
+        <section>
+          <div className="panel-eyebrow mb-3">Disponibles ahora</div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {SUPPORTED_LIST.map((ch) => {
+              const isOn = selected.has(ch.id);
+              return (
+                <button
+                  key={ch.id}
+                  type="button"
+                  onClick={() => toggle(ch.id)}
+                  className={[
+                    "group relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition-all",
+                    isOn
+                      ? "border-brand bg-brand/5 ring-1 ring-brand shadow-sm"
+                      : "border-border bg-card hover:border-brand/40 hover:bg-accent/40",
+                  ].join(" ")}
+                >
+                  {/* Check de seleccionado */}
+                  <span
+                    className={[
+                      "absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border text-[11px] transition-colors",
+                      isOn
+                        ? "border-brand bg-brand text-white"
+                        : "border-border bg-background text-transparent group-hover:border-brand/40",
+                    ].join(" ")}
+                  >
+                    ✓
+                  </span>
 
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3"><span className="text-2xl">💚</span><span className="font-semibold">WhatsApp</span></div>
-            <input type="checkbox" checked={enableWhatsApp} onChange={(e) => { setEnableWhatsApp(e.target.checked); markTouched("channels"); }} />
-          </div>
-          <a href={WHATSAPP_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Guía de configuración WhatsApp</a>
-        </div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/60">
+                    <ChannelIcon id={ch.id} size={26} />
+                  </div>
 
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3"><span className="text-2xl">🔐</span><span className="font-semibold">Signal</span></div>
-            <input type="checkbox" checked={enableSignal} onChange={(e) => { setEnableSignal(e.target.checked); markTouched("channels"); }} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">{ch.label}</span>
+                      <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {authBadge[ch.authStyle]}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{ch.blurb}</p>
+                  </div>
+
+                  <p className="mt-auto text-xs text-muted-foreground/80">{ch.authNote}</p>
+                </button>
+              );
+            })}
           </div>
-          <a href={SIGNAL_DOCS} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 underline hover:text-cyan-300">Guía de configuración Signal</a>
-        </div>
+        </section>
+
+        {/* Próximamente */}
+        <section className="flex flex-1 flex-col">
+          <div className="panel-eyebrow mb-3">
+            Próximamente{" "}
+            <span className="font-normal normal-case tracking-normal text-muted-foreground">
+              · {UPCOMING_LIST.length} canales más de OpenClaw
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+            {UPCOMING_LIST.map((ch) => (
+              <div
+                key={ch.id}
+                title={`${ch.label} — próximamente`}
+                className="flex items-center gap-2.5 rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-2.5 opacity-70"
+              >
+                <ChannelIcon id={ch.id} size={20} muted />
+                <span className="truncate text-sm text-muted-foreground">{ch.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-auto pt-4 text-xs text-muted-foreground">
+            Estos canales existen en OpenClaw pero todavía no están validados en AI Office.
+            Se irán habilitando en próximas versiones.
+          </p>
+        </section>
       </div>
     </PhaseLayout>
   );

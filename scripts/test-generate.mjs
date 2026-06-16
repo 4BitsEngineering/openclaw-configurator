@@ -153,6 +153,33 @@ test('manifest.env: integraciones habilitadas declaran sus ENV', () => {
   assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack deshabilitado no declara ENV');
 });
 
+test('canales: los seleccionados se activan en el openclaw.json (presencia = enabled)', () => {
+  const cfg = { ...baseConfig, channels: { telegram: { enabled: true }, slack: { enabled: true } } };
+  const oc = JSON.parse(generateOpenclawJson(cfg));
+  assert.equal(oc.channels.telegram.enabled, true, 'telegram activado');
+  assert.equal(oc.channels.slack.enabled, true, 'slack activado');
+  // whatsapp viene en la plantilla pero no se eligió → sigue desactivado.
+  assert.equal(oc.channels.whatsapp.enabled, false, 'whatsapp no elegido sigue off');
+});
+
+test('canales: sin canales (solo web) → openclaw.json no activa ninguno', () => {
+  const oc = JSON.parse(generateOpenclawJson({ ...baseConfig, channels: {} }));
+  const enabled = Object.values(oc.channels || {}).filter((c) => c && c.enabled);
+  assert.equal(enabled.length, 0, 'ningún canal activado cuando el map está vacío');
+});
+
+test('manifest.env: slack como canal declara bot+app token', () => {
+  const m = JSON.parse(generateInstanceManifest({ ...baseConfig, clawcrewTeam: teamWithAgent, channels: { slack: { enabled: true } } }));
+  const keys = m.env.map(e => e.key);
+  assert.ok(keys.includes('SLACK_BOT_TOKEN') && keys.includes('SLACK_APP_TOKEN'), 'slack ENV declaradas');
+});
+
+test('manifest.env: whatsapp (QR) no declara ENV', () => {
+  const m = JSON.parse(generateInstanceManifest({ ...baseConfig, clawcrewTeam: teamWithAgent, channels: { whatsapp: { enabled: true } } }));
+  const keys = m.env.map(e => e.key);
+  assert.equal(keys.some(k => /WHATSAPP/i.test(k)), false, 'whatsapp no aporta ENV (se vincula por QR)');
+});
+
 test('generateInstancePackage: emite los 3 artefactos del contrato', () => {
   const pkg = generateInstancePackage(contractConfig);
   assert.ok(pkg['base/openclaw.json'], 'base');

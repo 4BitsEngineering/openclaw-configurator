@@ -1,0 +1,196 @@
+{
+  "generatedFrom": "openclaw/extensions/*/openclaw.plugin.json (channels)",
+  "channelCount": 22,
+  "channels": [
+    {
+      "id": "discord",
+      "plugin": "discord",
+      "envVars": [
+        "DISCORD_BOT_TOKEN"
+      ]
+    },
+    {
+      "id": "feishu",
+      "plugin": "feishu",
+      "envVars": [
+        "FEISHU_APP_ID",
+        "FEISHU_APP_SECRET",
+        "FEISHU_VERIFICATION_TOKEN",
+        "FEISHU_ENCRYPT_KEY"
+      ]
+    },
+    {
+      "id": "googlechat",
+      "plugin": "googlechat",
+      "envVars": [
+        "GOOGLE_CHAT_SERVICE_ACCOUNT",
+        "GOOGLE_CHAT_SERVICE_ACCOUNT_FILE"
+      ]
+    },
+    {
+      "id": "imessage",
+      "plugin": "imessage",
+      "envVars": []
+    },
+    {
+      "id": "irc",
+      "plugin": "irc",
+      "envVars": [
+        "IRC_HOST",
+        "IRC_PORT",
+        "IRC_TLS",
+        "IRC_NICK",
+        "IRC_USERNAME",
+        "IRC_REALNAME",
+        "IRC_PASSWORD",
+        "IRC_CHANNELS",
+        "IRC_NICKSERV_PASSWORD",
+        "IRC_NICKSERV_REGISTER_EMAIL"
+      ]
+    },
+    {
+      "id": "line",
+      "plugin": "line",
+      "envVars": [
+        "LINE_CHANNEL_ACCESS_TOKEN",
+        "LINE_CHANNEL_SECRET"
+      ]
+    },
+    {
+      "id": "matrix",
+      "plugin": "matrix",
+      "envVars": [
+        "MATRIX_HOMESERVER",
+        "MATRIX_USER_ID",
+        "MATRIX_ACCESS_TOKEN",
+        "MATRIX_PASSWORD",
+        "MATRIX_DEVICE_ID",
+        "MATRIX_DEVICE_NAME",
+        "MATRIX_OPS_HOMESERVER",
+        "MATRIX_OPS_ACCESS_TOKEN",
+        "MATRIX_OPS_DEVICE_ID",
+        "MATRIX_OPS_DEVICE_NAME"
+      ]
+    },
+    {
+      "id": "mattermost",
+      "plugin": "mattermost",
+      "envVars": [
+        "MATTERMOST_BOT_TOKEN",
+        "MATTERMOST_URL"
+      ]
+    },
+    {
+      "id": "msteams",
+      "plugin": "msteams",
+      "envVars": [
+        "MSTEAMS_APP_ID",
+        "MSTEAMS_APP_PASSWORD",
+        "MSTEAMS_TENANT_ID"
+      ]
+    },
+    {
+      "id": "nextcloud-talk",
+      "plugin": "nextcloud-talk",
+      "envVars": [
+        "NEXTCLOUD_TALK_BOT_SECRET",
+        "NEXTCLOUD_TALK_API_PASSWORD"
+      ]
+    },
+    {
+      "id": "nostr",
+      "plugin": "nostr",
+      "envVars": [
+        "NOSTR_PRIVATE_KEY"
+      ]
+    },
+    {
+      "id": "qqbot",
+      "plugin": "qqbot",
+      "envVars": [
+        "QQBOT_APP_ID",
+        "QQBOT_CLIENT_SECRET"
+      ]
+    },
+    {
+      "id": "signal",
+      "plugin": "signal",
+      "envVars": []
+    },
+    {
+      "id": "slack",
+      "plugin": "slack",
+      "envVars": [
+        "SLACK_BOT_TOKEN",
+        "SLACK_APP_TOKEN",
+        "SLACK_USER_TOKEN"
+      ]
+    },
+    {
+      "id": "sms",
+      "plugin": "sms",
+      "envVars": [
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_PHONE_NUMBER",
+        "TWILIO_SMS_FROM",
+        "TWILIO_MESSAGING_SERVICE_SID",
+        "SMS_PUBLIC_WEBHOOK_URL",
+        "SMS_WEBHOOK_PATH",
+        "SMS_ALLOWED_USERS"
+      ]
+    },
+    {
+      "id": "synology-chat",
+      "plugin": "synology-chat",
+      "envVars": [
+        "SYNOLOGY_CHAT_TOKEN",
+        "SYNOLOGY_CHAT_INCOMING_URL",
+        "SYNOLOGY_NAS_HOST",
+        "SYNOLOGY_ALLOWED_USER_IDS",
+        "SYNOLOGY_RATE_LIMIT",
+        "OPENCLAW_BOT_NAME"
+      ]
+    },
+    {
+      "id": "telegram",
+      "plugin": "telegram",
+      "envVars": [
+        "TELEGRAM_BOT_TOKEN"
+      ]
+    },
+    {
+      "id": "tlon",
+      "plugin": "tlon",
+      "envVars": []
+    },
+    {
+      "id": "twitch",
+      "plugin": "twitch",
+      "envVars": [
+        "OPENCLAW_TWITCH_ACCESS_TOKEN"
+      ]
+    },
+    {
+      "id": "whatsapp",
+      "plugin": "whatsapp",
+      "envVars": []
+    },
+    {
+      "id": "zalo",
+      "plugin": "zalo",
+      "envVars": [
+        "ZALO_BOT_TOKEN",
+        "ZALO_WEBHOOK_SECRET"
+      ]
+    },
+    {
+      "id": "zalouser",
+      "plugin": "zalouser",
+      "envVars": [
+        "ZALOUSER_PROFILE",
+        "ZCA_PROFILE"
+      ]
+    }
+  ]
+}

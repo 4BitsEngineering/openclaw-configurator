@@ -290,11 +290,17 @@ export interface WizardConfig {
     plan: string | null;
     features: string[];
   };
+  // Canales seleccionados. CERO secretos: solo se marca qué canales quiere la
+  // instancia (presencia = activado); los tokens los pide el instalador en
+  // destino vía manifest.env. Un map vacío es válido → la interacción irá solo
+  // por la web de ai-office. Cualquier id de canal de OpenClaw es admisible.
   channels: {
-    telegram?: { token: string; allowlist?: string[] };
+    telegram?: { enabled: boolean };
     whatsapp?: { enabled: boolean };
-    discord?: { token: string; allowlist?: string[] };
+    slack?: { enabled: boolean };
+    discord?: { enabled: boolean };
     signal?: { enabled: boolean };
+    [key: string]: { enabled: boolean } | undefined;
   };
   security: {
     dmPolicy: "allow" | "deny" | "allowlist";
