@@ -84,9 +84,10 @@ export interface BridgeSettingsSeed {
   CONVERSATIONS_IDLE_DAYS: number;
 }
 
+// Integraciones del overlay (herramientas que usan los agentes). Slack NO va aquí:
+// es un CANAL (Fase 1), no una integración — usaba los mismos tokens de Socket Mode.
 export interface IntegrationsBlock {
   n8n: { enabled: boolean; envBaseUrl: string; envToken: string };
-  slack: { enabled: boolean; envAppToken: string; envBotToken: string };
 }
 
 export interface KnowledgeBlock {

@@ -48,19 +48,14 @@ const CHANNEL_ENV: Record<string, ManifestEnvVar[]> = {
 // se incluyen sus ENV solo si vienen habilitadas.
 function integrationEnv(config: WizardConfig): ManifestEnvVar[] {
   const out: ManifestEnvVar[] = [];
-  const integrations = (config as { integrations?: { n8n?: { enabled?: boolean }; slack?: { enabled?: boolean } } }).integrations;
+  const integrations = (config as { integrations?: { n8n?: { enabled?: boolean } } }).integrations;
   if (integrations?.n8n?.enabled) {
     out.push(
       { key: "N8N_BASE_URL", scope: "overlay", desc: "URL base de la instancia n8n.", example: "https://n8n.example.com", required: true },
       { key: "N8N_AUTH_TOKEN", scope: "overlay", desc: "API key de n8n.", example: "<jwt>", required: true },
     );
   }
-  if (integrations?.slack?.enabled) {
-    out.push(
-      { key: "SLACK_APP_TOKEN", scope: "overlay", desc: "App-level token de Slack (Socket Mode).", example: "xapp-1-...", required: true },
-      { key: "SLACK_BOT_TOKEN", scope: "overlay", desc: "Bot token de Slack.", example: "xoxb-...", required: true },
-    );
-  }
+  // Slack NO se declara aquí: sus tokens los aporta el CANAL Slack (Fase 1, CHANNEL_ENV).
   return out;
 }
 

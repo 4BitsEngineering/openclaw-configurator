@@ -145,12 +145,13 @@ test('overlay-config: settingsSeed refleja el perfil de arranque elegido', () =>
   assert.equal(overlay.settingsSeed.AGENT_TIMEOUT, 600);
 });
 
-test('manifest.env: integraciones habilitadas declaran sus ENV', () => {
-  const cfg = { ...contractConfig, integrations: { n8n: { enabled: true }, slack: { enabled: false } } };
+test('manifest.env: n8n habilitado declara sus ENV (slack ya NO es integración)', () => {
+  const cfg = { ...contractConfig, integrations: { n8n: { enabled: true } } };
   const m = JSON.parse(generateInstanceManifest(cfg));
   const keys = m.env.map(e => e.key);
   assert.ok(keys.includes('N8N_BASE_URL') && keys.includes('N8N_AUTH_TOKEN'), 'n8n ENV declaradas');
-  assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack deshabilitado no declara ENV');
+  // Slack es CANAL (Fase 1), no integración: sin canal slack, no hay tokens slack.
+  assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack no se declara vía integración');
 });
 
 test('canales: los seleccionados se activan en el openclaw.json (presencia = enabled)', () => {

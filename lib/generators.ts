@@ -249,7 +249,6 @@ function deriveIntegrations(config: WizardConfig): IntegrationsBlock {
   const i = (config as { integrations?: Partial<IntegrationsBlock> }).integrations;
   return {
     n8n: { enabled: i?.n8n?.enabled ?? false, envBaseUrl: "N8N_BASE_URL", envToken: "N8N_AUTH_TOKEN" },
-    slack: { enabled: i?.slack?.enabled ?? false, envAppToken: "SLACK_APP_TOKEN", envBotToken: "SLACK_BOT_TOKEN" },
   };
 }
 

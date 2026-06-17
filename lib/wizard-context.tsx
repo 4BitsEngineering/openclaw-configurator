@@ -293,7 +293,6 @@ export interface WizardConfig {
   // como ENV en el manifiesto.
   integrations?: {
     n8n: { enabled: boolean };
-    slack: { enabled: boolean };
   };
   // Registro (Fase 3): metadata declarativa para clawhub. El alta/pairing real
   // ocurre en install-time; aquí solo se recoge plan + features pretendidos.
