@@ -106,16 +106,16 @@ export default function AutonomyStep() {
   return (
     <PhaseLayout
       stepId="autonomy"
-      title="Autonomía y seguridad"
+      title="Autonomía, seguridad e integraciones"
       description="Perfil de arranque de la instancia. El resto se ajusta luego en la consola."
       onNext={handleNext}
       nextLabel="Continuar a Registro"
     >
-      <div className="space-y-8">
+      <div className="space-y-5">
         {/* Nivel de autonomía */}
         <section>
-          <div className="panel-eyebrow mb-3">Nivel de autonomía</div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="panel-eyebrow mb-2">Nivel de autonomía</div>
+          <div className="grid gap-3 sm:grid-cols-3">
             {LEVELS.map((lv) => {
               const on = autonomyLevel === lv.id;
               return (
@@ -124,21 +124,23 @@ export default function AutonomyStep() {
                   type="button"
                   onClick={() => setAutonomyLevel(lv.id)}
                   className={[
-                    "group relative flex flex-col gap-2 rounded-2xl border p-5 text-left transition-all",
+                    "group relative flex flex-col gap-1.5 rounded-xl border p-4 text-left transition-all",
                     on
                       ? "border-brand bg-brand/5 ring-1 ring-brand shadow-sm"
                       : "border-border bg-card hover:border-brand/40 hover:bg-accent/40",
                   ].join(" ")}
                 >
-                  <span
-                    className={`inline-flex w-fit items-center rounded-md px-2 py-0.5 font-mono text-xs font-semibold ${
-                      on ? "bg-brand text-white" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {lv.id}
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[11px] font-semibold ${
+                        on ? "bg-brand text-white" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {lv.id}
+                    </span>
+                    <span className="text-sm font-semibold text-foreground">{lv.label}</span>
                   </span>
-                  <span className="font-semibold text-foreground">{lv.label}</span>
-                  <span className="text-sm text-muted-foreground">{lv.desc}</span>
+                  <span className="text-xs text-muted-foreground">{lv.desc}</span>
                 </button>
               );
             })}
@@ -147,7 +149,7 @@ export default function AutonomyStep() {
 
         {/* GuardClaw */}
         <section>
-          <div className="panel-eyebrow mb-3">GuardClaw · seguridad de datos</div>
+          <div className="panel-eyebrow mb-2">GuardClaw · seguridad de datos</div>
           <div className="grid gap-3 sm:grid-cols-3">
             <ToggleRow checked={guardClawEnabled} onChange={setGuardClawEnabled} label="GuardClaw activado" hint="Clasifica la sensibilidad de los datos (S1/S2/S3) en cada acción." />
             <ToggleRow checked={outputRedact} onChange={setOutputRedact} label="Enmascarar PII" hint="Redacta datos personales en las respuestas de los agentes." />
@@ -157,7 +159,7 @@ export default function AutonomyStep() {
 
         {/* Idioma + límites */}
         <section>
-          <div className="panel-eyebrow mb-3">Idioma y límites</div>
+          <div className="panel-eyebrow mb-2">Idioma y límites</div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Idioma por defecto</label>
@@ -179,12 +181,12 @@ export default function AutonomyStep() {
         {/* Integraciones — patrón de canales: soportadas seleccionables + próximamente */}
         <section>
           <div className="panel-eyebrow mb-1">Integraciones</div>
-          <p className="mb-3 text-xs text-muted-foreground">
-            Tools que usan los agentes. Las credenciales no se piden aquí: el instalador las pedirá en destino.
+          <p className="mb-2.5 text-xs text-muted-foreground">
+            Tools que usan los agentes; el instalador pedirá las credenciales en destino.
             Slack no aparece: es un <span className="font-medium text-foreground">canal</span> (Fase 1).
           </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2.5 sm:grid-cols-2">
             {SUPPORTED_INTEGRATIONS_LIST.map((it) => {
               const on = integrations.has(it.id);
               return (
@@ -192,57 +194,43 @@ export default function AutonomyStep() {
                   key={it.id}
                   type="button"
                   onClick={() => toggleIntegration(it.id)}
+                  title={it.authNote}
                   className={[
-                    "group relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition-all",
+                    "group flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
                     on
                       ? "border-brand bg-brand/5 ring-1 ring-brand shadow-sm"
                       : "border-border bg-card hover:border-brand/40 hover:bg-accent/40",
                   ].join(" ")}
                 >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+                    <IntegrationIcon id={it.id} size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-foreground">{it.label}</span>
+                      <span className="shrink-0 rounded-full border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {authBadge[it.authStyle]}
+                      </span>
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">{it.blurb}</p>
+                  </div>
                   <span
                     className={[
-                      "absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border text-[11px] transition-colors",
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] transition-colors",
                       on ? "border-brand bg-brand text-white" : "border-border bg-background text-transparent group-hover:border-brand/40",
                     ].join(" ")}
                   >
                     ✓
                   </span>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/60">
-                    <IntegrationIcon id={it.id} size={24} />
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-foreground">{it.label}</span>
-                      <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        {authBadge[it.authStyle]}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{it.blurb}</p>
-                  </div>
-                  <p className="mt-auto text-xs text-muted-foreground/80">{it.authNote}</p>
                 </button>
               );
             })}
           </div>
 
-          <div className="panel-eyebrow mb-3 mt-6">
-            Próximamente{" "}
-            <span className="font-normal normal-case tracking-normal text-muted-foreground">
-              · {UPCOMING_INTEGRATIONS_LIST.length} integraciones más de OpenClaw
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-            {UPCOMING_INTEGRATIONS_LIST.map((it) => (
-              <div
-                key={it.id}
-                title={`${it.label} — próximamente`}
-                className="flex items-center gap-2.5 rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-2.5 opacity-70"
-              >
-                <IntegrationIcon id={it.id} size={18} muted />
-                <span className="truncate text-sm text-muted-foreground">{it.label}</span>
-              </div>
-            ))}
-          </div>
+          <p className="mb-2 mt-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Próximamente:</span>{" "}
+            {UPCOMING_INTEGRATIONS_LIST.map((it) => it.label).join(" · ")}.
+          </p>
         </section>
 
         <p className="text-xs text-muted-foreground">
