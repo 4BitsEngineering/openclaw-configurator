@@ -446,6 +446,33 @@ export function generateInstanceManifest(config: WizardConfig): string {
   return JSON.stringify(manifest, null, 2) + "\n";
 }
 
+// .env.example EXACTO de la instancia: una línea KEY= por cada ENV declarada en el
+// manifiesto (con su descripción y ejemplo de forma). Es la plantilla de secretos que
+// el operador rellena y renombra a .env/.env.local para arrancar. Las integraciones
+// "service key" (Brave/n8n/ElevenLabs) NO salen aquí: se configuran en la consola
+// (key cifrada → service:X). Cero valores reales.
+export function generateEnvExample(config: WizardConfig): string {
+  const env = deriveEnvSpec(config);
+  const lines = [
+    "# .env — secretos de esta instancia. Rellena los valores y renombra a .env",
+    "# (o .env.local). Generado por openclaw-configurator. NO lo subas a git.",
+    "#",
+    "# Brave, n8n y ElevenLabs NO van aquí: se configuran en la consola tras arrancar",
+    "# (se guardan cifrados en el bridge). Google Workspace se conecta por OAuth.",
+    "",
+  ];
+  if (!env.length) {
+    lines.push("# (esta instancia no requiere secretos vía .env)");
+  } else {
+    for (const e of env) {
+      lines.push(`# ${e.desc}${e.required ? "" : " (opcional)"}  ej: ${e.example}`);
+      lines.push(`${e.key}=`);
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+
 // Orquesta los artefactos del contrato + el arrancable en un árbol path→contenido.
 // install.sh es el instalador "bundle" que copia el openclaw.json base, configura el
 // overlay con overlay-config.json, pide las ENV del manifiesto en destino y arranca
@@ -456,6 +483,7 @@ export function generateInstancePackage(config: WizardConfig): InstancePackage {
     [PACKAGE_PATHS.overlay]: generateOverlayConfig(config),
     [PACKAGE_PATHS.manifest]: generateInstanceManifest(config),
     [PACKAGE_PATHS.install]: generateInstallScript(),
+    [PACKAGE_PATHS.env]: generateEnvExample(config),
   };
 }
 

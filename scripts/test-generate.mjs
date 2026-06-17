@@ -231,6 +231,11 @@ test('generateInstancePackage: emite los 3 artefactos del contrato', () => {
   assert.ok(pkg['overlay/overlay-config.json'], 'overlay');
   assert.ok(pkg['instance-manifest.json'], 'manifest');
   assert.ok(pkg['install.sh'] && pkg['install.sh'].includes('#!/usr/bin/env bash'), 'install.sh arrancable');
+  assert.ok(typeof pkg['.env.example'] === 'string', '.env.example presente');
+  // El .env.example lleva las keys del provider/canal, NO las de integraciones service-key.
+  const envEx = generateInstancePackage({ ...contractConfig, providers: { minimax: { model: 'MiniMax-M3' } }, channels: { slack: { enabled: true } }, integrations: { n8n: { enabled: true }, brave: { enabled: true } } })['.env.example'];
+  assert.ok(/MINIMAX_API_KEY=/.test(envEx) && /SLACK_BOT_TOKEN=/.test(envEx), 'env.example lista provider+canal');
+  assert.equal(/N8N_|BRAVE_/.test(envEx), false, 'env.example NO lista integraciones service-key (van en consola)');
   // Ninguna API key con forma real fuera de los example del manifiesto.
   const base = pkg['base/openclaw.json'];
   assert.equal(/sk-ant-api03-[A-Za-z0-9]{20,}|xoxb-[0-9]{8,}/.test(base), false, 'base sin secretos crudos');

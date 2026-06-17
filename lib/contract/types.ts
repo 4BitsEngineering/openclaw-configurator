@@ -104,4 +104,5 @@ export const PACKAGE_PATHS = {
   overlay: "overlay/overlay-config.json",
   manifest: "instance-manifest.json",
   install: "install.sh",
+  env: ".env.example",
 } as const;

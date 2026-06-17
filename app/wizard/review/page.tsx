@@ -11,6 +11,7 @@ const ARTIFACTS = [
   { path: "overlay/overlay-config.json", label: "Overlay", desc: "Agentes clawcrew + perfil de arranque + integraciones.", lang: "json" },
   { path: "instance-manifest.json", label: "Manifiesto", desc: "Identidad, ENV requeridas y registro (install-time).", lang: "json" },
   { path: "install.sh", label: "Instalador (arrancable)", desc: "Copia config, instala el overlay y arranca gateway + bridge + UI.", lang: "bash" },
+  { path: ".env.example", label: "Plantilla de secretos", desc: "Las claves que pide esta instancia (vacías). Rellénalas y renombra a .env.", lang: "bash" },
 ];
 
 export default function ReviewStep() {
