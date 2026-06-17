@@ -3,6 +3,20 @@ import openclawTemplate from "./templates/openclaw.template.json";
 import { randomBytes } from "crypto";
 import { deriveEnvSpec } from "./contract/env-spec";
 import { SUPPORTED_INTEGRATIONS } from "./integrations-meta";
+import providersCatalog from "./providers-catalog.json";
+
+// Catálogo de providers indexado por id (minimax, deepseek, groq, …).
+const PROVIDER_CATALOG: Record<string, { label?: string; envVars?: string[]; baseUrl?: string | null; api?: string | null; models?: Array<{ id: string; name?: string }> }> =
+  Object.fromEntries(providersCatalog.providers.map((p) => [p.id, p]));
+
+// Elige la ENV key "canónica" de un provider: prefiere {ID}_API_KEY, luego la
+// primera acabada en _API_KEY, luego la primera declarada.
+function providerEnvKey(id: string, envVars?: string[]): string | undefined {
+  if (!envVars || !envVars.length) return undefined;
+  const std = `${id.toUpperCase()}_API_KEY`;
+  if (envVars.includes(std)) return std;
+  return envVars.find((v) => /_API_KEY$/.test(v)) || envVars[0];
+}
 import {
   CONFIG_SCHEMA_VERSION,
   PACKAGE_PATHS,
@@ -60,6 +74,19 @@ function resolveInstanceModel(config: WizardConfig): { providerId: string; model
   if (p.ollama) {
     const modelId = p.ollama.model || "gemma4-gpu";
     return { providerId: "ollama", modelId, ref: `ollama/${modelId}` };
+  }
+  if (p.__custom__) {
+    const c = p.__custom__;
+    const modelId = c.model || "custom-model";
+    return { providerId: "custom", modelId, ref: `custom/${modelId}`, envKey: c.envKey || undefined };
+  }
+  // Cualquier otro provider del catálogo (minimax, deepseek, groq, …). Antes
+  // caía silenciosamente al keyless ollama; ahora respeta la elección del step-1.
+  const otherId = Object.keys(p).find((id) => id !== "axet" && !!PROVIDER_CATALOG[id]);
+  if (otherId) {
+    const entry = PROVIDER_CATALOG[otherId];
+    const modelId = (p[otherId] as { model?: string } | undefined)?.model || entry.models?.[0]?.id || otherId;
+    return { providerId: otherId, modelId, ref: `${otherId}/${modelId}`, envKey: providerEnvKey(otherId, entry.envVars) };
   }
   return { providerId: "ollama", modelId: "gemma4-gpu", ref: DEFAULT_KEYLESS_MODEL };
 }
@@ -155,6 +182,26 @@ function pickProviderModel(config: WizardConfig): { providerId: string; provider
       apiKey: "${GOOGLE_API_KEY}", api: "openai-completions",
       models: [{ id: p.google.model || "gemini-2.5-pro", name: p.google.model || "gemini-2.5-pro" }],
     } };
+  }
+  // Provider genérico del catálogo. Solo construimos la entry si el catálogo trae
+  // baseUrl+api; si no (p.ej. minimax, que YA vive en la plantilla con su config
+  // probada), devolvemos null y dejamos que la plantilla mande — resolveInstanceModel
+  // ya fija el primary correcto.
+  const otherId = Object.keys(p).find(
+    (id) => !["anthropic", "openai", "google", "ollama", "axet", "__custom__"].includes(id) && !!PROVIDER_CATALOG[id],
+  );
+  if (otherId) {
+    const entry = PROVIDER_CATALOG[otherId];
+    if (entry.baseUrl && entry.api) {
+      const envKey = providerEnvKey(otherId, entry.envVars);
+      const modelId = (p[otherId] as { model?: string } | undefined)?.model || entry.models?.[0]?.id || otherId;
+      return { providerId: otherId, providerEntry: {
+        baseUrl: entry.baseUrl,
+        apiKey: envKey ? `\${${envKey}}` : undefined,
+        api: entry.api,
+        models: [{ id: modelId, name: modelId }],
+      } };
+    }
   }
   return null;
 }

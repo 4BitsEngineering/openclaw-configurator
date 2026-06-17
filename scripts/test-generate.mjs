@@ -67,6 +67,15 @@ test('el modelo elegido en step-1 es el primary del openclaw.json y el defaultMo
   assert.equal(overlay.defaultModel, 'anthropic/claude-opus-4-8');
 });
 
+test('provider del catálogo (minimax) dirige el primary y declara su key', () => {
+  const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, providers: { minimax: { model: 'MiniMax-M3' } } };
+  const oc = JSON.parse(generateOpenclawJson(cfg));
+  assert.equal(oc.agents.defaults.model.primary, 'minimax/MiniMax-M3', 'minimax como primary (antes caía a ollama)');
+  assert.ok('minimax' in (oc.models.providers || {}), 'minimax presente en models.providers (de la plantilla)');
+  const keys = JSON.parse(generateInstanceManifest(cfg)).env.map(e => e.key);
+  assert.ok(keys.includes('MINIMAX_API_KEY'), 'MINIMAX_API_KEY declarada en el manifiesto');
+});
+
 test('sin proveedor elegido → default keyless ollama/gemma4-gpu', () => {
   const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, providers: {} };
   const oc = JSON.parse(generateOpenclawJson(cfg));

@@ -8,6 +8,17 @@
 
 import type { WizardConfig } from "../wizard-context";
 import type { ManifestEnvVar } from "./types";
+import providersCatalog from "../providers-catalog.json";
+
+const PROVIDER_CATALOG: Record<string, { label?: string; envVars?: string[] }> =
+  Object.fromEntries(providersCatalog.providers.map((p) => [p.id, p]));
+
+function providerEnvKey(id: string, envVars?: string[]): string | undefined {
+  if (!envVars || !envVars.length) return undefined;
+  const std = `${id.toUpperCase()}_API_KEY`;
+  if (envVars.includes(std)) return std;
+  return envVars.find((v) => /_API_KEY$/.test(v)) || envVars[0];
+}
 
 // Tablas de declaración. `example` muestra la FORMA del valor (no un secreto).
 const PROVIDER_ENV: Record<string, ManifestEnvVar[]> = {
@@ -76,7 +87,21 @@ export function deriveEnvSpec(config: WizardConfig): ManifestEnvVar[] {
   const collected: ManifestEnvVar[] = [];
 
   for (const id of Object.keys(config.providers || {})) {
-    collected.push(...(PROVIDER_ENV[id] ?? []));
+    if (PROVIDER_ENV[id]) {
+      collected.push(...PROVIDER_ENV[id]);
+      continue;
+    }
+    if (id === "__custom__") {
+      const c = (config.providers as { __custom__?: { envKey?: string } }).__custom__;
+      if (c?.envKey) collected.push({ key: c.envKey, scope: "base", desc: "API key del provider OpenAI-compatible (custom).", example: "<api-key>", required: true });
+      continue;
+    }
+    // Provider del catálogo no tabulado (minimax, deepseek, groq…): declara su key.
+    const entry = PROVIDER_CATALOG[id];
+    const key = entry && providerEnvKey(id, entry.envVars);
+    if (key) {
+      collected.push({ key, scope: "base", desc: `API key de ${entry.label || id}.`, example: "<api-key>", required: true });
+    }
   }
   for (const id of Object.keys(config.channels || {})) {
     // channels[id] puede ser un objeto de config o un flag; basta su presencia.
