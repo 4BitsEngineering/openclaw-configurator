@@ -156,13 +156,20 @@ test('overlay-config: settingsSeed refleja el perfil de arranque elegido', () =>
   assert.equal(overlay.settingsSeed.AGENT_TIMEOUT, 600);
 });
 
-test('manifest.env: n8n habilitado declara sus ENV (slack ya NO es integración)', () => {
-  const cfg = { ...contractConfig, integrations: { n8n: { enabled: true } } };
+test('manifest.env: las integraciones (n8n/brave/elevenlabs) NO van por .env (consola/cifradas)', () => {
+  const cfg = { ...contractConfig, integrations: { n8n: { enabled: true }, brave: { enabled: true } } };
   const m = JSON.parse(generateInstanceManifest(cfg));
   const keys = m.env.map(e => e.key);
-  assert.ok(keys.includes('N8N_BASE_URL') && keys.includes('N8N_AUTH_TOKEN'), 'n8n ENV declaradas');
-  // Slack es CANAL (Fase 1), no integración: sin canal slack, no hay tokens slack.
+  // n8n/brave/elevenlabs se configuran en la consola (key cifrada → service:X), no por .env.
+  assert.equal(keys.some(k => /^N8N_|^BRAVE_|^ELEVENLABS_/.test(k)), false, 'integraciones sin ENV en el manifiesto');
   assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack no se declara vía integración');
+});
+
+test('openclaw.json: n8n usa SecretRef service:n8n (igual que brave), no key/ENV', () => {
+  const oc = JSON.parse(generateOpenclawJson(baseConfig));
+  const apiKey = oc.plugins?.entries?.n8n?.config?.apiKey;
+  assert.deepEqual(apiKey, { source: 'exec', provider: 'bridge_tokens', id: 'service:n8n' }, 'n8n apiKey = SecretRef service:n8n');
+  assert.equal(JSON.stringify(oc).includes('${N8N_'), false, 'sin placeholders ${N8N_*}');
 });
 
 test('canales: los seleccionados se activan en el openclaw.json (presencia = enabled)', () => {

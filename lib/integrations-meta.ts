@@ -23,7 +23,7 @@ export const SUPPORTED_INTEGRATIONS = ["googleworkspace", "n8n", "brave", "eleve
 const CATALOG: Omit<IntegrationMeta, "supported">[] = [
   // Soportadas
   { id: "googleworkspace", label: "Google Workspace", blurb: "Gmail y Calendar: leer/redactar correos y gestionar la agenda.", authStyle: "oauth", authNote: "Se conecta por OAuth durante la instalación (sin API key)." },
-  { id: "n8n",             label: "n8n",              blurb: "Dispara automatizaciones y workflows de n8n.",               authStyle: "url",  authNote: "Pedirá la URL de la instancia y la API key." },
+  { id: "n8n",             label: "n8n",              blurb: "Dispara automatizaciones y workflows de n8n.",               authStyle: "console", authNote: "La URL y la key se configuran en la consola tras instalar (key cifrada en el bridge)." },
   { id: "brave",           label: "Brave Search",     blurb: "Búsqueda web de calidad para research (precios, fichas…).",   authStyle: "console", authNote: "La key se pega en la consola tras instalar (cifrada en el bridge)." },
   { id: "elevenlabs",      label: "ElevenLabs",       blurb: "Voz / TTS premium para las respuestas de los agentes.",       authStyle: "console", authNote: "La key se pega en la consola tras instalar (cifrada en el bridge)." },
   // Próximamente (existen en OpenClaw pero aún no validadas en AI Office)

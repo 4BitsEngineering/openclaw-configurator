@@ -250,8 +250,12 @@
       "n8n": {
         "enabled": true,
         "config": {
-          "baseUrl": "${N8N_BASE_URL}",
-          "apiKey": "${N8N_AUTH_TOKEN}"
+          "baseUrl": "",
+          "apiKey": {
+            "source": "exec",
+            "provider": "bridge_tokens",
+            "id": "service:n8n"
+          }
         }
       },
       "browser": {

@@ -57,18 +57,14 @@ const CHANNEL_ENV: Record<string, ManifestEnvVar[]> = {
 
 // ENV por integración. Google Workspace = OAuth en la instalación (no aporta ENV).
 // Slack NO está: es un CANAL (Fase 1, CHANNEL_ENV).
+// n8n, Brave y ElevenLabs NO van por .env: la credencial se introduce en la CONSOLA
+// (tarjeta), se guarda CIFRADA en el bridge (AES-256-GCM) y el gateway la resuelve por
+// SecretRef (service:n8n / service:brave / service:elevenlabs). La URL de n8n no es
+// secreto y se configura también en la consola. Google Workspace = OAuth en destino.
 const INTEGRATION_ENV: Record<string, ManifestEnvVar[]> = {
-  n8n: [
-    { key: "N8N_BASE_URL", scope: "overlay", desc: "URL base de la instancia n8n.", example: "https://n8n.example.com", required: true },
-    { key: "N8N_AUTH_TOKEN", scope: "overlay", desc: "API key de n8n.", example: "<jwt>", required: true },
-  ],
-  // Brave y ElevenLabs NO van por .env: en ai-office la key se introduce en la
-  // CONSOLA (tarjeta), se guarda CIFRADA en el bridge (AES-256-GCM) y el gateway
-  // la resuelve por SecretRef (service:brave / service:elevenlabs). No hay secreto
-  // en el openclaw.json ni en el .env.
+  n8n: [],
   brave: [],
   elevenlabs: [],
-  // googleworkspace: OAuth en destino, sin ENV.
   googleworkspace: [],
 };
 
