@@ -129,7 +129,7 @@ test('overlay-config: settingsSeed con defaults seguros y claves reales del brid
   assert.equal(overlay.settingsSeed.GUARDCLAW_ENABLED, true);
   assert.equal(overlay.settingsSeed.GUARDCLAW_OUTPUT_REDACT, true);
   assert.equal(overlay.settingsSeed.AGENT_TIMEOUT, 1800);
-  assert.equal(overlay.settingsSeed.CONVERSATIONS_IDLE_DAYS, 90);
+  assert.equal(overlay.settingsSeed.CONVERSATIONS_IDLE_DAYS, 30);
   assert.ok(overlay.integrations && overlay.knowledge, 'integrations + knowledge');
 });
 

@@ -60,7 +60,7 @@ export default function AutonomyStep() {
   const [webEgress, setWebEgress] = useState(s?.webEgress ?? true);
   const [language, setLanguage] = useState(s?.language ?? "es-ES");
   const [agentTimeout, setAgentTimeout] = useState(s?.agentTimeout ?? 1800);
-  const [conversationIdleDays, setConversationIdleDays] = useState(s?.conversationIdleDays ?? 90);
+  const [conversationIdleDays, setConversationIdleDays] = useState(s?.conversationIdleDays ?? 30);
   const [n8nEnabled, setN8nEnabled] = useState(i?.n8n?.enabled ?? false);
 
   const handleNext = () => {
@@ -72,7 +72,7 @@ export default function AutonomyStep() {
         webEgress,
         language,
         agentTimeout: Math.max(60, Math.min(3600, Number(agentTimeout) || 1800)),
-        conversationIdleDays: Math.max(1, Math.min(365, Number(conversationIdleDays) || 90)),
+        conversationIdleDays: Math.max(1, Math.min(365, Number(conversationIdleDays) || 30)),
       },
       integrations: { n8n: { enabled: n8nEnabled } },
     });

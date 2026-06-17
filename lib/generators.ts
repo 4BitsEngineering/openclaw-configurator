@@ -241,7 +241,7 @@ function deriveSettingsSeed(config: WizardConfig): BridgeSettingsSeed {
     WEB_EGRESS_ENABLED: s?.webEgress ?? true,
     AGENTS_DEFAULT_LANGUAGE: s?.language ?? "es-ES",
     AGENT_TIMEOUT: s?.agentTimeout ?? 1800,
-    CONVERSATIONS_IDLE_DAYS: s?.conversationIdleDays ?? 90,
+    CONVERSATIONS_IDLE_DAYS: s?.conversationIdleDays ?? 30,
   };
 }
 
