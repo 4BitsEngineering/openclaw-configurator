@@ -30,13 +30,14 @@ export interface WizardStep {
   phase: PhaseId;
 }
 
+// Orden del flujo: base → overlay → revisión (genera/inspecciona el paquete) →
+// registro (sube el paquete a clawhub, obtiene el código + instalador). Registro
+// es el paso FINAL porque necesita el paquete ya generado.
 export const PHASES: Phase[] = [
   { id: "base", label: "OpenClaw base", ready: true },
   { id: "overlay", label: "Overlay", ready: true },
-  // Registro DESHABILITADO por ahora (se hará en install-time / clawhub). Se
-  // muestra grisado en la nav y NO está en el flujo lineal (autonomía → revisión).
-  { id: "register", label: "Registro", ready: false },
   { id: "review", label: "Revisión", ready: true },
+  { id: "register", label: "Registro", ready: true },
 ];
 
 export const STEPS: WizardStep[] = [
@@ -47,9 +48,11 @@ export const STEPS: WizardStep[] = [
   // Fase 2 — Overlay (entregable #3)
   { id: "team", route: "/wizard/overlay/team", label: "Equipo", phase: "overlay" },
   { id: "autonomy", route: "/wizard/overlay/autonomy", label: "Autonomía", phase: "overlay" },
-  // Fase 3 — Registro: DESHABILITADA por ahora (sin step en el flujo).
-  // Final — Revisión + generación del paquete (entregable #4)
+  // Revisión — genera el paquete completo y permite inspeccionarlo/descargarlo
   { id: "review", route: "/wizard/review", label: "Revisar y generar", phase: "review" },
+  // Registro — registra la instancia en clawhub (Firm + baseline) y emite el
+  // código de instalación + enlace al instalador. Paso final del flujo.
+  { id: "register", route: "/wizard/register", label: "Registro", phase: "register" },
 ];
 
 export const FIRST_ROUTE = STEPS[0].route;
