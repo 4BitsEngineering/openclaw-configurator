@@ -373,12 +373,18 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   // lugar de un selector vacío. El step-2 UI le deja cambiar de sector, añadir
   // o quitar roles y editar identidades. Si el sector pasa a "custom" el
   // operator empieza de cero (agents = []).
-  const generalTpl = SECTOR_TEMPLATES.general;
+  // Núcleo agnóstico: arrancamos con el Asistente Personal pre-seleccionado (es
+  // el agente generalista y el que responde en los canales). El resto se elige a
+  // mano del catálogo clawcrew en el step de equipo. (Antes arrancaba con la
+  // plantilla "general" de 5 roles; lo cambiamos a selección manual por decisión
+  // de producto.)
   const defaultClawcrewTeam: ClawcrewTeamConfig = {
-    sector: "general",
-    prefix: generalTpl.suggestedPrefix,
-    overlayName: generalTpl.suggestedOverlayName,
-    agents: generalTpl.agentIds.map((id) => buildAgentSelectionFromRole(id, true)),
+    sector: "custom",
+    prefix: "office",
+    overlayName: "Mi equipo",
+    agents: CLAWCREW_ROLES["personal-assistant"]
+      ? [buildAgentSelectionFromRole("personal-assistant", true)]
+      : [],
   };
   const [config, setConfig] = useState<WizardConfig>({
     providers: {},

@@ -4,501 +4,334 @@ import { PhaseLayout } from "@/components/wizard/phase-layout";
 import {
   useWizard,
   CLAWCREW_ROLES,
-  SECTOR_TEMPLATES,
-  ClawcrewSector,
   ClawcrewAgentSelection,
-  ClawcrewVoiceKind,
   ClawcrewTeamConfig,
+  ClawcrewRoleSpec,
   buildAgentSelectionFromRole,
   AgentDefinition,
 } from "@/lib/wizard-context";
 import { useState } from "react";
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Fase 2 (Overlay) — Equipo de agentes para tu negocio
+// Fase 2 (Overlay) — Equipo de agentes
 //
-// Wizard "sector → equipo → identidades":
-//   A. Sector picker (chips de 7: 6 verticales + custom). Selección rellena
-//      el equipo sugerido del SECTOR_TEMPLATES.
-//   B. Equipo: grid de roles seleccionados (+toggle enable/disable, +remove,
-//      +"añadir más roles" que abre full catálogo de los 15).
-//   C. Identidad por agente: accordeon con slug / displayName / icon / color
-//      / voz. Defaults vienen del manifest del rol (CLAWCREW_ROLES) — el
-//      operator puede sobre-escribir todo.
+// Modelo agnóstico (decisión de producto 17-jun):
+//   · Núcleo recomendado pre-seleccionado: el Asistente Personal (responde en los
+//     canales y hace de generalista). Si hay canales activos, lo destacamos.
+//   · El resto se elige A MANO del catálogo clawcrew (sin plantillas de sector;
+//     los sectores —"Negocios"— quedan deshabilitados de momento).
+//   · Personalización por agente (nombre + emoji) en la lista "Tu equipo".
+//   · Sin "prefix": solo un Nombre de equipo; el prefix runtime se deriva de él.
 //
-// El bloque resultante (clawcrewTeam) es lo que el install.sh usará para
-// invocar scripts/configure-overlay.js en autonomous-agents.
-//
-// IMPORTANTE: por compat retro mantenemos el useCase legacy populado con un
-// reflejo de los displayNames del nuevo clawcrewTeam (otros pasos del wizard
-// todavía lo leen) sin reescribirlo en este paso.
+// El bloque resultante (clawcrewTeam) es lo que install.sh pasa a
+// scripts/configure-overlay.js en autonomous-agents.
 // ──────────────────────────────────────────────────────────────────────────────
 
-const SECTORS: ClawcrewSector[] = [
-  "general", "asesoria", "ecommerce", "agencia", "clinica", "inmobiliaria", "custom",
+// Etiquetas de rol en español (algunos defaults del catálogo venían en inglés).
+const ROLE_LABEL_ES: Record<string, string> = {
+  "personal-assistant": "Asistente personal",
+  executive: "Asistente ejecutiva",
+  "outbound-sdr": "Desarrollo de negocio",
+  "legal-light": "Asesor legal",
+  "legal-suite": "Asesoría jurídica",
+  "automation-engineer": "Ingeniero de automatización",
+  "seo-writer": "Redactor SEO",
+  community: "Gestor de comunidad",
+  "marketing-strategist": "Estratega de marketing",
+  "seo-strategist": "Especialista en SEO",
+  "paid-media": "Gestor de campañas (paid media)",
+  "crm-email": "Gestor de CRM y email",
+  "analytics-cro": "Analista de datos y CRO",
+  "content-strategist": "Estratega de contenido",
+  copywriter: "Redactor publicitario",
+  "community-engagement": "Atención de comunidad",
+  "video-director": "Realizador de vídeo",
+  "visual-director": "Director de arte",
+};
+
+const roleLabel = (roleId: string) =>
+  ROLE_LABEL_ES[roleId] || CLAWCREW_ROLES[roleId]?.defaultDisplayName || roleId;
+
+// Grupos del catálogo (PA va aparte como núcleo). Las categorías vienen del
+// catálogo clawcrew (office→ai-office, marketing, content).
+const CORE_ROLE = "personal-assistant";
+const GROUPS: { key: ClawcrewRoleSpec["category"]; label: string; hint: string }[] = [
+  { key: "ai-office", label: "Oficina y operaciones", hint: "Gestión, agenda, ventas, legal y automatización." },
+  { key: "marketing", label: "Marketing", hint: "Estrategia, campañas, SEO, CRM y analítica." },
+  { key: "content", label: "Contenido", hint: "Redacción, comunidad, vídeo y dirección de arte." },
 ];
+
+// Construye una selección con el nombre en español por defecto.
+function buildSel(roleId: string): ClawcrewAgentSelection {
+  const base = buildAgentSelectionFromRole(roleId, true);
+  const label = roleLabel(roleId);
+  return { ...base, displayName: label, shortName: label };
+}
+
+// Deriva el prefix runtime del nombre del equipo (no se pide al usuario).
+function derivePrefix(name: string): string {
+  const slug = (name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const safe = /^[a-z]/.test(slug) ? slug : `eq-${slug}`;
+  return (safe || "office").slice(0, 24);
+}
 
 export default function TeamStep() {
   const { config, updateConfig, markTouched } = useWizard();
 
-  // Estado inicial — clawcrewTeam viene pre-poblado del provider con sector
-  // "general". Defensivo por si alguien rehidratara sin ese bloque.
   const initial: ClawcrewTeamConfig = config.clawcrewTeam || {
-    sector: "general",
-    prefix: SECTOR_TEMPLATES.general.suggestedPrefix,
-    overlayName: SECTOR_TEMPLATES.general.suggestedOverlayName,
-    agents: SECTOR_TEMPLATES.general.agentIds.map((id) => buildAgentSelectionFromRole(id, true)),
+    sector: "custom",
+    prefix: "office",
+    overlayName: "Mi equipo",
+    agents: [buildSel(CORE_ROLE)],
   };
 
   const [team, setTeam] = useState<ClawcrewTeamConfig>(initial);
-  const [showCatalog, setShowCatalog] = useState(false);
-  const [openAgent, setOpenAgent] = useState<string | null>(null);
 
-  // ── Mutators ──────────────────────────────────────────────────────────────
-  const selectSector = (sector: ClawcrewSector) => {
-    const tpl = SECTOR_TEMPLATES[sector];
-    setTeam({
-      sector,
-      prefix: tpl.suggestedPrefix,
-      overlayName: tpl.suggestedOverlayName,
-      agents: tpl.agentIds.map((id) => buildAgentSelectionFromRole(id, true)),
-    });
-    setOpenAgent(null);
+  const hasChannels = Object.keys(config.channels || {}).some(
+    (k) => config.channels[k as keyof typeof config.channels],
+  );
+
+  const isSelected = (roleId: string) => team.agents.some((a) => a.agent === roleId);
+
+  const toggleRole = (roleId: string) => {
     markTouched("clawcrewTeam");
-  };
-
-  const toggleAgentEnabled = (slug: string) => {
-    setTeam((t) => ({
-      ...t,
-      agents: t.agents.map((a) => a.slug === slug ? { ...a, enabled: !a.enabled } : a),
-    }));
-  };
-
-  const removeAgent = (slug: string) => {
-    setTeam((t) => ({ ...t, agents: t.agents.filter((a) => a.slug !== slug) }));
-    if (openAgent === slug) setOpenAgent(null);
-  };
-
-  const addRoleToTeam = (roleId: string) => {
-    // No duplicar: si el rol ya está, no añadir.
-    if (team.agents.some((a) => a.agent === roleId)) return;
-    const sel = buildAgentSelectionFromRole(roleId, true);
-    setTeam((t) => ({ ...t, agents: [...t.agents, sel] }));
-    markTouched("clawcrewTeam");
-  };
-
-  const patchAgent = (slug: string, patch: Partial<ClawcrewAgentSelection>) => {
-    setTeam((t) => ({
-      ...t,
-      agents: t.agents.map((a) => a.slug === slug ? { ...a, ...patch } : a),
-    }));
-  };
-
-  // ── Plan-mode (un agente coordina al equipo) ───────────────────────────────
-  const togglePlanMode = () => {
     setTeam((t) => {
-      const existing = t.planMode;
-      if (existing?.enabled === true) {
-        return { ...t, planMode: { ...existing, enabled: false } };
+      if (t.agents.some((a) => a.agent === roleId)) {
+        return { ...t, agents: t.agents.filter((a) => a.agent !== roleId) };
       }
-      return {
-        ...t,
-        planMode: {
-          enabled: true,
-          uiVisible: existing?.uiVisible ?? false,
-          autoSuggest: existing?.autoSuggest ?? false,
-          plannerAgentId: existing?.plannerAgentId ?? null,
-          fallbackPlanFirst: existing?.fallbackPlanFirst ?? false,
-        },
-      };
+      return { ...t, agents: [...t.agents, buildSel(roleId)] };
     });
+  };
+
+  const patchAgent = (roleId: string, patch: Partial<ClawcrewAgentSelection>) => {
+    setTeam((t) => ({
+      ...t,
+      agents: t.agents.map((a) => (a.agent === roleId ? { ...a, ...patch } : a)),
+    }));
+  };
+
+  const setName = (overlayName: string) => {
+    setTeam((t) => ({ ...t, overlayName, prefix: derivePrefix(overlayName) }));
     markTouched("clawcrewTeam");
   };
 
-  const setPlannerAgentId = (plannerAgentId: string) => {
-    setTeam((t) => {
-      if (!t.planMode) return t;
-      return { ...t, planMode: { ...t.planMode, plannerAgentId: plannerAgentId || null } };
-    });
-  };
-
-  // ── Commit + sync legacy useCase ──────────────────────────────────────────
   const handleNext = () => {
-    if (!team.prefix || !/^[a-z][a-z0-9-]*$/.test(team.prefix)) {
-      // El operator debe poner un prefix válido. La UI ya muestra warning.
-      return false;
-    }
-    if (team.agents.filter((a) => a.enabled).length === 0) {
-      return false;
-    }
-    // Reflejo legacy: useCase.agents espeja los selected/enabled para que
-    // generators viejos (agents-config.yaml, bridge-config.yaml) sigan
-    // recibiendo un agents[] poblado. type queda como "custom" porque ya no
-    // mapeamos a software-dev/compliance/etc.
-    const reflectedLegacy: AgentDefinition[] = team.agents
-      .filter((a) => a.enabled)
-      .map((a) => ({
-        id: a.slug,
-        name: a.displayName,
-        role: CLAWCREW_ROLES[a.agent]?.description || a.workingVerb || "",
-        enabled: true,
-      }));
+    if (team.agents.length === 0) return false;
+    const prefix = derivePrefix(team.overlayName);
+    const agents = team.agents.map((a) => ({ ...a, enabled: true }));
+    const reflectedLegacy: AgentDefinition[] = agents.map((a) => ({
+      id: a.slug,
+      name: a.displayName,
+      role: CLAWCREW_ROLES[a.agent]?.description || "",
+      enabled: true,
+    }));
     updateConfig({
-      clawcrewTeam: team,
+      clawcrewTeam: { ...team, prefix, agents },
       useCase: { type: "custom", agents: reflectedLegacy },
     });
     return true;
   };
 
-  const activeAgents = team.agents.filter((a) => a.enabled);
-  const prefixValid = /^[a-z][a-z0-9-]*$/.test(team.prefix);
-  const canContinue = prefixValid && activeAgents.length > 0;
-
-  // Catálogo de roles que NO están aún en el team (para el botón "+ añadir")
-  const availableToAdd = Object.values(CLAWCREW_ROLES)
-    .filter((spec) => !team.agents.some((a) => a.agent === spec.agent));
+  const count = team.agents.length;
+  const core = CLAWCREW_ROLES[CORE_ROLE];
 
   return (
     <PhaseLayout
       stepId="team"
       title="Equipo de agentes"
-      description="Elige tu sector, selecciona quiénes trabajan contigo y dale identidad a cada uno"
+      description="Elige qué agentes formarán tu equipo y dales nombre. Puedes personalizarlos ahora o más tarde."
       onNext={handleNext}
       nextLabel="Continuar a Autonomía"
     >
-      <div className="space-y-6">
-
-        {/* ── A. Sector picker ─────────────────────────────────────────── */}
-        <section>
-          <h3 className="text-sm font-semibold text-slate-300 mb-2">A. Sector</h3>
-          <div className="flex flex-wrap gap-2">
-            {SECTORS.map((s) => {
-              const tpl = SECTOR_TEMPLATES[s];
-              const isSelected = team.sector === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => selectSector(s)}
-                  className={`px-3 py-2 rounded-lg border-2 text-left transition-all ${
-                    isSelected
-                      ? "border-cyan-500 bg-cyan-500/10 shadow shadow-cyan-500/20"
-                      : "border-slate-600/60 hover:border-slate-500 bg-slate-800/40"
-                  }`}
-                  title={tpl.description}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{tpl.emoji}</span>
-                    <span className="text-sm font-medium">{tpl.label}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            {SECTOR_TEMPLATES[team.sector].description}
-          </p>
-        </section>
-
-        {/* ── Prefix + overlayName ──────────────────────────────────────── */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="space-y-8">
+        {/* Nombre del equipo + sectores (deshabilitados) */}
+        <section className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">
-              Nombre del overlay
-            </label>
+            <label className="panel-eyebrow mb-2 block">Nombre del equipo</label>
             <input
               type="text"
               value={team.overlayName}
-              onChange={(e) => setTeam((t) => ({ ...t, overlayName: e.target.value }))}
-              placeholder="Mi Despacho Acme"
-              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm focus:border-cyan-500 focus:outline-none"
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Mi equipo"
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Identifica esta instalación. Lo verás en la consola de AI Office.
+            </p>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">
-              Prefix (runtime id: <code className="text-cyan-400">{team.prefix || "?"}-slug-v1</code>)
-            </label>
-            <input
-              type="text"
-              value={team.prefix}
-              onChange={(e) => setTeam((t) => ({ ...t, prefix: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
-              placeholder="office"
-              className={`w-full px-3 py-2 rounded-lg bg-slate-800 border text-sm focus:outline-none ${
-                prefixValid ? "border-slate-600 focus:border-cyan-500" : "border-red-500"
-              }`}
-            />
-            {!prefixValid && (
-              <p className="text-xs text-red-400 mt-1">
-                Solo minúsculas, números y guiones. Empieza por letra.
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* ── B. Equipo ─────────────────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-slate-300">
-              B. Equipo <span className="text-xs text-slate-500 font-normal">
-                ({activeAgents.length} activo{activeAgents.length === 1 ? "" : "s"})
+            <label className="panel-eyebrow mb-2 block">Sector</label>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground opacity-70">
+                💼 Negocios
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium">Próximamente</span>
               </span>
-            </h3>
-            <button
-              onClick={() => setShowCatalog(!showCatalog)}
-              className="text-xs px-2 py-1 rounded border border-slate-600 hover:border-cyan-500 hover:text-cyan-400 transition"
-            >
-              {showCatalog ? "× Cerrar catálogo" : `+ Añadir rol (${availableToAdd.length} disponibles)`}
-            </button>
-          </div>
-
-          {team.agents.length === 0 && (
-            <div className="p-4 rounded-lg border border-amber-500/40 bg-amber-500/5 text-sm text-amber-300">
-              No hay agentes en tu equipo. Elige un sector arriba o abre el catálogo para añadirlos a mano.
             </div>
-          )}
-
-          <div className="space-y-2">
-            {team.agents.map((agent) => {
-              const spec = CLAWCREW_ROLES[agent.agent];
-              const isOpen = openAgent === agent.slug;
-              return (
-                <div
-                  key={agent.slug}
-                  className={`rounded-lg border-2 transition ${
-                    agent.enabled
-                      ? "border-slate-600/60 bg-slate-800/40"
-                      : "border-slate-700/40 bg-slate-900/40 opacity-60"
-                  }`}
-                >
-                  <div className="flex items-center gap-3 p-3">
-                    <button
-                      onClick={() => toggleAgentEnabled(agent.slug)}
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
-                        agent.enabled ? "border-cyan-500 bg-cyan-500" : "border-slate-500"
-                      }`}
-                      title={agent.enabled ? "Desactivar" : "Activar"}
-                    >
-                      {agent.enabled && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                        </svg>
-                      )}
-                    </button>
-                    <span className="text-xl shrink-0">{agent.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{agent.displayName}</span>
-                        <span className="text-xs text-slate-500 truncate">
-                          ({team.prefix}-{agent.slug}-v1)
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 truncate">
-                        {spec?.description || "—"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setOpenAgent(isOpen ? null : agent.slug)}
-                      className="text-xs px-2 py-1 rounded border border-slate-600 hover:border-cyan-500 hover:text-cyan-400 transition shrink-0"
-                    >
-                      {isOpen ? "✕ Cerrar" : "✎ Identidad"}
-                    </button>
-                    <button
-                      onClick={() => removeAgent(agent.slug)}
-                      className="text-xs px-2 py-1 rounded border border-slate-600 hover:border-red-500 hover:text-red-400 transition shrink-0"
-                      title="Quitar del equipo"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-
-                  {/* ── C. Identidad inline ─────────────────────────────── */}
-                  {isOpen && (
-                    <div className="border-t border-slate-700/60 p-3 space-y-3 bg-slate-900/40 animate-fadeInUp">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <IdField
-                          label="Slug (runtime)"
-                          value={agent.slug}
-                          onChange={(v) => patchAgent(agent.slug, { slug: v.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                          placeholder="elena"
-                          mono
-                        />
-                        <IdField
-                          label="Display name"
-                          value={agent.displayName}
-                          onChange={(v) => patchAgent(agent.slug, { displayName: v, shortName: v })}
-                          placeholder="Elena"
-                        />
-                        <IdField
-                          label="Icon (emoji)"
-                          value={agent.icon}
-                          onChange={(v) => patchAgent(agent.slug, { icon: v })}
-                          placeholder="📋"
-                        />
-                        <IdField
-                          label="Color (hex)"
-                          value={agent.color || ""}
-                          onChange={(v) => patchAgent(agent.slug, { color: v || null })}
-                          placeholder="#4F6D9E"
-                          mono
-                        />
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1">Voz</label>
-                          <select
-                            value={agent.voice?.kind || ""}
-                            onChange={(e) => patchAgent(agent.slug, {
-                              voice: { kind: (e.target.value || null) as ClawcrewVoiceKind, elevenlabsId: agent.voice?.elevenlabsId || null },
-                            })}
-                            className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm focus:border-cyan-500 focus:outline-none"
-                          >
-                            <option value="">(sin TTS)</option>
-                            <option value="female">Femenina</option>
-                            <option value="male">Masculina</option>
-                            <option value="neutral">Neutra</option>
-                          </select>
-                        </div>
-                        <IdField
-                          label="Verbo en marcha"
-                          value={agent.workingVerb || ""}
-                          onChange={(v) => patchAgent(agent.slug, { workingVerb: v })}
-                          placeholder="ordenando tu día"
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        Rol library: <code className="text-cyan-400">{agent.agent}</code> · category{" "}
-                        <code className="text-cyan-400">{spec?.category}</code>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Por ahora el equipo se arma a mano. Las plantillas por sector llegarán más adelante.
+            </p>
           </div>
-
-          {/* Catálogo de roles disponibles para añadir */}
-          {showCatalog && (
-            <div className="mt-3 p-4 rounded-lg border border-slate-600/60 bg-slate-800/40 animate-fadeInUp">
-              <p className="text-xs text-slate-400 mb-3">
-                Catálogo clawcrew — {availableToAdd.length} roles disponibles para añadir
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {availableToAdd.map((spec) => (
-                  <button
-                    key={spec.agent}
-                    onClick={() => addRoleToTeam(spec.agent)}
-                    className="p-2 rounded-lg border border-slate-600/60 hover:border-cyan-500 bg-slate-700/30 hover:bg-slate-700/60 text-left transition group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg shrink-0">{spec.defaultIcon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">{spec.defaultDisplayName}</div>
-                        <div className="text-xs text-slate-400 truncate">{spec.description}</div>
-                      </div>
-                      <span className="text-xs text-cyan-400 opacity-0 group-hover:opacity-100 transition shrink-0">+</span>
-                    </div>
-                  </button>
-                ))}
-                {availableToAdd.length === 0 && (
-                  <p className="text-xs text-slate-500 col-span-2">
-                    Todos los roles ya están en el equipo. Puedes desactivar los que no necesites.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
         </section>
 
-        {/* ── D. Planificador (plan-mode) ───────────────────────────────── */}
-        {activeAgents.length > 0 && (
+        {/* Núcleo recomendado: PA */}
+        {core && (
           <section>
-            <h3 className="text-sm font-semibold text-slate-300 mb-2">D. Planificador</h3>
-            <div className="rounded-lg border-2 border-slate-600/60 bg-slate-800/40 p-3 space-y-3">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <button
-                  type="button"
-                  onClick={togglePlanMode}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 ${
-                    team.planMode?.enabled === true ? "border-cyan-500 bg-cyan-500" : "border-slate-500"
-                  }`}
-                  title={team.planMode?.enabled === true ? "Desactivar planificador" : "Activar planificador"}
-                >
-                  {team.planMode?.enabled === true && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                    </svg>
-                  )}
-                </button>
-                <span className="text-sm">
-                  Activar planificador
-                  <span className="block text-xs text-slate-400">
-                    un agente coordina al equipo en tareas complejas
-                  </span>
-                </span>
-              </label>
-
-              {team.planMode?.enabled === true && (
-                <div className="animate-fadeInUp">
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    Agente planificador
-                  </label>
-                  <select
-                    value={team.planMode?.plannerAgentId || ""}
-                    onChange={(e) => setPlannerAgentId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm focus:border-cyan-500 focus:outline-none"
-                  >
-                    <option value="">(elige un agente)</option>
-                    {activeAgents.map((a) => (
-                      <option key={a.slug} value={`${team.prefix}-${a.slug}-v1`}>
-                        {a.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
+            <div className="panel-eyebrow mb-3">Núcleo recomendado</div>
+            <AgentCard
+              roleId={CORE_ROLE}
+              selected={isSelected(CORE_ROLE)}
+              onToggle={() => toggleRole(CORE_ROLE)}
+              recommended
+              channelsNote={hasChannels}
+            />
           </section>
         )}
 
-        {/* ── Summary footer ────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
-          <div className="text-sm text-slate-400">
-            <span className="font-medium text-slate-200">{activeAgents.length}</span> agentes activos ·
-            sector{" "}
-            <span className="font-medium text-slate-200">{SECTOR_TEMPLATES[team.sector].label}</span>
-          </div>
-          {!canContinue && (
-            <span className="text-xs text-amber-400">
-              {activeAgents.length === 0
-                ? "Activa al menos 1 agente"
-                : "Corrige el prefix para continuar"}
+        {/* Catálogo por categorías */}
+        {GROUPS.map((g) => {
+          const roles = Object.values(CLAWCREW_ROLES).filter(
+            (r) => r.category === g.key && r.agent !== CORE_ROLE,
+          );
+          if (roles.length === 0) return null;
+          return (
+            <section key={g.key}>
+              <div className="panel-eyebrow mb-1">{g.label}</div>
+              <p className="mb-3 text-xs text-muted-foreground">{g.hint}</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {roles.map((r) => (
+                  <AgentCard
+                    key={r.agent}
+                    roleId={r.agent}
+                    selected={isSelected(r.agent)}
+                    onToggle={() => toggleRole(r.agent)}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Tu equipo: personalización */}
+        <section>
+          <div className="panel-eyebrow mb-3">
+            Tu equipo{" "}
+            <span className="font-normal normal-case tracking-normal text-muted-foreground">
+              · {count} {count === 1 ? "agente" : "agentes"}
             </span>
+          </div>
+
+          {count === 0 ? (
+            <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-3 text-sm text-amber-800">
+              Aún no has elegido ningún agente. Selecciona al menos uno arriba para continuar.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {team.agents.map((a) => (
+                <div
+                  key={a.agent}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
+                >
+                  <input
+                    type="text"
+                    value={a.icon}
+                    onChange={(e) => patchAgent(a.agent, { icon: e.target.value })}
+                    maxLength={4}
+                    aria-label="Emoji del agente"
+                    className="h-10 w-10 shrink-0 rounded-lg border border-border bg-background text-center text-lg focus:border-brand focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={a.displayName}
+                    onChange={(e) => patchAgent(a.agent, { displayName: e.target.value, shortName: e.target.value })}
+                    placeholder={roleLabel(a.agent)}
+                    aria-label="Nombre del agente"
+                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-foreground hover:border-border focus:border-brand focus:bg-background focus:outline-none"
+                  />
+                  <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                    {roleLabel(a.agent)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleRole(a.agent)}
+                    className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
+                    title="Quitar del equipo"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
-        </div>
+        </section>
       </div>
     </PhaseLayout>
   );
 }
 
-// ── Inline field helper ─────────────────────────────────────────────────────
-function IdField({
-  label, value, onChange, placeholder, mono,
+// ── Tarjeta de agente del catálogo ───────────────────────────────────────────
+function AgentCard({
+  roleId,
+  selected,
+  onToggle,
+  recommended,
+  channelsNote,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  mono?: boolean;
+  roleId: string;
+  selected: boolean;
+  onToggle: () => void;
+  recommended?: boolean;
+  channelsNote?: boolean;
 }) {
+  const spec = CLAWCREW_ROLES[roleId];
+  if (!spec) return null;
   return (
-    <div>
-      <label className="block text-xs font-semibold text-slate-400 mb-1">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm focus:border-cyan-500 focus:outline-none ${
-          mono ? "font-mono" : ""
-        }`}
-      />
-    </div>
+    <button
+      type="button"
+      onClick={onToggle}
+      className={[
+        "group relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition-all",
+        selected
+          ? "border-brand bg-brand/5 ring-1 ring-brand shadow-sm"
+          : "border-border bg-card hover:border-brand/40 hover:bg-accent/40",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border text-[11px] transition-colors",
+          selected
+            ? "border-brand bg-brand text-white"
+            : "border-border bg-background text-transparent group-hover:border-brand/40",
+        ].join(" ")}
+      >
+        ✓
+      </span>
+
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/60 text-2xl">
+        {spec.defaultIcon}
+      </div>
+
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-foreground">{roleLabel(roleId)}</span>
+          {recommended && (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+              Recomendado
+            </span>
+          )}
+        </div>
+        <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{spec.description}</p>
+      </div>
+
+      {channelsNote && (
+        <p className="mt-auto text-xs font-medium text-brand">
+          Es quien responde a tus clientes en los canales que activaste.
+        </p>
+      )}
+    </button>
   );
 }
