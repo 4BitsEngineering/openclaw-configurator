@@ -227,10 +227,24 @@ export default function AutonomyStep() {
             })}
           </div>
 
-          <p className="mb-2 mt-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Próximamente:</span>{" "}
-            {UPCOMING_INTEGRATIONS_LIST.map((it) => it.label).join(" · ")}.
-          </p>
+          <div className="panel-eyebrow mb-2 mt-4">
+            Próximamente{" "}
+            <span className="font-normal normal-case tracking-normal text-muted-foreground">
+              · {UPCOMING_INTEGRATIONS_LIST.length} integraciones más de OpenClaw
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+            {UPCOMING_INTEGRATIONS_LIST.map((it) => (
+              <div
+                key={it.id}
+                title={`${it.label} — próximamente`}
+                className="flex items-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-2 opacity-70"
+              >
+                <IntegrationIcon id={it.id} size={18} muted />
+                <span className="truncate text-sm text-muted-foreground">{it.label}</span>
+              </div>
+            ))}
+          </div>
         </section>
 
         <p className="text-xs text-muted-foreground">
