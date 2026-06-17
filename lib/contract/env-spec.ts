@@ -44,18 +44,30 @@ const CHANNEL_ENV: Record<string, ManifestEnvVar[]> = {
   signal: [],
 };
 
-// Integraciones del overlay. El wizard aún no las recoge en el entregable #1;
-// se incluyen sus ENV solo si vienen habilitadas.
+// ENV por integración. Google Workspace = OAuth en la instalación (no aporta ENV).
+// Slack NO está: es un CANAL (Fase 1, CHANNEL_ENV).
+const INTEGRATION_ENV: Record<string, ManifestEnvVar[]> = {
+  n8n: [
+    { key: "N8N_BASE_URL", scope: "overlay", desc: "URL base de la instancia n8n.", example: "https://n8n.example.com", required: true },
+    { key: "N8N_AUTH_TOKEN", scope: "overlay", desc: "API key de n8n.", example: "<jwt>", required: true },
+  ],
+  brave: [
+    { key: "BRAVE_API_KEY", scope: "base", desc: "API key de Brave Search (búsqueda web de calidad).", example: "BSA...", required: true },
+  ],
+  elevenlabs: [
+    { key: "ELEVENLABS_API_KEY", scope: "base", desc: "API key de ElevenLabs (voz/TTS).", example: "sk_...", required: false },
+  ],
+  // googleworkspace: OAuth en destino, sin ENV.
+  googleworkspace: [],
+};
+
+// Incluye las ENV de las integraciones habilitadas (mapa por id, presencia+enabled).
 function integrationEnv(config: WizardConfig): ManifestEnvVar[] {
   const out: ManifestEnvVar[] = [];
-  const integrations = (config as { integrations?: { n8n?: { enabled?: boolean } } }).integrations;
-  if (integrations?.n8n?.enabled) {
-    out.push(
-      { key: "N8N_BASE_URL", scope: "overlay", desc: "URL base de la instancia n8n.", example: "https://n8n.example.com", required: true },
-      { key: "N8N_AUTH_TOKEN", scope: "overlay", desc: "API key de n8n.", example: "<jwt>", required: true },
-    );
+  const integrations = config.integrations || {};
+  for (const id of Object.keys(integrations)) {
+    if (integrations[id]?.enabled) out.push(...(INTEGRATION_ENV[id] ?? []));
   }
-  // Slack NO se declara aquí: sus tokens los aporta el CANAL Slack (Fase 1, CHANNEL_ENV).
   return out;
 }
 

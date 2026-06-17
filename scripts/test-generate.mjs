@@ -181,6 +181,23 @@ test('manifest.env: whatsapp (QR) no declara ENV', () => {
   assert.equal(keys.some(k => /WHATSAPP/i.test(k)), false, 'whatsapp no aporta ENV (se vincula por QR)');
 });
 
+test('manifest.env: integraciones brave/elevenlabs declaran su key; google workspace (OAuth) no', () => {
+  const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, integrations: { brave: { enabled: true }, elevenlabs: { enabled: true }, googleworkspace: { enabled: true } } };
+  const m = JSON.parse(generateInstanceManifest(cfg));
+  const keys = m.env.map(e => e.key);
+  assert.ok(keys.includes('BRAVE_API_KEY'), 'brave key');
+  assert.ok(keys.includes('ELEVENLABS_API_KEY'), 'elevenlabs key');
+  assert.equal(keys.some(k => /GOOGLE|GMAIL|OAUTH/i.test(k)), false, 'google workspace por OAuth: sin ENV');
+});
+
+test('overlay-config: integrations emite el mapa de soportadas con su enabled', () => {
+  const cfg = { ...contractConfig, integrations: { n8n: { enabled: true }, brave: { enabled: false } } };
+  const overlay = JSON.parse(generateOverlayConfig(cfg));
+  assert.equal(overlay.integrations.n8n.enabled, true);
+  assert.equal(overlay.integrations.brave.enabled, false);
+  assert.ok('googleworkspace' in overlay.integrations && 'elevenlabs' in overlay.integrations, 'todas las soportadas presentes');
+});
+
 test('generateInstancePackage: emite los 3 artefactos del contrato', () => {
   const pkg = generateInstancePackage(contractConfig);
   assert.ok(pkg['base/openclaw.json'], 'base');

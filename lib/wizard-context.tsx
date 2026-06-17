@@ -291,8 +291,11 @@ export interface WizardConfig {
   };
   // Integraciones del overlay (Fase 2): solo flags; los secretos se declaran
   // como ENV en el manifiesto.
+  // Integraciones (tools que usan los agentes). Mapa por id (presencia+enabled =
+  // activada), igual que channels. Ids soportados: googleworkspace, n8n, brave,
+  // elevenlabs. Las credenciales se declaran como ENV en el manifiesto.
   integrations?: {
-    n8n: { enabled: boolean };
+    [key: string]: { enabled: boolean } | undefined;
   };
   // Registro (Fase 3): metadata declarativa para clawhub. El alta/pairing real
   // ocurre en install-time; aquí solo se recoge plan + features pretendidos.

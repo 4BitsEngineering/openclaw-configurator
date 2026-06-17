@@ -84,11 +84,10 @@ export interface BridgeSettingsSeed {
   CONVERSATIONS_IDLE_DAYS: number;
 }
 
-// Integraciones del overlay (herramientas que usan los agentes). Slack NO va aquí:
-// es un CANAL (Fase 1), no una integración — usaba los mismos tokens de Socket Mode.
-export interface IntegrationsBlock {
-  n8n: { enabled: boolean; envBaseUrl: string; envToken: string };
-}
+// Integraciones del overlay (herramientas que usan los agentes), mapa por id:
+// { googleworkspace, n8n, brave, elevenlabs } → { enabled }. Slack NO va aquí: es
+// un CANAL (Fase 1). Las credenciales se declaran en manifest.env (INTEGRATION_ENV).
+export type IntegrationsBlock = Record<string, { enabled: boolean }>;
 
 export interface KnowledgeBlock {
   ragEnabled: boolean;

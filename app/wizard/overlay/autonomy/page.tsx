@@ -2,6 +2,8 @@
 
 import { PhaseLayout } from "@/components/wizard/phase-layout";
 import { useWizard } from "@/lib/wizard-context";
+import { IntegrationIcon } from "@/lib/integration-icon";
+import { SUPPORTED_INTEGRATIONS_LIST, UPCOMING_INTEGRATIONS_LIST } from "@/lib/integrations-meta";
 import { useState } from "react";
 
 type AutonomyLevel = "n0" | "n1" | "n2";
@@ -61,9 +63,26 @@ export default function AutonomyStep() {
   const [language, setLanguage] = useState(s?.language ?? "es-ES");
   const [agentTimeout, setAgentTimeout] = useState(s?.agentTimeout ?? 1800);
   const [conversationIdleDays, setConversationIdleDays] = useState(s?.conversationIdleDays ?? 30);
-  const [n8nEnabled, setN8nEnabled] = useState(i?.n8n?.enabled ?? false);
+  const [integrations, setIntegrations] = useState<Set<string>>(() => {
+    const init = new Set<string>();
+    for (const it of SUPPORTED_INTEGRATIONS_LIST) {
+      if (i?.[it.id]?.enabled) init.add(it.id);
+    }
+    return init;
+  });
+
+  const toggleIntegration = (id: string) => {
+    setIntegrations((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleNext = () => {
+    const integrationsMap: Record<string, { enabled: boolean }> = {};
+    for (const id of integrations) integrationsMap[id] = { enabled: true };
     updateConfig({
       bridgeSettings: {
         autonomyLevel,
@@ -74,10 +93,12 @@ export default function AutonomyStep() {
         agentTimeout: Math.max(60, Math.min(3600, Number(agentTimeout) || 1800)),
         conversationIdleDays: Math.max(1, Math.min(365, Number(conversationIdleDays) || 30)),
       },
-      integrations: { n8n: { enabled: n8nEnabled } },
+      integrations: integrationsMap,
     });
     return true;
   };
+
+  const authBadge: Record<string, string> = { oauth: "OAuth", key: "API key", url: "URL + key" };
 
   const inputCls =
     "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";
@@ -155,13 +176,73 @@ export default function AutonomyStep() {
           </div>
         </section>
 
-        {/* Integraciones */}
+        {/* Integraciones — patrón de canales: soportadas seleccionables + próximamente */}
         <section>
-          <div className="panel-eyebrow mb-3">Integraciones</div>
-          <ToggleRow checked={n8nEnabled} onChange={setN8nEnabled} label="n8n" hint="Automatizaciones vía n8n. Pedirá la URL y la API key en la instalación." />
-          <p className="mt-2 text-xs text-muted-foreground">
-            Slack no aparece aquí: se configura como <span className="font-medium text-foreground">canal</span> en la Fase 1 (usa los mismos tokens de Socket Mode).
+          <div className="panel-eyebrow mb-1">Integraciones</div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Tools que usan los agentes. Las credenciales no se piden aquí: el instalador las pedirá en destino.
+            Slack no aparece: es un <span className="font-medium text-foreground">canal</span> (Fase 1).
           </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {SUPPORTED_INTEGRATIONS_LIST.map((it) => {
+              const on = integrations.has(it.id);
+              return (
+                <button
+                  key={it.id}
+                  type="button"
+                  onClick={() => toggleIntegration(it.id)}
+                  className={[
+                    "group relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition-all",
+                    on
+                      ? "border-brand bg-brand/5 ring-1 ring-brand shadow-sm"
+                      : "border-border bg-card hover:border-brand/40 hover:bg-accent/40",
+                  ].join(" ")}
+                >
+                  <span
+                    className={[
+                      "absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border text-[11px] transition-colors",
+                      on ? "border-brand bg-brand text-white" : "border-border bg-background text-transparent group-hover:border-brand/40",
+                    ].join(" ")}
+                  >
+                    ✓
+                  </span>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/60">
+                    <IntegrationIcon id={it.id} size={24} />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-foreground">{it.label}</span>
+                      <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {authBadge[it.authStyle]}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{it.blurb}</p>
+                  </div>
+                  <p className="mt-auto text-xs text-muted-foreground/80">{it.authNote}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="panel-eyebrow mb-3 mt-6">
+            Próximamente{" "}
+            <span className="font-normal normal-case tracking-normal text-muted-foreground">
+              · {UPCOMING_INTEGRATIONS_LIST.length} integraciones más de OpenClaw
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+            {UPCOMING_INTEGRATIONS_LIST.map((it) => (
+              <div
+                key={it.id}
+                title={`${it.label} — próximamente`}
+                className="flex items-center gap-2.5 rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-2.5 opacity-70"
+              >
+                <IntegrationIcon id={it.id} size={18} muted />
+                <span className="truncate text-sm text-muted-foreground">{it.label}</span>
+              </div>
+            ))}
+          </div>
         </section>
 
         <p className="text-xs text-muted-foreground">

@@ -2,6 +2,7 @@ import type { WizardConfig } from "./wizard-context";
 import openclawTemplate from "./templates/openclaw.template.json";
 import { randomBytes } from "crypto";
 import { deriveEnvSpec } from "./contract/env-spec";
+import { SUPPORTED_INTEGRATIONS } from "./integrations-meta";
 import {
   CONFIG_SCHEMA_VERSION,
   PACKAGE_PATHS,
@@ -246,10 +247,10 @@ function deriveSettingsSeed(config: WizardConfig): BridgeSettingsSeed {
 }
 
 function deriveIntegrations(config: WizardConfig): IntegrationsBlock {
-  const i = (config as { integrations?: Partial<IntegrationsBlock> }).integrations;
-  return {
-    n8n: { enabled: i?.n8n?.enabled ?? false, envBaseUrl: "N8N_BASE_URL", envToken: "N8N_AUTH_TOKEN" },
-  };
+  const src = config.integrations || {};
+  const out: IntegrationsBlock = {};
+  for (const id of SUPPORTED_INTEGRATIONS) out[id] = { enabled: !!src[id]?.enabled };
+  return out;
 }
 
 function deriveKnowledge(config: WizardConfig): KnowledgeBlock {
