@@ -15,8 +15,19 @@ import type { WizardConfig } from "@/lib/wizard-context";
 // Env requeridas (en el deploy del configurator):
 //   CLAWHUB_URL        p.ej. https://clawhub-three.vercel.app
 //   OPERATOR_API_KEY   misma key M2M que usa clawhub para bundles/register
+//
+// SEGURIDAD: este endpoint hace de proxy de un secreto de operador (la
+// OPERATOR_API_KEY). NO debe quedar expuesto sin autenticación. El deploy
+// público del configurator DEBE ir detrás de auth de borde (Vercel Deployment
+// Protection: password/SSO), que gatea toda la app. En código aplicamos defensa
+// en profundidad: guard de mismo-origen (anti-CSRF), allowlist de campos de la
+// firma (solo name + plan; NO se acepta firm.id → evita escritura cross-tenant)
+// y validación del plan (evita escalada por body manipulado).
 
 export const dynamic = "force-dynamic";
+
+const VALID_PLANS = ["STARTER", "PRO", "BUSINESS", "ENTERPRISE"] as const;
+type Plan = (typeof VALID_PLANS)[number];
 
 // path del paquete → categoría de FirmBaselineFile en clawhub. El único con
 // categoría propia es openclaw.json; el resto del handoff (overlay-config,
@@ -28,18 +39,25 @@ function categoryFor(path: string): "OPENCLAW_CONFIG" | "OTHER" {
 
 interface RegisterRequest {
   config: WizardConfig;
-  firm: {
-    id?: string;
-    name?: string;
-    plan?: "STARTER" | "PRO" | "BUSINESS" | "ENTERPRISE";
-    seatsPurchased?: number;
-  };
+  // Solo se acepta el NOMBRE de la firma (clawhub la crea/reusa) y el plan
+  // (validado). NO se acepta firm.id desde el cliente: aceptarlo permitiría
+  // escribir el baseline en una firma ajena (cross-tenant). El alta/gestión de
+  // firmas existentes va por la consola de operador de clawhub, con su auth.
+  firm: { name?: string; plan?: string };
   // Features de control plane elegidas en el step Registro. Se pliegan en
   // config.registration para que el manifiesto generado las lleve.
   features?: string[];
 }
 
 export async function POST(req: Request) {
+  // Guard de mismo-origen (anti-CSRF): un sitio de terceros no puede provocar
+  // este POST desde el navegador de una víctima. Permitimos same-origin/same-site,
+  // navegación directa (none) o clientes no-navegador (sin la cabecera).
+  const fetchSite = req.headers.get("sec-fetch-site");
+  if (fetchSite === "cross-site") {
+    return NextResponse.json({ error: "cross_origin_forbidden" }, { status: 403 });
+  }
+
   const clawhubUrl = process.env.CLAWHUB_URL;
   const operatorKey = process.env.OPERATOR_API_KEY;
   if (!clawhubUrl || !operatorKey) {
@@ -60,11 +78,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "bad_request", detail: String(e) }, { status: 400 });
   }
 
-  if (!body?.firm || (!body.firm.id && !body.firm.name)) {
+  const firmName = typeof body?.firm?.name === "string" ? body.firm.name.trim() : "";
+  if (!firmName) {
     return NextResponse.json(
-      { error: "firm_required", detail: "Indica el nombre o el id de la firma." },
+      { error: "firm_required", detail: "Indica el nombre de la firma." },
       { status: 400 },
     );
+  }
+  // Plan: opcional, pero si viene debe ser uno válido (evita valores arbitrarios
+  // en el body). Default STARTER cuando no se indica.
+  let plan: Plan = "STARTER";
+  if (body.firm.plan != null) {
+    if (!VALID_PLANS.includes(body.firm.plan as Plan)) {
+      return NextResponse.json(
+        { error: "invalid_plan", detail: `Plan no válido: ${body.firm.plan}` },
+        { status: 400 },
+      );
+    }
+    plan = body.firm.plan as Plan;
   }
 
   // 1) Generar el paquete (mismo que la pantalla de Revisión). Plegamos el
@@ -73,7 +104,7 @@ export async function POST(req: Request) {
   const cfg: WizardConfig = {
     ...body.config,
     registration: {
-      plan: body.firm.plan ?? body.config.registration?.plan ?? null,
+      plan,
       features: body.features ?? body.config.registration?.features ?? [],
     },
   };
@@ -106,7 +137,8 @@ export async function POST(req: Request) {
         authorization: `Bearer ${operatorKey}`,
       },
       body: JSON.stringify({
-        firm: body.firm,
+        // Allowlist explícito — nunca reenviamos el body.firm crudo a clawhub.
+        firm: { name: firmName, plan },
         label: `Configurator — ${instanceName}`,
         description: `Paquete generado por el configurator para "${instanceName}".`,
         files: baselineFiles,

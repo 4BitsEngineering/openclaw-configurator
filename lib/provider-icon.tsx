@@ -52,7 +52,6 @@ import {
   VertexAI,
   Wenxin,
   LlmApi,
-  Kimi,
 } from "@lobehub/icons";
 import { Shield, Cloud, Server, Cpu, Zap } from "lucide-react";
 
