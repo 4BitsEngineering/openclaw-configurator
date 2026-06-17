@@ -9,6 +9,8 @@ import {
   ClawcrewRoleSpec,
   buildAgentSelectionFromRole,
   AgentDefinition,
+  NUCLEO_ROLE_IDS,
+  isNucleoAgent,
 } from "@/lib/wizard-context";
 import { useState } from "react";
 
@@ -29,6 +31,7 @@ import { useState } from "react";
 
 // Etiquetas de rol en español (algunos defaults del catálogo venían en inglés).
 const ROLE_LABEL_ES: Record<string, string> = {
+  planner: "Planificador",
   "personal-assistant": "Asistente personal",
   executive: "Asistente ejecutiva",
   "outbound-sdr": "Desarrollo de negocio",
@@ -52,9 +55,8 @@ const ROLE_LABEL_ES: Record<string, string> = {
 const roleLabel = (roleId: string) =>
   ROLE_LABEL_ES[roleId] || CLAWCREW_ROLES[roleId]?.defaultDisplayName || roleId;
 
-// Grupos del catálogo (PA va aparte como núcleo). Las categorías vienen del
+// Grupos del catálogo (el núcleo va aparte). Las categorías vienen del
 // catálogo clawcrew (office→ai-office, marketing, content).
-const CORE_ROLE = "personal-assistant";
 const GROUPS: { key: ClawcrewRoleSpec["category"]; label: string; hint: string }[] = [
   { key: "ai-office", label: "Oficina y operaciones", hint: "Gestión, agenda, ventas, legal y automatización." },
   { key: "marketing", label: "Marketing", hint: "Estrategia, campañas, SEO, CRM y analítica." },
@@ -83,12 +85,21 @@ function derivePrefix(name: string): string {
 export default function TeamStep() {
   const { config, updateConfig, markTouched } = useWizard();
 
-  const initial: ClawcrewTeamConfig = config.clawcrewTeam || {
-    sector: "custom",
-    prefix: "office",
-    overlayName: "Mi equipo",
-    agents: [buildSel(CORE_ROLE)],
+  // Garantiza que el núcleo (planner + PA) esté siempre presente, al principio.
+  const withNucleo = (t: ClawcrewTeamConfig): ClawcrewTeamConfig => {
+    const have = new Set(t.agents.map((a) => a.agent));
+    const missing = NUCLEO_ROLE_IDS.filter((id) => !have.has(id)).map((id) => buildSel(id));
+    return missing.length ? { ...t, agents: [...missing, ...t.agents] } : t;
   };
+
+  const initial: ClawcrewTeamConfig = withNucleo(
+    config.clawcrewTeam || {
+      sector: "custom",
+      prefix: "office",
+      overlayName: "Mi equipo",
+      agents: [],
+    },
+  );
 
   const [team, setTeam] = useState<ClawcrewTeamConfig>(initial);
 
@@ -99,6 +110,7 @@ export default function TeamStep() {
   const isSelected = (roleId: string) => team.agents.some((a) => a.agent === roleId);
 
   const toggleRole = (roleId: string) => {
+    if (isNucleoAgent(roleId)) return; // el núcleo no se quita
     markTouched("clawcrewTeam");
     setTeam((t) => {
       if (t.agents.some((a) => a.agent === roleId)) {
@@ -116,14 +128,23 @@ export default function TeamStep() {
   };
 
   const setName = (overlayName: string) => {
-    setTeam((t) => ({ ...t, overlayName, prefix: derivePrefix(overlayName) }));
+    const prefix = derivePrefix(overlayName);
+    setTeam((t) => ({
+      ...t,
+      overlayName,
+      prefix,
+      planMode: t.planMode ? { ...t.planMode, plannerAgentId: `${prefix}-planner-v1` } : t.planMode,
+    }));
     markTouched("clawcrewTeam");
   };
 
   const handleNext = () => {
-    if (team.agents.length === 0) return false;
-    const prefix = derivePrefix(team.overlayName);
-    const agents = team.agents.map((a) => ({ ...a, enabled: true }));
+    const ensured = withNucleo(team);
+    const prefix = derivePrefix(ensured.overlayName);
+    const agents = ensured.agents.map((a) => ({ ...a, enabled: true }));
+    const planMode = ensured.planMode
+      ? { ...ensured.planMode, plannerAgentId: `${prefix}-planner-v1` }
+      : ensured.planMode;
     const reflectedLegacy: AgentDefinition[] = agents.map((a) => ({
       id: a.slug,
       name: a.displayName,
@@ -131,14 +152,13 @@ export default function TeamStep() {
       enabled: true,
     }));
     updateConfig({
-      clawcrewTeam: { ...team, prefix, agents },
+      clawcrewTeam: { ...ensured, prefix, agents, planMode },
       useCase: { type: "custom", agents: reflectedLegacy },
     });
     return true;
   };
 
   const count = team.agents.length;
-  const core = CLAWCREW_ROLES[CORE_ROLE];
 
   return (
     <PhaseLayout
@@ -178,24 +198,31 @@ export default function TeamStep() {
           </div>
         </section>
 
-        {/* Núcleo recomendado: PA */}
-        {core && (
-          <section>
-            <div className="panel-eyebrow mb-3">Núcleo recomendado</div>
-            <AgentCard
-              roleId={CORE_ROLE}
-              selected={isSelected(CORE_ROLE)}
-              onToggle={() => toggleRole(CORE_ROLE)}
-              recommended
-              channelsNote={hasChannels}
-            />
-          </section>
-        )}
+        {/* Núcleo: siempre incluidos (planner + PA) */}
+        <section>
+          <div className="panel-eyebrow mb-1">Incluidos siempre</div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Toda instancia de AI Office lleva el Planificador (gestiona los proyectos) y el
+            Asistente Personal. Puedes renombrarlos abajo, pero no quitarlos.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {NUCLEO_ROLE_IDS.map((id) => (
+              <AgentCard
+                key={id}
+                roleId={id}
+                selected
+                locked
+                onToggle={() => {}}
+                channelsNote={hasChannels && id === "personal-assistant"}
+              />
+            ))}
+          </div>
+        </section>
 
         {/* Catálogo por categorías */}
         {GROUPS.map((g) => {
           const roles = Object.values(CLAWCREW_ROLES).filter(
-            (r) => r.category === g.key && r.agent !== CORE_ROLE,
+            (r) => r.category === g.key && !isNucleoAgent(r.agent),
           );
           if (roles.length === 0) return null;
           return (
@@ -255,14 +282,20 @@ export default function TeamStep() {
                   <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                     {roleLabel(a.agent)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => toggleRole(a.agent)}
-                    className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
-                    title="Quitar del equipo"
-                  >
-                    Quitar
-                  </button>
+                  {isNucleoAgent(a.agent) ? (
+                    <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                      Núcleo
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleRole(a.agent)}
+                      className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
+                      title="Quitar del equipo"
+                    >
+                      Quitar
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -280,36 +313,36 @@ function AgentCard({
   onToggle,
   recommended,
   channelsNote,
+  locked,
 }: {
   roleId: string;
   selected: boolean;
   onToggle: () => void;
   recommended?: boolean;
   channelsNote?: boolean;
+  locked?: boolean;
 }) {
   const spec = CLAWCREW_ROLES[roleId];
   if (!spec) return null;
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={[
-        "group relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition-all",
-        selected
-          ? "border-brand bg-brand/5 ring-1 ring-brand shadow-sm"
-          : "border-border bg-card hover:border-brand/40 hover:bg-accent/40",
-      ].join(" ")}
-    >
-      <span
-        className={[
-          "absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border text-[11px] transition-colors",
-          selected
-            ? "border-brand bg-brand text-white"
-            : "border-border bg-background text-transparent group-hover:border-brand/40",
-        ].join(" ")}
-      >
-        ✓
-      </span>
+  const body = (
+    <>
+      {/* Indicador: candado "Siempre" si locked, si no check de selección */}
+      {locked ? (
+        <span className="absolute right-4 top-4 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+          Siempre
+        </span>
+      ) : (
+        <span
+          className={[
+            "absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border text-[11px] transition-colors",
+            selected
+              ? "border-brand bg-brand text-white"
+              : "border-border bg-background text-transparent group-hover:border-brand/40",
+          ].join(" ")}
+        >
+          ✓
+        </span>
+      )}
 
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/60 text-2xl">
         {spec.defaultIcon}
@@ -332,6 +365,23 @@ function AgentCard({
           Es quien responde a tus clientes en los canales que activaste.
         </p>
       )}
+    </>
+  );
+
+  const base = "group relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition-all";
+  const selectedCls = "border-brand bg-brand/5 ring-1 ring-brand shadow-sm";
+  const idleCls = "border-border bg-card hover:border-brand/40 hover:bg-accent/40";
+
+  if (locked) {
+    return <div className={[base, selectedCls].join(" ")}>{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={[base, selected ? selectedCls : idleCls].join(" ")}
+    >
+      {body}
     </button>
   );
 }

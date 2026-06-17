@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "agentCount": 18,
+  "agentCount": 19,
   "agents": [
     {
       "id": "analytics-cro",
@@ -592,6 +592,40 @@
         "*"
       ],
       "hasPortrait": true
+    },
+    {
+      "id": "planner",
+      "version": "1.0.0",
+      "category": "office",
+      "description": "Orquestador interno: descompone peticiones complejas en fases, coordina al equipo vía sessions_spawn y gestiona los proyectos por fases. En PLAN_MODE propone un plan y espera aprobación.",
+      "defaults": {
+        "slug": "planner",
+        "displayName": "Planificador",
+        "shortName": "Planner",
+        "icon": "🗂️",
+        "color": "#5B6470",
+        "voice": {
+          "kind": "neutral",
+          "elevenlabsId": null
+        },
+        "workingVerb": "planificando el proyecto"
+      },
+      "tools": [
+        "sessions_spawn",
+        "sessions_yield",
+        "subagents",
+        "memory_search",
+        "memory_save"
+      ],
+      "toolGroups": [
+        "group:fs"
+      ],
+      "skills": [],
+      "siblings": {},
+      "compatibleOverlays": [
+        "*"
+      ],
+      "hasPortrait": false
     },
     {
       "id": "seo-strategist",

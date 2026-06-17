@@ -215,6 +215,17 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
   },
 };
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Núcleo de AI Office — roles del catálogo clawcrew que TODA instancia incluye
+// siempre: el Planificador (gestiona los proyectos por fases) y el Asistente
+// Personal (generalista, responde en los canales). Son roles REUTILIZABLES de
+// clawcrew (no hardcodeados): planner → {prefix}-planner-v1, personal-assistant
+// (slug "pa") → {prefix}-pa-v1, igual que el overlay real office-*.
+// ──────────────────────────────────────────────────────────────────────────────
+export const NUCLEO_ROLE_IDS = ["planner", "personal-assistant"] as const;
+export const isNucleoAgent = (roleId: string) =>
+  (NUCLEO_ROLE_IDS as readonly string[]).includes(roleId);
+
 // Construye un ClawcrewAgentSelection a partir de un id de role + el prefix
 // del overlay. Genera identidades default coherentes que el operator puede
 // modificar después desde el step-2 UI.
@@ -373,18 +384,25 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   // lugar de un selector vacío. El step-2 UI le deja cambiar de sector, añadir
   // o quitar roles y editar identidades. Si el sector pasa a "custom" el
   // operator empieza de cero (agents = []).
-  // Núcleo agnóstico: arrancamos con el Asistente Personal pre-seleccionado (es
-  // el agente generalista y el que responde en los canales). El resto se elige a
-  // mano del catálogo clawcrew en el step de equipo. (Antes arrancaba con la
-  // plantilla "general" de 5 roles; lo cambiamos a selección manual por decisión
-  // de producto.)
+  // Núcleo agnóstico de AI Office (decisión 17-jun): toda instancia incluye SIEMPRE
+  // el Planificador (gestiona los proyectos por fases) y el Asistente Personal (el
+  // generalista que responde en los canales). El resto se elige a mano del catálogo
+  // clawcrew en el step de equipo. (Antes arrancaba con la plantilla "general" de 5
+  // roles.) plan-mode queda cableado al planner (mismo shape que el overlay real
+  // office-*); enabled:false porque los proyectos usan el agente planner aunque el
+  // auto-plan de chat esté apagado.
   const defaultClawcrewTeam: ClawcrewTeamConfig = {
     sector: "custom",
     prefix: "office",
     overlayName: "Mi equipo",
-    agents: CLAWCREW_ROLES["personal-assistant"]
-      ? [buildAgentSelectionFromRole("personal-assistant", true)]
-      : [],
+    agents: NUCLEO_ROLE_IDS.map((id) => buildAgentSelectionFromRole(id, true)),
+    planMode: {
+      enabled: false,
+      uiVisible: false,
+      autoSuggest: false,
+      plannerAgentId: "office-planner-v1",
+      fallbackPlanFirst: true,
+    },
   };
   const [config, setConfig] = useState<WizardConfig>({
     providers: {},
