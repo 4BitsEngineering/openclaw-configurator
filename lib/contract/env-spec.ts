@@ -62,12 +62,12 @@ const INTEGRATION_ENV: Record<string, ManifestEnvVar[]> = {
     { key: "N8N_BASE_URL", scope: "overlay", desc: "URL base de la instancia n8n.", example: "https://n8n.example.com", required: true },
     { key: "N8N_AUTH_TOKEN", scope: "overlay", desc: "API key de n8n.", example: "<jwt>", required: true },
   ],
-  brave: [
-    { key: "BRAVE_API_KEY", scope: "base", desc: "API key de Brave Search (búsqueda web de calidad).", example: "BSA...", required: true },
-  ],
-  elevenlabs: [
-    { key: "ELEVENLABS_API_KEY", scope: "base", desc: "API key de ElevenLabs (voz/TTS).", example: "sk_...", required: false },
-  ],
+  // Brave y ElevenLabs NO van por .env: en ai-office la key se introduce en la
+  // CONSOLA (tarjeta), se guarda CIFRADA en el bridge (AES-256-GCM) y el gateway
+  // la resuelve por SecretRef (service:brave / service:elevenlabs). No hay secreto
+  // en el openclaw.json ni en el .env.
+  brave: [],
+  elevenlabs: [],
   // googleworkspace: OAuth en destino, sin ENV.
   googleworkspace: [],
 };

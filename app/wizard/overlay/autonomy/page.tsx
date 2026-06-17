@@ -98,7 +98,7 @@ export default function AutonomyStep() {
     return true;
   };
 
-  const authBadge: Record<string, string> = { oauth: "OAuth", key: "API key", url: "URL + key" };
+  const authBadge: Record<string, string> = { oauth: "OAuth", key: "API key", url: "URL + key", console: "En consola" };
 
   const inputCls =
     "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";

@@ -35,7 +35,9 @@ test('el provider/modelo elegido entra en models.providers', () => {
 test('no se filtran secretos crudos al openclaw.json generado', () => {
   const out = generateOpenclawJson(baseConfig);
   assert.equal(/BSAfi|eyJ[A-Za-z0-9_-]{10,}/.test(out), false, 'no debe haber keys/JWT crudos');
-  assert.ok(out.includes('${BRAVE_API_KEY}') || !out.includes('brave'), 'brave key como placeholder');
+  // brave: la key NO va en el config (ni cruda ni placeholder) — se resuelve por
+  // SecretRef service:brave desde el store cifrado del bridge (igual que ai-office).
+  assert.ok(out.includes('service:brave'), 'brave por SecretRef service:brave');
 });
 test('ollama conserva sus modelos del template y añade el elegido', () => {
   const out = JSON.parse(generateOpenclawJson(baseConfig));
@@ -190,13 +192,22 @@ test('manifest.env: whatsapp (QR) no declara ENV', () => {
   assert.equal(keys.some(k => /WHATSAPP/i.test(k)), false, 'whatsapp no aporta ENV (se vincula por QR)');
 });
 
-test('manifest.env: integraciones brave/elevenlabs declaran su key; google workspace (OAuth) no', () => {
+test('manifest.env: brave/elevenlabs (consola, cifradas) y google workspace (OAuth) NO declaran ENV', () => {
   const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, integrations: { brave: { enabled: true }, elevenlabs: { enabled: true }, googleworkspace: { enabled: true } } };
   const m = JSON.parse(generateInstanceManifest(cfg));
   const keys = m.env.map(e => e.key);
-  assert.ok(keys.includes('BRAVE_API_KEY'), 'brave key');
-  assert.ok(keys.includes('ELEVENLABS_API_KEY'), 'elevenlabs key');
+  // Brave/ElevenLabs se configuran en la consola (key cifrada → service:brave/elevenlabs),
+  // no por .env; Google Workspace por OAuth. Ninguna aporta ENV.
+  assert.equal(keys.includes('BRAVE_API_KEY'), false, 'brave NO por .env');
+  assert.equal(keys.includes('ELEVENLABS_API_KEY'), false, 'elevenlabs NO por .env');
   assert.equal(keys.some(k => /GOOGLE|GMAIL|OAUTH/i.test(k)), false, 'google workspace por OAuth: sin ENV');
+});
+
+test('openclaw.json: brave usa SecretRef service:brave (igual que ai-office, no ${BRAVE_API_KEY})', () => {
+  const oc = JSON.parse(generateOpenclawJson(baseConfig));
+  const apiKey = oc.plugins?.entries?.brave?.config?.webSearch?.apiKey;
+  assert.deepEqual(apiKey, { source: 'exec', provider: 'bridge_tokens', id: 'service:brave' }, 'brave apiKey = SecretRef service:brave');
+  assert.equal(JSON.stringify(oc).includes('${BRAVE_API_KEY}'), false, 'sin placeholder ${BRAVE_API_KEY}');
 });
 
 test('overlay-config: integrations emite el mapa de soportadas con su enabled', () => {

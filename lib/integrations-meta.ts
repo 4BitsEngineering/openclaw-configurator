@@ -7,7 +7,7 @@
 // instalador las solicita en destino. Slack NO está: es un CANAL (Fase 1).
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type IntegrationAuth = "oauth" | "key" | "url";
+export type IntegrationAuth = "oauth" | "key" | "url" | "console";
 
 export interface IntegrationMeta {
   id: string;
@@ -24,8 +24,8 @@ const CATALOG: Omit<IntegrationMeta, "supported">[] = [
   // Soportadas
   { id: "googleworkspace", label: "Google Workspace", blurb: "Gmail y Calendar: leer/redactar correos y gestionar la agenda.", authStyle: "oauth", authNote: "Se conecta por OAuth durante la instalación (sin API key)." },
   { id: "n8n",             label: "n8n",              blurb: "Dispara automatizaciones y workflows de n8n.",               authStyle: "url",  authNote: "Pedirá la URL de la instancia y la API key." },
-  { id: "brave",           label: "Brave Search",     blurb: "Búsqueda web de calidad para research (precios, fichas…).",   authStyle: "key",  authNote: "Pedirá BRAVE_API_KEY." },
-  { id: "elevenlabs",      label: "ElevenLabs",       blurb: "Voz / TTS premium para las respuestas de los agentes.",       authStyle: "key",  authNote: "Pedirá ELEVENLABS_API_KEY (opcional)." },
+  { id: "brave",           label: "Brave Search",     blurb: "Búsqueda web de calidad para research (precios, fichas…).",   authStyle: "console", authNote: "La key se pega en la consola tras instalar (cifrada en el bridge)." },
+  { id: "elevenlabs",      label: "ElevenLabs",       blurb: "Voz / TTS premium para las respuestas de los agentes.",       authStyle: "console", authNote: "La key se pega en la consola tras instalar (cifrada en el bridge)." },
   // Próximamente (existen en OpenClaw pero aún no validadas en AI Office)
   { id: "firecrawl",       label: "Firecrawl",        blurb: "Scraping y extracción de páginas web.",                       authStyle: "key",  authNote: "FIRECRAWL_API_KEY." },
   { id: "exa",             label: "Exa",              blurb: "Búsqueda web semántica (neural search).",                     authStyle: "key",  authNote: "EXA_API_KEY." },

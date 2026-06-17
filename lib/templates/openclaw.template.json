@@ -228,7 +228,11 @@
         "enabled": true,
         "config": {
           "webSearch": {
-            "apiKey": "${BRAVE_API_KEY}"
+            "apiKey": {
+              "source": "exec",
+              "provider": "bridge_tokens",
+              "id": "service:brave"
+            }
           }
         }
       },
