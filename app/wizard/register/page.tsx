@@ -41,6 +41,7 @@ export default function RegisterStep() {
     (config.registration?.plan?.toUpperCase() as (typeof PLANS)[number]) || "STARTER",
   );
   const [features, setFeatures] = useState<string[]>(config.registration?.features ?? []);
+  const [accessPwd, setAccessPwd] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [result, setResult] = useState<RegisterResult | null>(null);
@@ -59,11 +60,17 @@ export default function RegisterStep() {
     try {
       const r = await fetch("/api/register", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-configurator-token": accessPwd,
+        },
         body: JSON.stringify({ config, firm: { name: firmName.trim(), plan }, features }),
       });
       const j = await r.json();
       if (!r.ok) {
+        if (j?.error === "access_denied") {
+          throw new Error("Contraseña de acceso incorrecta.");
+        }
         const detail = j?.clawhub?.error || j?.detail || j?.error || `HTTP ${r.status}`;
         throw new Error(detail);
       }
@@ -155,6 +162,24 @@ export default function RegisterStep() {
                 </select>
                 <p className="mt-1 text-[11px] text-muted-foreground">Determina los PCs (seats) que podrá parear.</p>
               </div>
+            </div>
+
+            {/* Contraseña de acceso (gate del endpoint en deploys públicos) */}
+            <div>
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Contraseña de acceso
+              </label>
+              <input
+                type="password"
+                value={accessPwd}
+                onChange={(e) => setAccessPwd(e.target.value)}
+                placeholder="La contraseña que te pasó el operador"
+                autoComplete="off"
+                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-brand/50"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Necesaria para registrar en el control plane. Si instalas en local sin gate, déjala vacía.
+              </p>
             </div>
 
             {/* Features */}

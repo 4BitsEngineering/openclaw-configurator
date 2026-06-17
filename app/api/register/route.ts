@@ -71,6 +71,19 @@ export async function POST(req: Request) {
     );
   }
 
+  // Gate de acceso a nivel de app: si CONFIGURATOR_ACCESS_TOKEN está configurado
+  // (deploys públicos DEBEN configurarlo), exigimos que el cliente envíe la misma
+  // contraseña en la cabecera `x-configurator-token`. Es lo que evita que el
+  // endpoint —que hace de proxy de la operator key— sea usable por cualquiera
+  // sin la auth de borde de Vercel. En local sin la env, el gate está inactivo.
+  const accessToken = process.env.CONFIGURATOR_ACCESS_TOKEN;
+  if (accessToken) {
+    const provided = req.headers.get("x-configurator-token");
+    if (!provided || provided !== accessToken) {
+      return NextResponse.json({ error: "access_denied" }, { status: 401 });
+    }
+  }
+
   let body: RegisterRequest;
   try {
     body = (await req.json()) as RegisterRequest;
