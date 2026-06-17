@@ -446,12 +446,16 @@ export function generateInstanceManifest(config: WizardConfig): string {
   return JSON.stringify(manifest, null, 2) + "\n";
 }
 
-// Orquesta los tres artefactos del contrato en un árbol path→contenido.
+// Orquesta los artefactos del contrato + el arrancable en un árbol path→contenido.
+// install.sh es el instalador "bundle" que copia el openclaw.json base, configura el
+// overlay con overlay-config.json, pide las ENV del manifiesto en destino y arranca
+// gateway + bridge + UI. Es lo que consume/ejecuta ai-office-install.
 export function generateInstancePackage(config: WizardConfig): InstancePackage {
   return {
     [PACKAGE_PATHS.base]: generateOpenclawJson(config),
     [PACKAGE_PATHS.overlay]: generateOverlayConfig(config),
     [PACKAGE_PATHS.manifest]: generateInstanceManifest(config),
+    [PACKAGE_PATHS.install]: generateInstallScript(),
   };
 }
 

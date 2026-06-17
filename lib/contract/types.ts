@@ -103,4 +103,5 @@ export const PACKAGE_PATHS = {
   base: "base/openclaw.json",
   overlay: "overlay/overlay-config.json",
   manifest: "instance-manifest.json",
+  install: "install.sh",
 } as const;

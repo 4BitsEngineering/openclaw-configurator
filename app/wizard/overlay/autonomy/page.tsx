@@ -109,7 +109,7 @@ export default function AutonomyStep() {
       title="Autonomía, seguridad e integraciones"
       description="Perfil de arranque de la instancia. El resto se ajusta luego en la consola."
       onNext={handleNext}
-      nextLabel="Continuar a Registro"
+      nextLabel="Continuar a Revisión"
     >
       <div className="space-y-5">
         {/* Nivel de autonomía */}

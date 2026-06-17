@@ -33,7 +33,9 @@ export interface WizardStep {
 export const PHASES: Phase[] = [
   { id: "base", label: "OpenClaw base", ready: true },
   { id: "overlay", label: "Overlay", ready: true },
-  { id: "register", label: "Registro", ready: true },
+  // Registro DESHABILITADO por ahora (se hará en install-time / clawhub). Se
+  // muestra grisado en la nav y NO está en el flujo lineal (autonomía → revisión).
+  { id: "register", label: "Registro", ready: false },
   { id: "review", label: "Revisión", ready: true },
 ];
 
@@ -45,8 +47,7 @@ export const STEPS: WizardStep[] = [
   // Fase 2 — Overlay (entregable #3)
   { id: "team", route: "/wizard/overlay/team", label: "Equipo", phase: "overlay" },
   { id: "autonomy", route: "/wizard/overlay/autonomy", label: "Autonomía", phase: "overlay" },
-  // Fase 3 — Registro (entregable #4)
-  { id: "register", route: "/wizard/register", label: "Registro", phase: "register" },
+  // Fase 3 — Registro: DESHABILITADA por ahora (sin step en el flujo).
   // Final — Revisión + generación del paquete (entregable #4)
   { id: "review", route: "/wizard/review", label: "Revisar y generar", phase: "review" },
 ];
@@ -65,10 +66,19 @@ export function phaseById(id: PhaseId): Phase | undefined {
   return PHASES.find((p) => p.id === id);
 }
 
-// Pasos agrupados por fase, en orden — para pintar la barra de progreso.
+// Pasos agrupados por fase, en orden — solo fases con pasos (flujo lineal).
 export function stepsByPhase(): Array<{ phase: Phase; steps: WizardStep[] }> {
   return PHASES.map((phase) => ({
     phase,
     steps: STEPS.filter((s) => s.phase === phase.id),
   })).filter((g) => g.steps.length > 0);
+}
+
+// TODAS las fases (incluidas las deshabilitadas/sin pasos como Registro) — para
+// pintar la nav/progreso mostrando las no-ready grisadas.
+export function allPhaseGroups(): Array<{ phase: Phase; steps: WizardStep[] }> {
+  return PHASES.map((phase) => ({
+    phase,
+    steps: STEPS.filter((s) => s.phase === phase.id),
+  }));
 }

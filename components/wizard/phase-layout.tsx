@@ -7,7 +7,7 @@ import {
   STEPS,
   stepIndexById,
   stepById,
-  stepsByPhase,
+  allPhaseGroups,
   type PhaseId,
 } from "@/lib/wizard/steps";
 
@@ -40,7 +40,7 @@ export function PhaseLayout({
   const current = stepIndexById(stepId);
   const step = stepById(stepId);
   const phase = PHASES.find((p) => p.id === step?.phase);
-  const groups = stepsByPhase();
+  const groups = allPhaseGroups();
   const isLast = current >= STEPS.length - 1;
   const accent = phase ? PHASE_ACCENT[phase.id] : PHASE_ACCENT.base;
 
@@ -75,16 +75,20 @@ export function PhaseLayout({
           <nav className="hidden md:flex items-center gap-1 text-sm">
             {groups.map((g) => {
               const isActive = g.phase.id === step?.phase;
-              const isDone = g.steps.every((s) => stepIndexById(s.id) < current);
+              const isDone = g.steps.length > 0 && g.steps.every((s) => stepIndexById(s.id) < current);
+              const disabled = !g.phase.ready;
               return (
                 <span
                   key={g.phase.id}
+                  title={disabled ? "Deshabilitado por ahora" : undefined}
                   className={[
                     "relative inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 sm:px-2.5 transition-colors",
-                    isActive ? "bg-white/15 text-white" : isDone ? "text-white/50" : "text-white/30",
+                    disabled
+                      ? "text-white/25 line-through decoration-white/20"
+                      : isActive ? "bg-white/15 text-white" : isDone ? "text-white/50" : "text-white/30",
                   ].join(" ")}
                 >
-                  {isDone && <span className="w-3 h-3 inline-flex items-center justify-center">✓</span>}
+                  {isDone && !disabled && <span className="w-3 h-3 inline-flex items-center justify-center">✓</span>}
                   <span className="hidden sm:inline">{g.phase.label}</span>
                 </span>
               );
@@ -103,30 +107,35 @@ export function PhaseLayout({
             <div className="flex items-center gap-4">
               {groups.map((g) => {
                 const isActive = g.phase.id === step?.phase;
-                const isDone = g.steps.every((s) => stepIndexById(s.id) < current);
+                const isDone = g.steps.length > 0 && g.steps.every((s) => stepIndexById(s.id) < current);
+                const disabled = !g.phase.ready;
                 const barColor = PHASE_ACCENT[g.phase.id].bar;
                 return (
                   <div key={g.phase.id} className="flex items-center gap-2 flex-1 min-w-0">
                     <span className={`text-[11px] font-semibold whitespace-nowrap hidden sm:inline ${
-                      isActive ? "text-white/80" : isDone ? "text-white/40" : "text-white/20"
+                      disabled ? "text-white/15" : isActive ? "text-white/80" : isDone ? "text-white/40" : "text-white/20"
                     }`}>
                       {g.phase.label}
                     </span>
                     <div className="flex gap-1 flex-1">
-                      {g.steps.map((s) => {
-                        const idx = stepIndexById(s.id);
-                        const done = idx < current;
-                        const cur = idx === current;
-                        return (
-                          <div
-                            key={s.id}
-                            title={s.label}
-                            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                              cur ? barColor : done ? `${barColor} opacity-50` : "bg-white/10"
-                            }`}
-                          />
-                        );
-                      })}
+                      {g.steps.length === 0 ? (
+                        <div className="h-1 flex-1 rounded-full bg-white/[0.04]" title="Deshabilitado por ahora" />
+                      ) : (
+                        g.steps.map((s) => {
+                          const idx = stepIndexById(s.id);
+                          const done = idx < current;
+                          const cur = idx === current;
+                          return (
+                            <div
+                              key={s.id}
+                              title={s.label}
+                              className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                                cur ? barColor : done ? `${barColor} opacity-50` : "bg-white/10"
+                              }`}
+                            />
+                          );
+                        })
+                      )}
                     </div>
                     {g.phase.id !== groups[groups.length - 1].phase.id && (
                       <span className="text-white/15 text-xs hidden sm:inline">›</span>

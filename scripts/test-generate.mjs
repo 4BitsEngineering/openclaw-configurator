@@ -212,6 +212,7 @@ test('generateInstancePackage: emite los 3 artefactos del contrato', () => {
   assert.ok(pkg['base/openclaw.json'], 'base');
   assert.ok(pkg['overlay/overlay-config.json'], 'overlay');
   assert.ok(pkg['instance-manifest.json'], 'manifest');
+  assert.ok(pkg['install.sh'] && pkg['install.sh'].includes('#!/usr/bin/env bash'), 'install.sh arrancable');
   // Ninguna API key con forma real fuera de los example del manifiesto.
   const base = pkg['base/openclaw.json'];
   assert.equal(/sk-ant-api03-[A-Za-z0-9]{20,}|xoxb-[0-9]{8,}/.test(base), false, 'base sin secretos crudos');
