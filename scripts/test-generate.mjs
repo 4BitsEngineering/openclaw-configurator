@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateOpenclawJson, generateInstallScript, generateOverlayConfig, generateEnvFile, generateInstanceManifest, generateInstancePackage } from '../lib/generators.ts';
+import { generateOpenclawJson, generateInstallScript, generateOverlayConfig, generateEnvFile, generateInstanceManifest, generateInstancePackage, generateDispatchConfig } from '../lib/generators.ts';
 import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -260,4 +260,33 @@ test('bundle E2E: openclaw.json completo escribible junto al install.sh', () => 
   const oc = JSON.parse(readFileSync(join(dir, 'openclaw.json'), 'utf8'));
   assert.ok(oc.models && oc.models.providers, 'openclaw.json del bundle tiene models.providers');
   assert.ok(oc.plugins && oc.plugins.entries, 'tiene plugins.entries');
+});
+
+// ── dispatch.config.json generado por-cliente ──────────────────────────────
+const teamDispatch = {
+  sector: 'general', prefix: 'office', overlayName: 'Demo MiniMax',
+  agents: [
+    { agent: 'executive', slug: 'executive', displayName: 'Elena', icon: '📋', enabled: true },
+    { agent: 'community', slug: 'community', displayName: 'Bruno', icon: '✨', enabled: true },
+    { agent: 'legal-light', slug: 'paralegal', displayName: 'Lex', icon: '⚖️', enabled: false },
+  ],
+};
+
+test('dispatch.config: roles = agentes habilitados; agentId = prefix-slug-v1; blurb del catálogo', () => {
+  const d = JSON.parse(generateDispatchConfig({ ...baseConfig, clawcrewTeam: teamDispatch }));
+  assert.equal(d.roles.length, 2, 'solo los enabled (legal-light off fuera)');
+  const exec = d.roles.find(r => r.id === 'executive');
+  assert.equal(exec.agentId, 'office-executive-v1', 'agentId = prefix-slug-v1 (idPattern uniforme)');
+  assert.equal(exec.label, 'Elena', 'label = displayName del wizard');
+  assert.ok(exec.blurb.length > 0, 'blurb tomado del catálogo clawcrew');
+  assert.ok(!d.roles.some(r => r.id === 'legal-light'), 'el deshabilitado no aparece');
+  assert.deepEqual(d.namePool.executive, ['Elena'], 'namePool por rol');
+  assert.equal(d.firmName, 'Demo MiniMax', 'firmName = overlayName');
+});
+
+test('package incluye overlay/dispatch.config.json', () => {
+  const pkg = generateInstancePackage({ ...baseConfig, clawcrewTeam: teamDispatch });
+  assert.ok(pkg['overlay/dispatch.config.json'], 'dispatch.config.json en el paquete');
+  const d = JSON.parse(pkg['overlay/dispatch.config.json']);
+  assert.equal(d.roles.length, 2, 'roles en el paquete');
 });

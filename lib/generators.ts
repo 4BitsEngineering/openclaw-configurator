@@ -4,6 +4,14 @@ import { randomBytes } from "crypto";
 import { deriveEnvSpec } from "./contract/env-spec";
 import { SUPPORTED_INTEGRATIONS } from "./integrations-meta";
 import providersCatalog from "./providers-catalog.json";
+import clawcrewCatalog from "./clawcrew-catalog.json";
+
+// Catálogo clawcrew indexado por id de rol (planner, executive, …) — para
+// derivar las role cards del concierge (label/blurb) en generateDispatchConfig.
+type ClawcrewCatalogEntry = { id: string; description?: string; defaults?: { displayName?: string; shortName?: string } };
+const CLAWCREW_BY_ID: Record<string, ClawcrewCatalogEntry> = Object.fromEntries(
+  ((clawcrewCatalog as { agents?: ClawcrewCatalogEntry[] }).agents || []).map((a) => [a.id, a]),
+);
 
 // Catálogo de providers indexado por id (minimax, deepseek, groq, …).
 const PROVIDER_CATALOG: Record<string, { label?: string; envVars?: string[]; baseUrl?: string | null; api?: string | null; models?: Array<{ id: string; name?: string }> }> =
@@ -500,6 +508,41 @@ export function generateEnvExample(config: WizardConfig): string {
 // install.sh es el instalador "bundle" que copia el openclaw.json base, configura el
 // overlay con overlay-config.json, pide las ENV del manifiesto en destino y arranca
 // gateway + bridge + UI. Es lo que consume/ejecuta ai-office-install.
+// dispatch.config.json — concierge del overlay: roles mapeados a los agentes
+// ELEGIDOS. Lo consume el bridge: routes/dispatch.js (GET /api/dispatch/config →
+// UI del concierge) y long-task.js#buildRoleAgentMap (dispatch por rol/nombre).
+// Antes el bundle traía el de la instancia viva (roles con agentIds inexistentes);
+// ahora se genera por-cliente. El runtime agentId = `${prefix}-${slug}-v1`
+// (idPattern uniforme en clawcrew, verificado).
+export function generateDispatchConfig(config: WizardConfig): string {
+  const team = config.clawcrewTeam;
+  const prefix = team?.prefix || "office";
+  const enabled = (team?.agents || []).filter((a) => a.enabled !== false);
+  const roles = enabled.map((a) => {
+    const cat = CLAWCREW_BY_ID[a.agent];
+    return {
+      id: a.agent,
+      label: a.displayName || cat?.defaults?.displayName || a.agent,
+      blurb: cat?.description || "",
+      agentId: `${prefix}-${a.slug}-v1`,
+    };
+  });
+  const namePool: Record<string, string[]> = {};
+  for (const a of enabled) namePool[a.agent] = [a.displayName || a.shortName || a.agent];
+  const dispatch = {
+    brand: "AI Office",
+    firmName: team?.overlayName || "AI Office",
+    roles,
+    infrastructure: [] as unknown[],
+    namePool,
+    composer: { suggestions: [] as unknown[] },
+    sampleTasks: {} as Record<string, unknown[]>,
+    sampleSteps: {} as Record<string, unknown[]>,
+    recurring: [] as string[],
+  };
+  return JSON.stringify(dispatch, null, 2) + "\n";
+}
+
 export function generateInstancePackage(config: WizardConfig): InstancePackage {
   return {
     [PACKAGE_PATHS.base]: generateOpenclawJson(config),
@@ -507,6 +550,7 @@ export function generateInstancePackage(config: WizardConfig): InstancePackage {
     [PACKAGE_PATHS.manifest]: generateInstanceManifest(config),
     [PACKAGE_PATHS.install]: generateInstallScript(),
     [PACKAGE_PATHS.env]: generateEnvExample(config),
+    [PACKAGE_PATHS.dispatch]: generateDispatchConfig(config),
   };
 }
 

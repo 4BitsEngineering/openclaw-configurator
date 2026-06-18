@@ -105,4 +105,5 @@ export const PACKAGE_PATHS = {
   manifest: "instance-manifest.json",
   install: "install.sh",
   env: ".env.example",
+  dispatch: "overlay/dispatch.config.json",
 } as const;
