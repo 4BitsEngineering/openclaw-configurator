@@ -153,6 +153,29 @@ export function generateOpenclawJson(config: WizardConfig): string {
     }
   }
 
+  // Integraciones: la plantilla (copia de la instancia viva) trae n8n/brave/
+  // elevenlabs ACTIVAS con SecretRef `service:*` (exec via bridge_tokens). En una
+  // instancia nueva esos secretos no existen y el secret-reloader del gateway los
+  // resuelve SIEMPRE (aunque el plugin esté disabled) → aborta el arranque
+  // (SECRETS_RELOADER_DEGRADED). Reflejamos la SELECCIÓN del wizard: lo no elegido
+  // se desactiva Y se le quita el SecretRef para que no haya nada que resolver.
+  const selectedIntegrations = config.integrations || {};
+  if (tpl.plugins?.entries?.n8n) {
+    const on = !!selectedIntegrations.n8n?.enabled;
+    tpl.plugins.entries.n8n.enabled = on;
+    if (!on && tpl.plugins.entries.n8n.config) delete tpl.plugins.entries.n8n.config.apiKey;
+  }
+  if (tpl.plugins?.entries?.brave) {
+    const on = !!selectedIntegrations.brave?.enabled;
+    tpl.plugins.entries.brave.enabled = on;
+    if (!on) delete tpl.plugins.entries.brave.config;
+  }
+  // TTS: el provider por defecto de la plantilla es minimax; el provider elevenlabs
+  // (SecretRef service:elevenlabs) solo se mantiene si se selecciona ElevenLabs.
+  if (tpl.messages?.tts?.providers?.elevenlabs && !selectedIntegrations.elevenlabs?.enabled) {
+    delete tpl.messages.tts.providers.elevenlabs;
+  }
+
   return JSON.stringify(tpl, null, 2) + "\n";
 }
 

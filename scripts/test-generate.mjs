@@ -33,11 +33,11 @@ test('el provider/modelo elegido entra en models.providers', () => {
 });
 
 test('no se filtran secretos crudos al openclaw.json generado', () => {
-  const out = generateOpenclawJson(baseConfig);
+  const out = generateOpenclawJson({ ...baseConfig, integrations: { brave: { enabled: true } } });
   assert.equal(/BSAfi|eyJ[A-Za-z0-9_-]{10,}/.test(out), false, 'no debe haber keys/JWT crudos');
-  // brave: la key NO va en el config (ni cruda ni placeholder) — se resuelve por
-  // SecretRef service:brave desde el store cifrado del bridge (igual que ai-office).
-  assert.ok(out.includes('service:brave'), 'brave por SecretRef service:brave');
+  // brave SELECCIONADA: la key NO va en el config (ni cruda ni placeholder) — se
+  // resuelve por SecretRef service:brave desde el store cifrado del bridge.
+  assert.ok(out.includes('service:brave'), 'brave por SecretRef service:brave (cuando se selecciona)');
 });
 test('ollama conserva sus modelos del template y añade el elegido', () => {
   const out = JSON.parse(generateOpenclawJson(baseConfig));
@@ -165,11 +165,22 @@ test('manifest.env: las integraciones (n8n/brave/elevenlabs) NO van por .env (co
   assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack no se declara vía integración');
 });
 
-test('openclaw.json: n8n usa SecretRef service:n8n (igual que brave), no key/ENV', () => {
-  const oc = JSON.parse(generateOpenclawJson(baseConfig));
+test('openclaw.json: n8n SELECCIONADO usa SecretRef service:n8n (no key/ENV)', () => {
+  const oc = JSON.parse(generateOpenclawJson({ ...baseConfig, integrations: { n8n: { enabled: true } } }));
+  assert.equal(oc.plugins?.entries?.n8n?.enabled, true, 'n8n activado al seleccionarlo');
   const apiKey = oc.plugins?.entries?.n8n?.config?.apiKey;
   assert.deepEqual(apiKey, { source: 'exec', provider: 'bridge_tokens', id: 'service:n8n' }, 'n8n apiKey = SecretRef service:n8n');
   assert.equal(JSON.stringify(oc).includes('${N8N_'), false, 'sin placeholders ${N8N_*}');
+});
+
+test('openclaw.json: integraciones NO seleccionadas se desactivan y SIN service:* (no rompen el boot)', () => {
+  const oc = JSON.parse(generateOpenclawJson(baseConfig)); // baseConfig no trae integrations
+  assert.equal(oc.plugins?.entries?.n8n?.enabled, false, 'n8n off por defecto');
+  assert.equal(oc.plugins?.entries?.brave?.enabled, false, 'brave off por defecto');
+  assert.equal(oc.plugins?.entries?.n8n?.config?.apiKey, undefined, 'n8n sin SecretRef');
+  assert.equal(oc.plugins?.entries?.brave?.config, undefined, 'brave sin config/SecretRef');
+  assert.equal(oc.messages?.tts?.providers?.elevenlabs, undefined, 'elevenlabs TTS fuera');
+  assert.equal(/service:(n8n|brave|elevenlabs)/.test(JSON.stringify(oc)), false, 'ningún service:* sin seleccionar');
 });
 
 test('canales: los seleccionados se activan en el openclaw.json (presencia = enabled)', () => {
@@ -210,8 +221,9 @@ test('manifest.env: brave/elevenlabs (consola, cifradas) y google workspace (OAu
   assert.equal(keys.some(k => /GOOGLE|GMAIL|OAUTH/i.test(k)), false, 'google workspace por OAuth: sin ENV');
 });
 
-test('openclaw.json: brave usa SecretRef service:brave (igual que ai-office, no ${BRAVE_API_KEY})', () => {
-  const oc = JSON.parse(generateOpenclawJson(baseConfig));
+test('openclaw.json: brave SELECCIONADO usa SecretRef service:brave (no ${BRAVE_API_KEY})', () => {
+  const oc = JSON.parse(generateOpenclawJson({ ...baseConfig, integrations: { brave: { enabled: true } } }));
+  assert.equal(oc.plugins?.entries?.brave?.enabled, true, 'brave activado al seleccionarlo');
   const apiKey = oc.plugins?.entries?.brave?.config?.webSearch?.apiKey;
   assert.deepEqual(apiKey, { source: 'exec', provider: 'bridge_tokens', id: 'service:brave' }, 'brave apiKey = SecretRef service:brave');
   assert.equal(JSON.stringify(oc).includes('${BRAVE_API_KEY}'), false, 'sin placeholder ${BRAVE_API_KEY}');
