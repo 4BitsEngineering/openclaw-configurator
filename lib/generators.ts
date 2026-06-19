@@ -168,19 +168,28 @@ export function generateOpenclawJson(config: WizardConfig): string {
   // (SECRETS_RELOADER_DEGRADED). Reflejamos la SELECCIÓN del wizard: lo no elegido
   // se desactiva Y se le quita el SecretRef para que no haya nada que resolver.
   const selectedIntegrations = config.integrations || {};
+  // Integración elegida = PENDIENTE hasta que la key se guarde en /integrations.
+  // Se genera con enabled:false aunque se seleccione: el secret-reloader solo
+  // resuelve providers HABILITADOS, así que un plugin disabled con su SecretRef
+  // NO aborta el boot. La tarjeta de /integrations lo activa (enabled:true) al
+  // guardar la key (bridge: service-keys → openclaw-config-sync, Capa B). No
+  // seleccionado → además quitamos su SecretRef/config (sin refs huérfanos).
   if (tpl.plugins?.entries?.n8n) {
-    const on = !!selectedIntegrations.n8n?.enabled;
-    tpl.plugins.entries.n8n.enabled = on;
-    if (!on && tpl.plugins.entries.n8n.config) delete tpl.plugins.entries.n8n.config.apiKey;
+    const selected = !!selectedIntegrations.n8n?.enabled;
+    tpl.plugins.entries.n8n.enabled = false;
+    if (!selected && tpl.plugins.entries.n8n.config) delete tpl.plugins.entries.n8n.config.apiKey;
   }
   if (tpl.plugins?.entries?.brave) {
-    const on = !!selectedIntegrations.brave?.enabled;
-    tpl.plugins.entries.brave.enabled = on;
-    if (!on) delete tpl.plugins.entries.brave.config;
+    const selected = !!selectedIntegrations.brave?.enabled;
+    tpl.plugins.entries.brave.enabled = false;
+    if (!selected) delete tpl.plugins.entries.brave.config;
   }
-  // TTS: el provider por defecto de la plantilla es minimax; el provider elevenlabs
-  // (SecretRef service:elevenlabs) solo se mantiene si se selecciona ElevenLabs.
-  if (tpl.messages?.tts?.providers?.elevenlabs && !selectedIntegrations.elevenlabs?.enabled) {
+  // TTS elevenlabs: el bloque `providers` no tiene gate `enabled`, así que su mera
+  // presencia hace que el reloader intente resolver service:elevenlabs y aborte si
+  // falta la key. Se deja SIEMPRE fuera del config generado (elegido o no); la
+  // tarjeta de /integrations lo re-inyecta al guardar la key (Capa B). El provider
+  // TTS activo por defecto sigue siendo minimax.
+  if (tpl.messages?.tts?.providers?.elevenlabs) {
     delete tpl.messages.tts.providers.elevenlabs;
   }
 

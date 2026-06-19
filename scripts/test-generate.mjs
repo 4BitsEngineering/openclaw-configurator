@@ -38,6 +38,8 @@ test('no se filtran secretos crudos al openclaw.json generado', () => {
   // brave SELECCIONADA: la key NO va en el config (ni cruda ni placeholder) — se
   // resuelve por SecretRef service:brave desde el store cifrado del bridge.
   assert.ok(out.includes('service:brave'), 'brave por SecretRef service:brave (cuando se selecciona)');
+  // ...pero PENDIENTE (enabled:false) para no abortar el boot sin key (Capa A).
+  assert.equal(JSON.parse(out).plugins?.entries?.brave?.enabled, false, 'brave pendiente (off) al seleccionarlo');
 });
 test('ollama conserva sus modelos del template y añade el elegido', () => {
   const out = JSON.parse(generateOpenclawJson(baseConfig));
@@ -165,9 +167,12 @@ test('manifest.env: las integraciones (n8n/brave/elevenlabs) NO van por .env (co
   assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack no se declara vía integración');
 });
 
-test('openclaw.json: n8n SELECCIONADO usa SecretRef service:n8n (no key/ENV)', () => {
+test('openclaw.json: n8n SELECCIONADO queda PENDIENTE (enabled:false) con SecretRef service:n8n', () => {
   const oc = JSON.parse(generateOpenclawJson({ ...baseConfig, integrations: { n8n: { enabled: true } } }));
-  assert.equal(oc.plugins?.entries?.n8n?.enabled, true, 'n8n activado al seleccionarlo');
+  // Pendiente hasta meter la key en /integrations: enabled:false (el reloader solo
+  // resuelve providers HABILITADOS → no aborta el boot). La tarjeta lo activa al
+  // guardar la key. El SecretRef ya queda cableado para que se resuelva entonces.
+  assert.equal(oc.plugins?.entries?.n8n?.enabled, false, 'n8n pendiente (off) al seleccionarlo');
   const apiKey = oc.plugins?.entries?.n8n?.config?.apiKey;
   assert.deepEqual(apiKey, { source: 'exec', provider: 'bridge_tokens', id: 'service:n8n' }, 'n8n apiKey = SecretRef service:n8n');
   assert.equal(JSON.stringify(oc).includes('${N8N_'), false, 'sin placeholders ${N8N_*}');
@@ -181,6 +186,24 @@ test('openclaw.json: integraciones NO seleccionadas se desactivan y SIN service:
   assert.equal(oc.plugins?.entries?.brave?.config, undefined, 'brave sin config/SecretRef');
   assert.equal(oc.messages?.tts?.providers?.elevenlabs, undefined, 'elevenlabs TTS fuera');
   assert.equal(/service:(n8n|brave|elevenlabs)/.test(JSON.stringify(oc)), false, 'ningún service:* sin seleccionar');
+});
+
+test('openclaw.json: integraciones SELECCIONADAS son boot-safe (pendientes, no abortan)', () => {
+  // El reloader solo resuelve providers HABILITADOS; con plugins disabled su
+  // SecretRef no se resuelve al boot → no aborta. elevenlabs (TTS, sin gate
+  // enabled) se deja fuera hasta que la tarjeta lo re-inyecte con la key.
+  const oc = JSON.parse(generateOpenclawJson({
+    ...baseConfig,
+    integrations: { n8n: { enabled: true }, brave: { enabled: true }, elevenlabs: { enabled: true } },
+  }));
+  assert.equal(oc.plugins?.entries?.n8n?.enabled, false, 'n8n elegido pero pendiente (off)');
+  assert.equal(oc.plugins?.entries?.brave?.enabled, false, 'brave elegido pero pendiente (off)');
+  assert.equal(oc.messages?.tts?.providers?.elevenlabs, undefined, 'elevenlabs TTS fuera del config generado');
+  // Ningún provider HABILITADO puede arrastrar un SecretRef no resoluble al boot.
+  const enabledHasRef =
+    (oc.plugins?.entries?.n8n?.enabled && JSON.stringify(oc.plugins.entries.n8n).includes('service:')) ||
+    (oc.plugins?.entries?.brave?.enabled && JSON.stringify(oc.plugins.entries.brave).includes('service:'));
+  assert.equal(!!enabledHasRef, false, 'ningún plugin habilitado con SecretRef sin resolver al boot');
 });
 
 test('canales: los seleccionados se activan en el openclaw.json (presencia = enabled)', () => {
@@ -223,7 +246,8 @@ test('manifest.env: brave/elevenlabs (consola, cifradas) y google workspace (OAu
 
 test('openclaw.json: brave SELECCIONADO usa SecretRef service:brave (no ${BRAVE_API_KEY})', () => {
   const oc = JSON.parse(generateOpenclawJson({ ...baseConfig, integrations: { brave: { enabled: true } } }));
-  assert.equal(oc.plugins?.entries?.brave?.enabled, true, 'brave activado al seleccionarlo');
+  // Pendiente (off) hasta meter la key en /integrations; la tarjeta lo activa.
+  assert.equal(oc.plugins?.entries?.brave?.enabled, false, 'brave pendiente (off) al seleccionarlo');
   const apiKey = oc.plugins?.entries?.brave?.config?.webSearch?.apiKey;
   assert.deepEqual(apiKey, { source: 'exec', provider: 'bridge_tokens', id: 'service:brave' }, 'brave apiKey = SecretRef service:brave');
   assert.equal(JSON.stringify(oc).includes('${BRAVE_API_KEY}'), false, 'sin placeholder ${BRAVE_API_KEY}');
