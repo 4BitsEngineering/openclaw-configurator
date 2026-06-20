@@ -3,21 +3,19 @@ import crypto from "node:crypto";
 import { generateInstancePackage } from "@/lib/generators";
 import { PACKAGE_PATHS } from "@/lib/contract/types";
 import type { WizardConfig } from "@/lib/wizard-context";
-import { billingMode } from "@/lib/billing";
+import { startCheckout } from "@/lib/payments";
 
 // POST /api/checkout — alta self-serve "de pago".
 //
-// MODO MOCK (BILLING_MOCK=1): simula el cobro. Genera el paquete del wizard y
-// registra la firma en clawhub con los seats elegidos (vía OPERATOR_API_KEY,
-// server-side), devolviendo el pairing code + el enlace del instalador — igual
-// que un pago real, pero sin Stripe. Sirve para probar el flujo completo.
+// El cobro se decide en lib/payments.ts (startCheckout):
+//   - mock:   acepta el pago SIEMPRE → aquí registramos la firma con los seats y
+//             devolvemos código + instalador (igual que un alta real).
+//   - stripe: (TODO) devolvería { checkout_url } para ir a Stripe; el alta la
+//             confirmaría el webhook /api/stripe/webhook → clawhub activate.
+//   - disabled: 503 (el front ya lo evita mostrando el pago deshabilitado).
 //
-// MODO STRIPE: aún no implementado (Fases 3-5 del diseño) → 501.
-// MODO DISABLED: 503 (el front ya lo evita mostrando el pago deshabilitado).
-//
-// Cuando se enchufe Stripe, este endpoint creará la Checkout Session (firma en
-// pending_payment) y el webhook activará + emitirá el código. La forma del
-// resultado mock imita la del flujo real para que el front no cambie.
+// Forma del resultado idéntica al alta real → el front no cambia al enchufar
+// Stripe.
 
 export const dynamic = "force-dynamic";
 
@@ -41,16 +39,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "cross_origin_forbidden" }, { status: 403 });
   }
 
-  const mode = billingMode();
-  if (mode === "disabled") {
-    return NextResponse.json({ error: "billing_disabled" }, { status: 503 });
-  }
-  if (mode === "stripe") {
-    // TODO Fases 3-5: crear Stripe Checkout Session aquí.
-    return NextResponse.json({ error: "stripe_not_implemented" }, { status: 501 });
-  }
-
-  // ── MODO MOCK ───────────────────────────────────────────────────────────────
   const clawhubUrl = process.env.CLAWHUB_URL;
   const operatorKey = process.env.OPERATOR_API_KEY;
   if (!clawhubUrl || !operatorKey) {
@@ -80,10 +68,24 @@ export async function POST(req: Request) {
     plan = body.firm.plan as Plan;
   }
 
-  // Seats comprados (precio por PC). Acotado a [1, 100] para el mock.
+  // Seats comprados (precio por PC). Acotado a [1, 100].
   const seats = Math.max(1, Math.min(100, Math.floor(Number(body.seats) || 1)));
+  const instanceName = body.config.clawcrewTeam?.overlayName || "Instancia";
 
-  // Generar el paquete (igual que el paso de Revisión).
+  // ── Cobro (el único punto mockeado) ─────────────────────────────────────────
+  const outcome = await startCheckout({ plan, seats, firmName, instanceName });
+
+  if (outcome.kind === "error") {
+    const status = outcome.reason === "billing_disabled" ? 503 : 501;
+    return NextResponse.json({ error: outcome.reason }, { status });
+  }
+
+  if (outcome.kind === "redirect") {
+    // Stripe real (futuro): el cliente va a Checkout; el alta la cierra el webhook.
+    return NextResponse.json({ checkout_url: outcome.url });
+  }
+
+  // outcome.kind === "paid" (mock): registramos la firma ahora.
   const cfg: WizardConfig = {
     ...body.config,
     registration: { plan, features: body.features ?? body.config.registration?.features ?? [] },
@@ -104,18 +106,15 @@ export async function POST(req: Request) {
     isBinary: false,
   }));
 
-  const instanceName = body.config.clawcrewTeam?.overlayName || "Instancia";
-
   let clawhubRes: Response;
   try {
     clawhubRes = await fetch(`${clawhubUrl.replace(/\/$/, "")}/api/v0/register`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${operatorKey}` },
       body: JSON.stringify({
-        // seatsPurchased = seats "pagados" (mock). overlayId fijo a ai-office.
         firm: { name: firmName, plan, seatsPurchased: seats, overlayId: "ai-office" },
-        label: `Checkout (mock) — ${instanceName}`,
-        description: `Alta self-serve simulada (${seats} PC/s) para "${instanceName}".`,
+        label: `Checkout (${outcome.provider}) — ${instanceName}`,
+        description: `Alta self-serve (${outcome.provider}, ${seats} PC/s) para "${instanceName}". ref=${outcome.reference}`,
         files: baselineFiles,
       }),
     });
@@ -136,5 +135,5 @@ export async function POST(req: Request) {
     code ? `&pairing=${encodeURIComponent(code)}` : ""
   }`;
 
-  return NextResponse.json({ ...data, mock: true, seats, installer_url: installerUrl });
+  return NextResponse.json({ ...data, paid: true, provider: outcome.provider, seats, installer_url: installerUrl });
 }
