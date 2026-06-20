@@ -151,7 +151,8 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         // Allowlist explícito — nunca reenviamos el body.firm crudo a clawhub.
-        firm: { name: firmName, plan },
+        // overlayId: producto del que la firma recibe el stack (bootstrapper).
+        firm: { name: firmName, plan, overlayId: "ai-office" },
         label: `Configurator — ${instanceName}`,
         description: `Paquete generado por el configurator para "${instanceName}".`,
         files: baselineFiles,
