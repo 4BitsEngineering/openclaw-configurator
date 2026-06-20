@@ -217,12 +217,16 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Núcleo de AI Office — roles del catálogo clawcrew que TODA instancia incluye
-// siempre: el Planificador (gestiona los proyectos por fases) y el Asistente
-// Personal (generalista, responde en los canales). Son roles REUTILIZABLES de
-// clawcrew (no hardcodeados): planner → {prefix}-planner-v1, personal-assistant
-// (slug "pa") → {prefix}-pa-v1, igual que el overlay real office-*.
+// siempre: el Planificador (gestiona los proyectos por fases), el Asistente
+// Personal (generalista, responde en los canales) y el Founder (mantiene vivo el
+// contexto del negocio —misión, voz, audiencia— en los docs enterprise/ que el
+// resto del equipo lee al arrancar; sin él los agentes suenan genéricos). Son
+// roles REUTILIZABLES de clawcrew (no hardcodeados): planner → {prefix}-planner-v1,
+// personal-assistant (slug "pa") → {prefix}-pa-v1, founder → {prefix}-founder-v1,
+// igual que el overlay real office-*. Los tres son infraestructura: van ocultos
+// del roster visible en la web (isHiddenAgent) pero SIEMPRE presentes.
 // ──────────────────────────────────────────────────────────────────────────────
-export const NUCLEO_ROLE_IDS = ["planner", "personal-assistant"] as const;
+export const NUCLEO_ROLE_IDS = ["planner", "personal-assistant", "founder"] as const;
 export const isNucleoAgent = (roleId: string) =>
   (NUCLEO_ROLE_IDS as readonly string[]).includes(roleId);
 
