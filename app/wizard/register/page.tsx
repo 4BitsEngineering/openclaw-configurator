@@ -2,7 +2,7 @@
 
 import { PhaseLayout } from "@/components/wizard/phase-layout";
 import { useWizard } from "@/lib/wizard-context";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function slugify(s: string): string {
   return (s || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "instance";
@@ -46,6 +46,24 @@ export default function RegisterStep() {
   const [err, setErr] = useState("");
   const [result, setResult] = useState<RegisterResult | null>(null);
   const [copied, setCopied] = useState(false);
+  // null = consultando; "disabled" = sin cobro; "mock" = pago simulado; "stripe" = real.
+  const [billingMode, setBillingMode] = useState<"stripe" | "mock" | "disabled" | null>(null);
+  const [seats, setSeats] = useState(1);
+  const [paying, setPaying] = useState(false);
+
+  // "disabled-si-no-configurado": el server dice el modo de cobro. Si no hay
+  // ninguno, el pago se muestra deshabilitado y el wizard sigue con el gate de
+  // operador (contraseña). Nunca bloquea ni rompe el paso.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/billing/status")
+      .then((r) => r.json())
+      .then((j) => alive && setBillingMode(j?.mode === "stripe" || j?.mode === "mock" ? j.mode : "disabled"))
+      .catch(() => alive && setBillingMode("disabled"));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const toggleFeature = (id: string) =>
     setFeatures((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
@@ -79,6 +97,35 @@ export default function RegisterStep() {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Pago SIMULADO (modo mock): mismo resultado que un alta real (código +
+  // instalador), sin Stripe. Cuando se enchufe Stripe, este botón redirigirá a
+  // la Checkout Session real en su lugar.
+  const payMock = async () => {
+    if (!firmName.trim()) {
+      setErr("Indica el nombre de la firma / cliente.");
+      return;
+    }
+    setPaying(true);
+    setErr("");
+    try {
+      const r = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ config, firm: { name: firmName.trim(), plan }, seats, features }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        const detail = j?.clawhub?.error || j?.detail || j?.error || `HTTP ${r.status}`;
+        throw new Error(detail);
+      }
+      setResult(j as RegisterResult);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -164,7 +211,78 @@ export default function RegisterStep() {
               </div>
             </div>
 
-            {/* Contraseña de acceso (gate del endpoint en deploys públicos) */}
+            {/* Pago online. mock = pago SIMULADO (demo, no cobra); disabled =
+                no configurado → se muestra deshabilitado y el alta sigue por el
+                gate de operador de abajo. Cuando STRIPE_* esté en el entorno, el
+                modo será "stripe" y este bloque redirigirá a Checkout (Fase 3). */}
+            {billingMode === "mock" && (
+              <div className="rounded-xl border border-emerald-300/60 bg-emerald-50/50 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">💳 Pago online</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Modo demo: no se cobra. Crea la firma con los PCs elegidos.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-800">
+                    Mock
+                  </span>
+                </div>
+                <div className="mt-3 flex items-end gap-3">
+                  <div className="w-28">
+                    <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      PCs (seats)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={seats}
+                      onChange={(e) =>
+                        setSeats(Math.max(1, Math.min(100, Math.floor(Number(e.target.value) || 1))))
+                      }
+                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-brand/50"
+                    />
+                  </div>
+                  <button
+                    onClick={payMock}
+                    disabled={paying}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
+                  >
+                    {paying ? "Procesando pago…" : "Pagar (simulado) y obtener instalador"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {billingMode === "disabled" && (
+              <div
+                aria-disabled="true"
+                className="rounded-xl border border-dashed border-border bg-muted/30 p-4 opacity-70"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">💳 Pago online</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Pago con tarjeta para alta automática. Próximamente.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Disabled
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="mt-3 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-muted px-5 py-2.5 text-sm font-semibold text-muted-foreground"
+                >
+                  Pagar y obtener instalador
+                </button>
+              </div>
+            )}
+
+            {/* Vía de operador (gate por contraseña) — se mantiene SIEMPRE en
+                paralelo (ventas manuales/enterprise), decisión de producto. */}
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Contraseña de acceso
