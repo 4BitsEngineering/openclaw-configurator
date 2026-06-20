@@ -132,6 +132,45 @@ el entorno del configurador. Nada peta si faltan.
   nº de seats; el server mapea a price.
 - `activate` en clawhub gateado por operator key (M2M), como `register`.
 
+## 7-bis. Estado de implementación (2026-06-20)
+
+**HECHO y desplegado (configurador, modo mock):**
+- `lib/billing.ts` — `billingMode()`: stripe | mock | disabled.
+- `lib/payments.ts` — `startCheckout()`: **el ÚNICO punto de cobro mockeado**.
+  mock → `{kind:"paid"}` siempre; stripe → TODO `{kind:"redirect", url}`; disabled → error.
+- `app/api/billing/status` — expone el modo.
+- `app/api/checkout` — usa `startCheckout`; en `paid` registra la firma con seats.
+- `app/api/stripe/webhook` — MONTADO, no-op hasta Stripe real (204 / 501).
+- `app/wizard/register` — tarjeta pago mock (selector seats) / disabled + vía operador.
+- Prod: `BILLING_MOCK=1`, alias `openclaw-configurator.vercel.app`.
+
+**PENDIENTE para Stripe real (gateado por migración en BD de prod → necesita JJ):**
+
+*Fase 1 — clawhub (copiable):*
+1. `prisma/schema.prisma` → `model Firm`, añadir:
+   ```prisma
+   stripeCustomerId     String?  @unique
+   stripeSubscriptionId String?  @unique
+   billingStatus        String?  // pending_payment | paid | past_due | canceled
+   paidSeats            Int?
+   ```
+2. Migración: `prisma migrate dev --name stripe_billing` (usa DIRECT_URL) en local,
+   luego `prisma migrate deploy` contra prod. **CRÍTICO: desplegar el schema SIN
+   migrar rompe TODOS los endpoints de firmas** (Prisma selecciona columnas
+   inexistentes) → migrar ANTES de desplegar el código.
+3. Nuevo `POST /api/v0/firms/[id]/activate` (Bearer OPERATOR_API_KEY): set
+   `status:"active"`, `billingStatus:"paid"`, `seatsPurchased`, `stripe*`; emite
+   pairing code si no existe. Idempotente.
+4. `register` admite `firm.billingStatus:"pending_payment"` (firma creada inactiva).
+
+*Fases 3-5 — configurador (solo implementar las ramas "stripe"):*
+5. `lib/payments.ts` rama stripe → crear Checkout Session real (`mode:subscription`,
+   price del plan × quantity=seats, metadata firm_id) → `{kind:"redirect", url}`.
+6. `app/api/stripe/webhook` → verificar firma + idempotencia + llamar a `activate`.
+7. `app/wizard/register` → si `outcome` trae `checkout_url`, redirigir; página de
+   éxito con polling por `session_id`.
+8. `npm i stripe` + secrets `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_*`.
+
 ## 8. Orden de implementación (fases)
 
 1. **Schema + migración** clawhub (`stripe*` en Firm) + endpoint
