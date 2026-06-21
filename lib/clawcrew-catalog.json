@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "agentCount": 23,
+  "agentCount": 20,
   "agents": [
     {
       "id": "analytics-cro",
@@ -170,8 +170,7 @@
       "siblings": {
         "content-strategy": "Para convertir un insight de comunidad en pieza editorial nueva.",
         "copy": "Para nuevo post / reel cuando un patrón comunitario sugiere contenido.",
-        "visual": "Para acompañamiento visual a un post derivado de un insight.",
-        "video": "Para acompañamiento de vídeo a un post derivado de un insight."
+        "visual": "Para acompañamiento visual a un post derivado de un insight."
       },
       "compatibleOverlays": [
         "*"
@@ -212,7 +211,6 @@
       "siblings": {
         "copy": "Para captions, posts, guiones, hashtags — la materialización en palabra del plan editorial.",
         "visual": "Para prompts de imagen, moodboards, paletas, dirección de arte.",
-        "video": "Para storyboards de reels/shorts y prompts de vídeo.",
         "community-engagement": "Para insight de comunidad o sentiment del cliente."
       },
       "compatibleOverlays": [
@@ -255,7 +253,6 @@
       "siblings": {
         "content-strategy": "Para plan editorial, audiencia, ángulo de campaña.",
         "visual": "Para imagen / carrusel maquetado que acompañe el copy.",
-        "video": "Para storyboard / prompt vídeo basado en el guion.",
         "community-engagement": "Para respuesta a comentario/DM concreto (no creación)."
       },
       "compatibleOverlays": [
@@ -334,60 +331,8 @@
       "siblings": {
         "executive": "Cuando el entregable hay que enviarlo por correo o agendar algo, deriva al rol ejecutivo/asistente para el envío (la acción externa la aprueba el cliente).",
         "webops": "Cuando hay que operar un portal con navegador (subir la propuesta, pulsar Submit), deriva al rol de operaciones web.",
-        "engineer": "Cuando el entregable depende de un workflow de automatización (n8n u otro), deriva al rol de ingeniería/automatización.",
-        "pa": "Cuando faltan datos que requieren búsqueda web de apoyo, deriva al rol de asistente personal/research."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": false
-    },
-    {
-      "id": "engineer",
-      "version": "1.0.0",
-      "category": "office",
-      "description": "Ingeniero/a de automatización n8n: diseña workflows en lenguaje natural, los crea inactivos a la espera de aprobación y opera los activos a demanda. Nunca activa, modifica ni elimina en producción sin OK explícito del cliente.",
-      "defaults": {
-        "slug": "engineer",
-        "displayName": "Ingeniero",
-        "shortName": "Ingeniero",
-        "icon": "🛠️",
-        "color": "#3F7E78",
-        "voice": {
-          "kind": "neutral",
-          "elevenlabsId": null
-        },
-        "workingVerb": "montando la automatización"
-      },
-      "tools": [
-        "n8n_health",
-        "n8n_audit_instance",
-        "n8n_list_workflows",
-        "n8n_get_workflow",
-        "n8n_create_workflow",
-        "n8n_update_workflow",
-        "n8n_set_active",
-        "n8n_delete_workflow",
-        "n8n_run_workflow",
-        "n8n_list_executions",
-        "n8n_get_execution",
-        "n8n_deploy_template",
-        "n8n_credential_schema",
-        "web_fetch",
-        "write"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [],
-      "siblings": {
-        "executive": "Redactar el contenido de los emails o gestionar la agenda que el workflow moverá.",
-        "documents": "Crear, editar o rellenar una Google Sheet o un Doc a mano (no como nodo de un workflow), o producir entregables Office/PPT/PDF.",
-        "webops": "Operar un portal o formulario con navegador cuando el flujo lo requiere.",
-        "social": "Redactar el copy de los posts que el workflow publicará.",
-        "seo": "Producir el draft SEO que el workflow publicará.",
-        "sales": "Buscar leads o redactar cold emails más allá del plumbing."
+        "automation": "Cuando el entregable depende de un workflow de automatización (n8n u otro), deriva al rol de ingeniería/automatización.",
+        "personal-assistant": "Cuando faltan datos que requieren búsqueda web de apoyo, deriva al rol de asistente personal/research."
       },
       "compatibleOverlays": [
         "*"
@@ -458,7 +403,7 @@
       "siblings": {
         "executive": "Para email a un cliente, agenda, reuniones o recordatorios.",
         "sales": "Para captación de leads o cold email comercial.",
-        "community": "Para posts o calendario de redes sociales.",
+        "social": "Para posts o calendario de redes sociales.",
         "seo": "Para briefs o artículos de blog.",
         "legal": "Para dudas de contrato o revisión legal."
       },
@@ -466,43 +411,6 @@
         "*"
       ],
       "hasPortrait": false
-    },
-    {
-      "id": "legal-light",
-      "version": "1.1.0",
-      "category": "office",
-      "description": "Asesoría legal-light. Revisa contratos sencillos y aclara dudas legales orientativas. No sustituye a un abogado cualificado.",
-      "defaults": {
-        "slug": "paralegal",
-        "displayName": "Asesor legal",
-        "shortName": "Legal",
-        "icon": "⚖️",
-        "color": "#7A6BAE",
-        "voice": {
-          "kind": "female",
-          "elevenlabsId": null
-        },
-        "workingVerb": "revisando documento"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs"
-      ],
-      "skills": [],
-      "siblings": {
-        "executive": "Para triaje del inbox o gestión de agenda.",
-        "sales": "Para cold email comercial o lead generation.",
-        "social": "Para post social / contenido editorial corto.",
-        "seo": "Para brief o post de blog SEO largo."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
     },
     {
       "id": "legal-suite",
@@ -709,10 +617,10 @@
       "skills": [],
       "siblings": {
         "executive": "Para inbox, agenda, reuniones y recordatorios (asistencia ejecutiva de oficina).",
-        "outbound": "Para cold email comercial / captación de leads.",
-        "community": "Para posts de redes sociales.",
+        "sales": "Para cold email comercial / captación de leads.",
+        "social": "Para posts de redes sociales.",
         "seo-strategy": "Para keyword research / brief SEO.",
-        "legal-light": "Para dudas de contrato / legal."
+        "legal": "Para dudas de contrato / legal."
       },
       "compatibleOverlays": [
         "*"
@@ -837,41 +745,6 @@
       "hasPortrait": true
     },
     {
-      "id": "video-director",
-      "version": "1.1.0",
-      "category": "content",
-      "description": "Realizador de vídeo. Storyboards reels/shorts y prompts para Runway/Sora/Veo/Kling. Define plano, duración, on-screen text. No genera el vídeo final.",
-      "defaults": {
-        "slug": "video",
-        "displayName": "Realizador",
-        "shortName": "Vídeo",
-        "icon": "🎬",
-        "color": "#B85450",
-        "voice": {
-          "kind": "male",
-          "elevenlabsId": null
-        },
-        "workingVerb": "produciendo vídeo"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save"
-      ],
-      "toolGroups": [
-        "group:fs"
-      ],
-      "skills": [],
-      "siblings": {
-        "content-strategy": "Para plan editorial / audiencia / pilares antes de producir.",
-        "copy": "Para guion / caption del reel — yo storyboardeo lo que escribe copy.",
-        "visual": "Para imagen estática / paleta / referencia visual."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
       "id": "visual-director",
       "version": "1.1.0",
       "category": "content",
@@ -898,8 +771,7 @@
       "skills": [],
       "siblings": {
         "content-strategy": "Para plan editorial / audiencia / pilares antes de visualizar.",
-        "copy": "Para texto que acompañe la imagen (caption, headline, CTA).",
-        "video": "Para storyboards de reels/shorts (yo solo dirijo imagen estática)."
+        "copy": "Para texto que acompañe la imagen (caption, headline, CTA)."
       },
       "compatibleOverlays": [
         "*"
