@@ -294,6 +294,23 @@ export function generateOverlayConfig(config: WizardConfig): string {
     return out;
   });
 
+  // Defensa en profundidad: el runtime agentId es `${prefix}-${slug}-v1`, así que
+  // dos agentes con el mismo slug colisionan en el id y configure-overlay.js
+  // (y openclaw) abortan el install en el cliente. Lo detectamos aquí, al generar
+  // el baseline, para que un fallo de catálogo se vea en el configurador y no en
+  // la instalación del cliente. (Bug histórico: content-strategist y
+  // marketing-strategist compartían defaults.slug "strategy".)
+  const slugList = agentsBlock
+    .map((a) => a.slug)
+    .filter((s): s is string => typeof s === "string" && s.length > 0);
+  const dupeSlugs = [...new Set(slugList.filter((s, i) => slugList.indexOf(s) !== i))];
+  if (dupeSlugs.length) {
+    throw new Error(
+      `generateOverlayConfig: slugs de agente duplicados (colisión de runtime id ${team.prefix}-<slug>-v1): ${dupeSlugs.join(", ")}. ` +
+      `Revisa defaults.slug en el catálogo de clawcrew para estos roles.`,
+    );
+  }
+
   const overlayConfig: Record<string, unknown> = {
     "$comment": `overlay-config.json — generado por openclaw-configurator @ ${new Date().toISOString()}`,
     overlay: {

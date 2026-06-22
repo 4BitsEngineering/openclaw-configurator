@@ -183,9 +183,9 @@
       "category": "content",
       "description": "Estratega de contenido editorial. Calendarios, audiencias, tendencias IG/LinkedIn, benchmark, KPIs. No redacta ni diseña — define qué publicar y para quién.",
       "defaults": {
-        "slug": "strategy",
+        "slug": "content",
         "displayName": "Estratega de contenido",
-        "shortName": "Estrategia",
+        "shortName": "Contenido",
         "icon": "🧭",
         "color": "#2C5F8B",
         "voice": {
@@ -462,9 +462,9 @@
       "category": "marketing",
       "description": "Estratega de marketing. Plan trimestral, posicionamiento, GTM, buyer persona, allocation cross-channel, KPIs. No ejecuta.",
       "defaults": {
-        "slug": "strategy",
+        "slug": "marketing",
         "displayName": "Estratega de marketing",
-        "shortName": "Estrategia",
+        "shortName": "Marketing",
         "icon": "🧭",
         "color": "#2E5C7E",
         "voice": {
