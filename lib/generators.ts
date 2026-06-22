@@ -167,22 +167,32 @@ export function generateOpenclawJson(config: WizardConfig): string {
   // resuelve SIEMPRE (aunque el plugin esté disabled) → aborta el arranque
   // (SECRETS_RELOADER_DEGRADED). Reflejamos la SELECCIÓN del wizard: lo no elegido
   // se desactiva Y se le quita el SecretRef para que no haya nada que resolver.
-  const selectedIntegrations = config.integrations || {};
   // Integración elegida = PENDIENTE hasta que la key se guarde en /integrations.
-  // Se genera con enabled:false aunque se seleccione: el secret-reloader solo
-  // resuelve providers HABILITADOS, así que un plugin disabled con su SecretRef
-  // NO aborta el boot. La tarjeta de /integrations lo activa (enabled:true) al
-  // guardar la key (bridge: service-keys → openclaw-config-sync, Capa B). No
-  // seleccionado → además quitamos su SecretRef/config (sin refs huérfanos).
+  // Se genera con enabled:false aunque se seleccione, y SIEMPRE sin el SecretRef
+  // inline en `config.apiKey`. Motivo: openclaw valida el SCHEMA de cada plugin
+  // entry (apiKey DEBE ser string) ANTES de mirar `enabled`, así que un objeto
+  // {source:exec, provider:bridge_tokens, id:service:*} sin resolver aborta el
+  // boot aunque la entry esté disabled (no es el secret-reloader quien falla, es
+  // el validador). En una instancia recién generada ninguna service-key existe
+  // todavía → no hay nada que resolver. La key real (string) la inyecta el bind
+  // al guardarla en la consola (service-keys → openclaw-config-sync, Capa B).
   if (tpl.plugins?.entries?.n8n) {
-    const selected = !!selectedIntegrations.n8n?.enabled;
     tpl.plugins.entries.n8n.enabled = false;
-    if (!selected && tpl.plugins.entries.n8n.config) delete tpl.plugins.entries.n8n.config.apiKey;
   }
   if (tpl.plugins?.entries?.brave) {
-    const selected = !!selectedIntegrations.brave?.enabled;
+    const selected = !!(config.integrations || {}).brave?.enabled;
     tpl.plugins.entries.brave.enabled = false;
     if (!selected) delete tpl.plugins.entries.brave.config;
+  }
+  // Saneador exhaustivo: retira CUALQUIER `config.apiKey` que sea un SecretRef
+  // objeto (no string) de cualquier plugin entry — cubre n8n/brave y futuras
+  // integraciones sin tener que enumerarlas. Los apiKey string (p.ej. env refs
+  // "${OPENAI_API_KEY}") se respetan.
+  for (const entry of Object.values(tpl.plugins?.entries ?? {})) {
+    const cfg = (entry as { config?: { apiKey?: unknown } })?.config;
+    if (cfg && typeof cfg.apiKey === "object" && cfg.apiKey !== null) {
+      delete cfg.apiKey;
+    }
   }
   // TTS elevenlabs: el bloque `providers` no tiene gate `enabled`, así que su mera
   // presencia hace que el reloader intente resolver service:elevenlabs y aborte si

@@ -167,14 +167,16 @@ test('manifest.env: las integraciones (n8n/brave/elevenlabs) NO van por .env (co
   assert.equal(keys.includes('SLACK_APP_TOKEN'), false, 'slack no se declara vía integración');
 });
 
-test('openclaw.json: n8n SELECCIONADO queda PENDIENTE (enabled:false) con SecretRef service:n8n', () => {
+test('openclaw.json: n8n SELECCIONADO queda PENDIENTE (enabled:false) y SIN SecretRef inline (boot-safe)', () => {
   const oc = JSON.parse(generateOpenclawJson({ ...baseConfig, integrations: { n8n: { enabled: true } } }));
-  // Pendiente hasta meter la key en /integrations: enabled:false (el reloader solo
-  // resuelve providers HABILITADOS → no aborta el boot). La tarjeta lo activa al
-  // guardar la key. El SecretRef ya queda cableado para que se resuelva entonces.
+  // Pendiente hasta meter la key en /integrations: enabled:false. CLAVE: el apiKey
+  // NO puede quedar como objeto SecretRef inline — openclaw valida el SCHEMA de la
+  // entry (apiKey DEBE ser string) AUNQUE esté disabled, así que un objeto
+  // {source:exec, provider:bridge_tokens, id:service:n8n} sin resolver aborta el
+  // boot. La key real (string) la inyecta el bind al guardarla en la consola.
   assert.equal(oc.plugins?.entries?.n8n?.enabled, false, 'n8n pendiente (off) al seleccionarlo');
-  const apiKey = oc.plugins?.entries?.n8n?.config?.apiKey;
-  assert.deepEqual(apiKey, { source: 'exec', provider: 'bridge_tokens', id: 'service:n8n' }, 'n8n apiKey = SecretRef service:n8n');
+  assert.equal(oc.plugins?.entries?.n8n?.config?.apiKey, undefined, 'n8n sin SecretRef inline (boot-safe)');
+  assert.equal(JSON.stringify(oc).includes('service:n8n'), false, 'sin SecretRef service:n8n en el config');
   assert.equal(JSON.stringify(oc).includes('${N8N_'), false, 'sin placeholders ${N8N_*}');
 });
 
@@ -199,11 +201,15 @@ test('openclaw.json: integraciones SELECCIONADAS son boot-safe (pendientes, no a
   assert.equal(oc.plugins?.entries?.n8n?.enabled, false, 'n8n elegido pero pendiente (off)');
   assert.equal(oc.plugins?.entries?.brave?.enabled, false, 'brave elegido pero pendiente (off)');
   assert.equal(oc.messages?.tts?.providers?.elevenlabs, undefined, 'elevenlabs TTS fuera del config generado');
-  // Ningún provider HABILITADO puede arrastrar un SecretRef no resoluble al boot.
-  const enabledHasRef =
-    (oc.plugins?.entries?.n8n?.enabled && JSON.stringify(oc.plugins.entries.n8n).includes('service:')) ||
-    (oc.plugins?.entries?.brave?.enabled && JSON.stringify(oc.plugins.entries.brave).includes('service:'));
-  assert.equal(!!enabledHasRef, false, 'ningún plugin habilitado con SecretRef sin resolver al boot');
+  // Boot-safety REAL: NINGÚN plugin entry (habilitado o no) puede llevar un apiKey
+  // objeto SecretRef sin resolver — el validador de schema de openclaw lo rechaza
+  // aunque la entry esté disabled, así que comprobar solo los habilitados daba
+  // falsa seguridad (era el bug: n8n off pero con el objeto tumbaba el gateway).
+  const anyRefObject = Object.values(oc.plugins?.entries ?? {}).some(
+    (e) => e && typeof e === 'object' && e.config
+      && typeof e.config.apiKey === 'object' && e.config.apiKey !== null,
+  );
+  assert.equal(anyRefObject, false, 'ningún plugin con apiKey objeto SecretRef sin resolver');
 });
 
 test('canales: los seleccionados se activan en el openclaw.json (presencia = enabled)', () => {
