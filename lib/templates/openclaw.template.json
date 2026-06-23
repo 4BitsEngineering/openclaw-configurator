@@ -191,7 +191,8 @@
         "__STACK_ROOT__/autonomous-agents/plugins/fs-approval-guard",
         "__STACK_ROOT__/autonomous-agents/plugins/spawn-cwd-guard",
         "__STACK_ROOT__/autonomous-agents/plugins/web-egress-guard",
-        "__STACK_ROOT__/autonomous-agents/plugins/exec-guard"
+        "__STACK_ROOT__/autonomous-agents/plugins/exec-guard",
+        "__STACK_ROOT__/autonomous-agents/plugins/asset-downloader"
       ]
     },
     "deny": [
