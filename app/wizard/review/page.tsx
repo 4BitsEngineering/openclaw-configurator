@@ -1,7 +1,8 @@
 "use client";
 
 import { PhaseLayout } from "@/components/wizard/phase-layout";
-import { useWizard } from "@/lib/wizard-context";
+import { useWizard, type WizardConfig } from "@/lib/wizard-context";
+import { deriveEnvSpec } from "@/lib/contract/env-spec";
 import { useState } from "react";
 
 type Files = Record<string, string>;
@@ -57,6 +58,10 @@ export default function ReviewStep() {
     for (const a of ARTIFACTS) if (files[a.path]) download(a.path, files[a.path], a.lang);
   };
 
+  const envSpec = deriveEnvSpec(config as WizardConfig);
+  const hasNoKeys = envSpec.length === 0 && Object.keys(config.providers || {}).length > 0;
+  const noProvider = Object.keys(config.providers || {}).length === 0;
+
   const summary = [
     { k: "Proveedor", v: Object.keys(config.providers || {}).join(", ") || "ollama (keyless)" },
     { k: "Canales", v: Object.keys(config.channels || {}).filter((c) => (config.channels as Record<string, unknown>)[c]).join(", ") || "solo web" },
@@ -81,10 +86,24 @@ export default function ReviewStep() {
           ))}
         </div>
 
+        {noProvider && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span className="font-semibold">⚠️ Sin proveedor seleccionado.</span> El instalador no podrá arrancar OpenClaw sin un proveedor de modelo. Vuelve al paso{" "}
+            <span className="font-mono font-semibold">Proveedor</span> y elige uno.
+          </div>
+        )}
+
+        {!noProvider && (hasNoKeys) && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span className="font-semibold">⚠️ Proveedor sin API key.</span> El proveedor seleccionado no necesita credenciales (modo local/keyless). Si usas un servicio externo, vuelve a{" "}
+            <span className="font-mono font-semibold">Proveedor</span> y selecciona el correcto.
+          </div>
+        )}
+
         {!files && (
           <button
             onClick={generate}
-            disabled={busy}
+            disabled={busy || noProvider}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             {busy ? "Generando…" : "Generar paquete + arrancable"}
