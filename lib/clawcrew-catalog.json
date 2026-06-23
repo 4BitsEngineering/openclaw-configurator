@@ -1,50 +1,7 @@
 {
   "schemaVersion": 1,
-  "agentCount": 20,
+  "agentCount": 11,
   "agents": [
-    {
-      "id": "analytics-cro",
-      "version": "1.2.0",
-      "category": "marketing",
-      "description": "Analista de marketing + CRO. Dashboards GA4/Looker, audit tagging GTM, modelos de atribución, A/B tests, reportes mensuales.",
-      "defaults": {
-        "slug": "analytics",
-        "displayName": "Analista de marketing",
-        "shortName": "Analytics",
-        "icon": "📊",
-        "color": "#5C5870",
-        "voice": {
-          "kind": "female",
-          "elevenlabsId": null
-        },
-        "workingVerb": "interpretando datos"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [
-        "skills/ab-testing-framework",
-        "skills/landing-cro-audit",
-        "skills/marketing-attribution",
-        "skills/marketing-metrics-101"
-      ],
-      "siblings": {
-        "marketing-strategy": "Para plan trimestral, posicionamiento, KPIs cross-channel.",
-        "paid": "Para estructurar / optimizar campaña paid.",
-        "seo-strategy": "Para keyword research / audit SEO técnica.",
-        "crm": "Para workflow email / segmentación / lead scoring."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
     {
       "id": "automation-engineer",
       "version": "0.1.0",
@@ -94,9 +51,7 @@
       "skills": [],
       "siblings": {
         "executive": "Para disparar workflows desde correo o agenda (ej. recibido un email VIP → crear ticket).",
-        "sales": "Para automatizar pipeline de outreach y follow-ups con cold leads.",
-        "social": "Para programar publicación de posts ya aprobados a IG/LinkedIn/X.",
-        "seo": "Para encadenar generación de drafts SEO con publicación al CMS."
+        "social": "Para programar publicación de posts ya aprobados a IG/LinkedIn/X."
       },
       "compatibleOverlays": [
         "*"
@@ -107,10 +62,10 @@
       "id": "community",
       "version": "1.1.0",
       "category": "office",
-      "description": "Community manager. Ideas de contenido, posts para IG/LinkedIn/X y calendario editorial. Nunca publica sin aprobación.",
+      "description": "Community manager. Ideas de contenido, posts para IG/LinkedIn/X y calendario editorial; además atención de comunidad: respuestas a comentarios y DMs, moderación y escucha/sentiment. Nunca publica ni responde en público sin aprobación.",
       "defaults": {
         "slug": "community",
-        "displayName": "Community manager",
+        "displayName": "Community Manager",
         "shortName": "Community",
         "icon": "✨",
         "color": "#8A6BAE",
@@ -132,86 +87,9 @@
       "skills": [],
       "siblings": {
         "executive": "Para triaje general del inbox o gestión de agenda.",
-        "sales": "Para cold email comercial o lead generation (no community).",
-        "seo": "Para brief o post de blog SEO largo.",
+        "marketing": "Para estrategia editorial, ángulo de campaña o brief/keyword SEO.",
+        "copy": "Para redacción larga (artículo de blog, newsletter) a partir de una idea.",
         "legal": "Para política de privacidad, términos, RGPD."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
-      "id": "community-engagement",
-      "version": "1.1.1",
-      "category": "content",
-      "description": "Community engagement reactivo. DMs, comentarios, atención de marca, plantillas, escucha social, sentiment, escalado humano. No publica.",
-      "defaults": {
-        "slug": "engagement",
-        "displayName": "Community engagement",
-        "shortName": "Engagement",
-        "icon": "💬",
-        "color": "#4A9B8E",
-        "voice": {
-          "kind": "male",
-          "elevenlabsId": null
-        },
-        "workingVerb": "gestionando comunidad"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [],
-      "siblings": {
-        "content-strategy": "Para convertir un insight de comunidad en pieza editorial nueva.",
-        "copy": "Para nuevo post / reel cuando un patrón comunitario sugiere contenido.",
-        "visual": "Para acompañamiento visual a un post derivado de un insight."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
-      "id": "content-strategist",
-      "version": "1.2.0",
-      "category": "content",
-      "description": "Estratega de contenido editorial. Calendarios, audiencias, tendencias IG/LinkedIn, benchmark, KPIs. No redacta ni diseña — define qué publicar y para quién.",
-      "defaults": {
-        "slug": "content",
-        "displayName": "Estratega de contenido",
-        "shortName": "Contenido",
-        "icon": "🧭",
-        "color": "#2C5F8B",
-        "voice": {
-          "kind": "female",
-          "elevenlabsId": null
-        },
-        "workingVerb": "diseñando estrategia"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [
-        "skills/content-strategy",
-        "skills/content-calendar-briefs",
-        "skills/social-media-content"
-      ],
-      "siblings": {
-        "copy": "Para captions, posts, guiones, hashtags — la materialización en palabra del plan editorial.",
-        "visual": "Para prompts de imagen, moodboards, paletas, dirección de arte.",
-        "community-engagement": "Para insight de comunidad o sentiment del cliente."
       },
       "compatibleOverlays": [
         "*"
@@ -222,11 +100,11 @@
       "id": "copywriter",
       "version": "1.2.0",
       "category": "content",
-      "description": "Copywriter. Captions IG, posts LinkedIn, hashtags, hooks, guiones de reels/shorts, blog y newsletter. Texto en voz de marca.",
+      "description": "Redactor. Captions IG, posts LinkedIn, hashtags, hooks, guiones de reels/shorts, blog, newsletter y artículos SEO con optimización on-page (títulos, meta, encabezados, enlazado). Texto en voz de marca.",
       "defaults": {
         "slug": "copy",
-        "displayName": "Copywriter",
-        "shortName": "Copy",
+        "displayName": "Redactor",
+        "shortName": "Redactor",
         "icon": "✍️",
         "color": "#8B5A8C",
         "voice": {
@@ -248,54 +126,12 @@
         "skills/copywriting-formulas",
         "skills/copy-editing",
         "skills/landing-page-design",
-        "skills/marketing-psychology"
+        "skills/marketing-psychology",
+        "skills/on-page-seo"
       ],
       "siblings": {
-        "content-strategy": "Para plan editorial, audiencia, ángulo de campaña.",
-        "visual": "Para imagen / carrusel maquetado que acompañe el copy.",
-        "community-engagement": "Para respuesta a comentario/DM concreto (no creación)."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
-      "id": "crm-email",
-      "version": "1.2.0",
-      "category": "marketing",
-      "description": "CRM manager. Workflows email (welcome, nurturing, recuperación), segmentación, lead scoring y arcos de lifecycle. HubSpot/Mailchimp/SendGrid/Klaviyo.",
-      "defaults": {
-        "slug": "crm",
-        "displayName": "CRM manager",
-        "shortName": "CRM",
-        "icon": "💌",
-        "color": "#B8625E",
-        "voice": {
-          "kind": "female",
-          "elevenlabsId": null
-        },
-        "workingVerb": "diseñando workflow"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [
-        "skills/marketing-automation",
-        "skills/email-sequence-builder",
-        "skills/email-funnel-optimizer"
-      ],
-      "siblings": {
-        "marketing-strategy": "Para plan trimestral, posicionamiento, KPIs cross-channel.",
-        "paid": "Para estructurar campaña paid de captación de leads.",
-        "seo-strategy": "Para keyword research SEO / brief contenido SEO.",
-        "analytics": "Para dashboard / atribución / A/B test del email."
+        "marketing": "Para plan editorial, audiencia, ángulo de campaña o keyword/brief SEO antes de redactar.",
+        "community": "Para respuesta a comentario/DM concreto o gestión de comunidad (no creación de pieza)."
       },
       "compatibleOverlays": [
         "*"
@@ -346,8 +182,8 @@
       "description": "Asistente ejecutiva del cliente. Triaje del inbox, agenda, notas y borradores. Nunca envía nada sin aprobación.",
       "defaults": {
         "slug": "executive",
-        "displayName": "Asistente ejecutiva",
-        "shortName": "Executive",
+        "displayName": "Agenda y Correo",
+        "shortName": "Agenda y Correo",
         "icon": "📋",
         "color": "#4F6D9E",
         "voice": {
@@ -365,10 +201,11 @@
       ],
       "skills": [],
       "siblings": {
-        "sales": "Para identificar leads o redactar cold emails comerciales.",
-        "social": "Para ideas de post o calendario editorial en redes sociales.",
-        "seo": "Para briefs de blog y artículos SEO largos.",
-        "legal": "Para revisión de contratos o dudas legales orientativas."
+        "marketing": "Para estrategia, calendario editorial o brief/keyword SEO.",
+        "community": "Para ideas de post o gestión de redes sociales.",
+        "copy": "Para redactar copy o un artículo largo en voz de marca.",
+        "legal": "Para revisión de contratos o dudas legales orientativas.",
+        "documents": "Para convertir notas o datos en un informe, presentación u hoja de cálculo."
       },
       "compatibleOverlays": [
         "*"
@@ -402,9 +239,7 @@
       "skills": [],
       "siblings": {
         "executive": "Para email a un cliente, agenda, reuniones o recordatorios.",
-        "sales": "Para captación de leads o cold email comercial.",
         "social": "Para posts o calendario de redes sociales.",
-        "seo": "Para briefs o artículos de blog.",
         "legal": "Para dudas de contrato o revisión legal."
       },
       "compatibleOverlays": [
@@ -447,9 +282,7 @@
       ],
       "siblings": {
         "executive": "Para triaje del inbox, gestión de agenda o envío de correos al cliente / a la otra parte.",
-        "sales": "Para cold email comercial o lead generation (yo no hago outreach).",
-        "social": "Para post social / contenido editorial corto (incluso si versa sobre novedades legales).",
-        "seo": "Para brief o post de blog SEO largo sobre temática legal divulgativa."
+        "social": "Para post social / contenido editorial corto (incluso si versa sobre novedades legales)."
       },
       "compatibleOverlays": [
         "*"
@@ -460,10 +293,10 @@
       "id": "marketing-strategist",
       "version": "1.2.0",
       "category": "marketing",
-      "description": "Estratega de marketing. Plan trimestral, posicionamiento, GTM, buyer persona, allocation cross-channel, KPIs. No ejecuta.",
+      "description": "Estratega de marketing integral. Plan trimestral, posicionamiento, GTM, buyer persona, allocation cross-channel y KPIs; además estrategia SEO (keyword research, audit técnica, briefs de contenido, calendario editorial) y criterio de paid y analítica para orientar al equipo. Define el rumbo y los briefs; no redacta el copy final ni opera campañas.",
       "defaults": {
         "slug": "marketing",
-        "displayName": "Estratega de marketing",
+        "displayName": "Estratega de Marketing",
         "shortName": "Marketing",
         "icon": "🧭",
         "color": "#2E5C7E",
@@ -492,93 +325,18 @@
         "skills/marketing-fundamentals",
         "skills/marketing-ideas",
         "skills/referral-program-design",
-        "skills/affiliate-program-setup"
+        "skills/affiliate-program-setup",
+        "skills/seo-audit-report",
+        "skills/seo-keyword-research",
+        "skills/local-seo-booster",
+        "skills/content-strategy",
+        "skills/content-calendar-briefs",
+        "skills/social-media-content"
       ],
       "siblings": {
-        "paid": "Para estructurar campañas de paid media (Meta/Google/LinkedIn/TikTok).",
-        "seo-strategy": "Para keyword research, audit SEO técnica, brief contenido, link building.",
-        "analytics": "Para dashboard / atribución / A/B test / CRO.",
-        "crm": "Para workflow email, segmentación, lifecycle, lead scoring."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
-      "id": "outbound-sdr",
-      "version": "1.1.0",
-      "category": "office",
-      "description": "Desarrollo de negocio. Identifica leads, redacta cold emails y gestiona follow-ups. Nunca envía nada sin aprobación.",
-      "defaults": {
-        "slug": "sdr",
-        "displayName": "Desarrollo de negocio",
-        "shortName": "SDR",
-        "icon": "🎯",
-        "color": "#B5644C",
-        "voice": {
-          "kind": "male",
-          "elevenlabsId": null
-        },
-        "workingVerb": "buscando oportunidades"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [],
-      "siblings": {
-        "executive": "Para triaje del inbox general o gestión de agenda interna.",
-        "social": "Para post LinkedIn / IG / X (no cold outreach comercial).",
-        "seo": "Para brief o post de blog SEO largo.",
-        "legal": "Para revisar contrato de prospecto o NDA."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
-      "id": "paid-media",
-      "version": "1.2.0",
-      "category": "marketing",
-      "description": "Performance manager. Estructura y optimiza campañas de paid media (Meta/Google/LinkedIn/TikTok). Brief listo para que el operador lance.",
-      "defaults": {
-        "slug": "paid",
-        "displayName": "Performance manager",
-        "shortName": "Paid",
-        "icon": "📈",
-        "color": "#C04E2D",
-        "voice": {
-          "kind": "male",
-          "elevenlabsId": null
-        },
-        "workingVerb": "estructurando campaña"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [
-        "skills/google-ads-campaigns",
-        "skills/meta-ads-campaigns",
-        "skills/ads-performance-auditor"
-      ],
-      "siblings": {
-        "marketing-strategy": "Para plan trimestral, posicionamiento, allocation cross-channel.",
-        "seo-strategy": "Para keyword research SEO orgánico (no Search Ads).",
-        "analytics": "Para tagging GTM, píxel CAPI, dashboard, atribución.",
-        "crm": "Para workflow email / lead nurturing post-paid."
+        "copy": "Para redactar el copy o el artículo final una vez fijada la estrategia, el ángulo o la keyword.",
+        "community": "Para ejecutar el calendario en redes y la gestión de comunidad.",
+        "executive": "Para enviar emails o agendar reuniones derivadas del plan."
       },
       "compatibleOverlays": [
         "*"
@@ -617,9 +375,7 @@
       "skills": [],
       "siblings": {
         "executive": "Para inbox, agenda, reuniones y recordatorios (asistencia ejecutiva de oficina).",
-        "sales": "Para cold email comercial / captación de leads.",
         "social": "Para posts de redes sociales.",
-        "seo-strategy": "Para keyword research / brief SEO.",
         "legal": "Para dudas de contrato / legal."
       },
       "compatibleOverlays": [
@@ -660,123 +416,6 @@
         "*"
       ],
       "hasPortrait": false
-    },
-    {
-      "id": "seo-strategist",
-      "version": "1.2.0",
-      "category": "marketing",
-      "description": "SEO specialist. Audit técnica, keyword research, brief de contenido, link building. NO redacta el copy final del artículo.",
-      "defaults": {
-        "slug": "seo",
-        "displayName": "SEO specialist",
-        "shortName": "SEO",
-        "icon": "🔍",
-        "color": "#4A7B5C",
-        "voice": {
-          "kind": "male",
-          "elevenlabsId": null
-        },
-        "workingVerb": "auditando SEO"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [
-        "skills/seo-audit-report",
-        "skills/seo-keyword-research",
-        "skills/local-seo-booster"
-      ],
-      "siblings": {
-        "marketing-strategy": "Para plan trimestral, allocation, KPIs cross-channel.",
-        "paid": "Para Search Ads (Google Ads), no orgánico.",
-        "analytics": "Para tagging GTM / dashboard SEO en Looker.",
-        "crm": "Para workflow email de nurturing post-tráfico orgánico.",
-        "seo": "Para redacción del artículo final SEO (yo entrego brief, otro escribe)."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
-      "id": "seo-writer",
-      "version": "1.2.0",
-      "category": "office",
-      "description": "Redactor SEO. Keyword research, briefs y borradores de blog optimizados para Google. Entrega drafts en Markdown.",
-      "defaults": {
-        "slug": "writer",
-        "displayName": "Redactor SEO",
-        "shortName": "SEO",
-        "icon": "✍️",
-        "color": "#5B8C70",
-        "voice": {
-          "kind": "male",
-          "elevenlabsId": null
-        },
-        "workingVerb": "investigando palabras clave"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save",
-        "web_search"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [
-        "skills/on-page-seo"
-      ],
-      "siblings": {
-        "executive": "Para triaje del inbox o gestión de agenda.",
-        "sales": "Para cold email comercial o lead generation.",
-        "social": "Para post social corto (LinkedIn / IG / X), no blog.",
-        "legal": "Para disclaimer legal, política de privacidad, RGPD."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
-    },
-    {
-      "id": "visual-director",
-      "version": "1.1.0",
-      "category": "content",
-      "description": "Dirección de arte. Prompts de imagen (Midjourney/SD/DALL-E/Flux), moodboards, paletas, briefs de carrusel. Define cómo se ve la pieza, no la genera.",
-      "defaults": {
-        "slug": "visual",
-        "displayName": "Director de arte",
-        "shortName": "Visual",
-        "icon": "🎨",
-        "color": "#D87C5A",
-        "voice": {
-          "kind": "male",
-          "elevenlabsId": null
-        },
-        "workingVerb": "creando visual"
-      },
-      "tools": [
-        "memory_search",
-        "memory_save"
-      ],
-      "toolGroups": [
-        "group:fs"
-      ],
-      "skills": [],
-      "siblings": {
-        "content-strategy": "Para plan editorial / audiencia / pilares antes de visualizar.",
-        "copy": "Para texto que acompañe la imagen (caption, headline, CTA)."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
     },
     {
       "id": "webops",

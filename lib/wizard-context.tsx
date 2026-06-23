@@ -157,11 +157,14 @@ export interface ClawcrewSectorTemplate {
 }
 
 export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = {
+  // NOTA: los sectores/plantillas están DESHABILITADOS en el wizard (decisión de
+  // producto 17-jun: el equipo se elige a mano del catálogo). Se mantienen como
+  // datos por si se reactivan; sus agentIds usan el catálogo Lean PyME (11 roles).
   asesoria: {
     label: "Asesoría / Despacho",
     emoji: "📁",
     description: "Asesoría fiscal, laboral, contable o despacho jurídico.",
-    agentIds: ["executive", "seo-writer", "legal-light"],
+    agentIds: ["executive", "copywriter", "legal-suite"],
     suggestedPrefix: "asesoria",
     suggestedOverlayName: "Mi Despacho",
   },
@@ -169,15 +172,15 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
     label: "E-commerce",
     emoji: "🛒",
     description: "Tienda online — atención, contenido y SEO de producto.",
-    agentIds: ["executive", "community", "seo-writer"],
+    agentIds: ["executive", "community", "marketing-strategist", "copywriter"],
     suggestedPrefix: "shop",
     suggestedOverlayName: "Mi Tienda",
   },
   agencia: {
     label: "Agencia",
     emoji: "🏢",
-    description: "Agencia digital — operations + sales + content + SEO.",
-    agentIds: ["executive", "outbound-sdr", "community", "seo-writer"],
+    description: "Agencia digital — operaciones, estrategia y contenido.",
+    agentIds: ["executive", "marketing-strategist", "community", "copywriter"],
     suggestedPrefix: "agency",
     suggestedOverlayName: "Mi Agencia",
   },
@@ -185,30 +188,30 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
     label: "Clínica / Consulta",
     emoji: "🏥",
     description: "Clínica privada, consulta — agenda, contenido, captación.",
-    agentIds: ["executive", "community", "seo-writer"],
+    agentIds: ["executive", "community", "copywriter"],
     suggestedPrefix: "clinic",
     suggestedOverlayName: "Mi Clínica",
   },
   inmobiliaria: {
     label: "Inmobiliaria",
     emoji: "🏘️",
-    description: "Inmobiliaria — prospección, redes, legal de contratos.",
-    agentIds: ["executive", "outbound-sdr", "community", "legal-light"],
+    description: "Inmobiliaria — redes, contenido y legal de contratos.",
+    agentIds: ["executive", "community", "legal-suite"],
     suggestedPrefix: "estate",
     suggestedOverlayName: "Mi Inmobiliaria",
   },
   general: {
     label: "General (PYME)",
     emoji: "🤖",
-    description: "Pack genérico — los 5 roles core ai-office.",
-    agentIds: ["executive", "outbound-sdr", "community", "seo-writer", "legal-light"],
+    description: "Pack genérico — oficina, comunidad y contenido.",
+    agentIds: ["executive", "community", "copywriter", "legal-suite"],
     suggestedPrefix: "office",
     suggestedOverlayName: "Mi Oficina",
   },
   custom: {
     label: "Custom",
     emoji: "🔧",
-    description: "Empiezo de cero — elijo los 15 roles disponibles a mano.",
+    description: "Empiezo de cero — elijo los roles disponibles a mano.",
     agentIds: [],
     suggestedPrefix: "custom",
     suggestedOverlayName: "Mi Overlay",
