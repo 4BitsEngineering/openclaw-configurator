@@ -30,26 +30,21 @@ import { useState } from "react";
 // ──────────────────────────────────────────────────────────────────────────────
 
 // Etiquetas de rol en español (algunos defaults del catálogo venían en inglés).
+// Catálogo Lean PyME (11 roles). Los displayName del catálogo ya vienen en
+// español; este mapa solo cubre overrides y los roles cuyo default está en
+// inglés (automation-engineer). Núcleo: founder/planner van ocultos, PA visible.
 const ROLE_LABEL_ES: Record<string, string> = {
   planner: "Planificador",
+  founder: "Founder",
   "personal-assistant": "Asistente personal",
-  executive: "Asistente ejecutiva",
-  "outbound-sdr": "Desarrollo de negocio",
-  "legal-light": "Asesor legal",
+  executive: "Agenda y Correo",
+  documents: "Gestor documental",
+  webops: "WebOps",
   "legal-suite": "Asesoría jurídica",
-  "automation-engineer": "Ingeniero de automatización",
-  "seo-writer": "Redactor SEO",
-  community: "Gestor de comunidad",
+  "automation-engineer": "Automatización",
   "marketing-strategist": "Estratega de marketing",
-  "seo-strategist": "Especialista en SEO",
-  "paid-media": "Gestor de campañas (paid media)",
-  "crm-email": "Gestor de CRM y email",
-  "analytics-cro": "Analista de datos y CRO",
-  "content-strategist": "Estratega de contenido",
-  copywriter: "Redactor publicitario",
-  "community-engagement": "Atención de comunidad",
-  "video-director": "Realizador de vídeo",
-  "visual-director": "Director de arte",
+  copywriter: "Redactor",
+  community: "Community manager",
 };
 
 const roleLabel = (roleId: string) =>
@@ -58,9 +53,9 @@ const roleLabel = (roleId: string) =>
 // Grupos del catálogo (el núcleo va aparte). Las categorías vienen del
 // catálogo clawcrew (office→ai-office, marketing, content).
 const GROUPS: { key: ClawcrewRoleSpec["category"]; label: string; hint: string }[] = [
-  { key: "ai-office", label: "Oficina y operaciones", hint: "Gestión, agenda, ventas, legal y automatización." },
-  { key: "marketing", label: "Marketing", hint: "Estrategia, campañas, SEO, CRM y analítica." },
-  { key: "content", label: "Contenido", hint: "Redacción, comunidad, vídeo y dirección de arte." },
+  { key: "ai-office", label: "Oficina y operaciones", hint: "Agenda y correo, documentos, web, legal y automatización." },
+  { key: "marketing", label: "Marketing", hint: "Estrategia, SEO, contenido y campañas." },
+  { key: "content", label: "Contenido", hint: "Redacción y comunidad." },
 ];
 
 // Construye una selección con el nombre en español por defecto.
