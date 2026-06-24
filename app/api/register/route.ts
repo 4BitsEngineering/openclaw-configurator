@@ -176,7 +176,17 @@ export async function POST(req: Request) {
   // 4) Componer el enlace de descarga del instalador (clawhub redirige al .exe
   // del bundle INSTALLER del canal; 404 si aún no se ha publicado ninguno).
   const code = (data as { pairing_code?: string }).pairing_code;
-  const installerUrl = `${clawhubUrl.replace(/\/$/, "")}/api/v0/installer?channel=stable${
+  // Detectamos el SO del navegador que cierra el wizard y lo pasamos explícito a
+  // clawhub para que sirva el instalador correcto (Windows .exe vs macOS .dmg).
+  // clawhub también detecta por UA como fallback, pero pasarlo es más robusto
+  // (p.ej. si el link se reusa desde otro dispositivo del mismo trabajador).
+  const ua = req.headers.get("user-agent") || "";
+  const platform = /Macintosh|Mac OS/i.test(ua)
+    ? "darwin"
+    : /Linux/i.test(ua)
+      ? "linux"
+      : "windows";
+  const installerUrl = `${clawhubUrl.replace(/\/$/, "")}/api/v0/installer?channel=stable&platform=${platform}${
     code ? `&pairing=${encodeURIComponent(code)}` : ""
   }`;
 
