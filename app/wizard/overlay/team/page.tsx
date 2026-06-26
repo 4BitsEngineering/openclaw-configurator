@@ -65,17 +65,12 @@ function buildSel(roleId: string): ClawcrewAgentSelection {
   return { ...base, displayName: label, shortName: label };
 }
 
-// Deriva el prefix runtime del nombre del equipo (no se pide al usuario).
-function derivePrefix(name: string): string {
-  const slug = (name || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const safe = /^[a-z]/.test(slug) ? slug : `eq-${slug}`;
-  return (safe || "office").slice(0, 24);
-}
+// El prefix runtime de los agentes NO se deriva del nombre del equipo/firma:
+// es el prefijo del PRODUCTO (ai-office → "office"). El web y el catálogo
+// asumen agentes `office-*`; derivarlo del nombre (p.ej. firma "JJ" → "jj-*")
+// rompe la pestaña Agenda, las paletas, los prompts y el concierge. Espejo de
+// prefixForOverlay() en clawhub (ai-office → "office").
+const OVERLAY_PREFIX = "office";
 
 export default function TeamStep() {
   const { config, updateConfig, markTouched } = useWizard();
@@ -123,7 +118,7 @@ export default function TeamStep() {
   };
 
   const setName = (overlayName: string) => {
-    const prefix = derivePrefix(overlayName);
+    const prefix = OVERLAY_PREFIX;
     setTeam((t) => ({
       ...t,
       overlayName,
@@ -135,7 +130,7 @@ export default function TeamStep() {
 
   const handleNext = () => {
     const ensured = withNucleo(team);
-    const prefix = derivePrefix(ensured.overlayName);
+    const prefix = OVERLAY_PREFIX;
     const agents = ensured.agents.map((a) => ({ ...a, enabled: true }));
     const planMode = ensured.planMode
       ? { ...ensured.planMode, plannerAgentId: `${prefix}-planner-v1` }
