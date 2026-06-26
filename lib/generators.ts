@@ -981,6 +981,26 @@ else
   fi
 fi
 
+# ── Step 6b: Channel plugins (whatsapp, …) ────────────────────────────────────
+# Un canal activo en openclaw.json NECESITA su plugin instalado o no hay
+# QR/login (caso típico: whatsapp). Se instala con el MISMO env que el gateway
+# (OPENCLAW_CONFIG_PATH → mismo OPENCLAW_HOME); usar otro state-dir haría que el
+# gateway NO lo descubriese. Versiones pineadas: bumpear aquí al actualizar.
+hdr "6b/7  Channel plugins"
+
+install_channel_plugin() {
+  local ch="\$1"; local pkg="\$2"
+  [ "\$(json_read "\$OPENCLAW_CONFIG" "channels.\${ch}.enabled")" = "true" ] || return 0
+  info "Channel '\$ch' enabled → installing plugin \$pkg"
+  if run bash -c "OPENCLAW_CONFIG_PATH='\$OPENCLAW_CONFIG' openclaw plugins install '\$pkg' --pin --force"; then
+    ok "Plugin \$ch installed (\$pkg)"
+  else
+    warn "Could not install \$ch plugin (\$pkg) — QR/login unavailable until installed"
+  fi
+}
+
+install_channel_plugin whatsapp "@openclaw/whatsapp@2026.5.18"
+
 # ── Step 7: Start services + open browser ─────────────────────────────────────
 hdr "7/7  Start services"
 
