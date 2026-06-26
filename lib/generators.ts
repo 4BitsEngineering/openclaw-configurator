@@ -93,7 +93,13 @@ function resolveInstanceModel(config: WizardConfig): { providerId: string; model
   const otherId = Object.keys(p).find((id) => id !== "axet" && !!PROVIDER_CATALOG[id]);
   if (otherId) {
     const entry = PROVIDER_CATALOG[otherId];
-    const modelId = (p[otherId] as { model?: string } | undefined)?.model || entry.models?.[0]?.id || otherId;
+    // Default por provider cuando el cliente NO eligió modelo: evita caer al
+    // literal `<id>/<id>` (p.ej. minimax/minimax, que el endpoint resuelve a un
+    // modelo de servidor opaco). minimax → M3 (más rápido de extremo a extremo
+    // que los M2.7*, que razonan obligatoriamente; ver bench 26-jun).
+    const PROVIDER_DEFAULT_MODEL: Record<string, string> = { minimax: "MiniMax-M3" };
+    const chosenModel = (p[otherId] as { model?: string } | undefined)?.model;
+    const modelId = chosenModel || PROVIDER_DEFAULT_MODEL[otherId] || entry.models?.[0]?.id || otherId;
     return { providerId: otherId, modelId, ref: `${otherId}/${modelId}`, envKey: providerEnvKey(otherId, entry.envVars) };
   }
   return { providerId: "ollama", modelId: "gemma4-gpu", ref: DEFAULT_KEYLESS_MODEL };
