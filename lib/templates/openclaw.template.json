@@ -184,6 +184,31 @@
     }
   },
   "plugins": {
+    "allow": [
+      "whatsapp",
+      "browser",
+      "canvas",
+      "device-pair",
+      "file-transfer",
+      "memory-core",
+      "minimax",
+      "phone-control",
+      "talk-voice",
+      "ollama",
+      "duckduckgo",
+      "brave",
+      "openai",
+      "acpx",
+      "litellm",
+      "xiaomi",
+      "n8n",
+      "config-guard",
+      "fs-approval-guard",
+      "spawn-cwd-guard",
+      "web-egress-guard",
+      "exec-guard",
+      "asset-downloader"
+    ],
     "load": {
       "paths": [
         "__STACK_ROOT__/autonomous-agents/plugins/n8n",
