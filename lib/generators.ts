@@ -109,6 +109,22 @@ function resolveInstanceModel(config: WizardConfig): { providerId: string; model
 // config probada de ai-office) y parametrizando lo por-instancia. agents.list
 // queda [] — configure-overlay.js los inyecta tras instalar los agentes.
 export function generateOpenclawJson(config: WizardConfig): string {
+  // Guardrail: la instancia necesita UN provider sí o sí para arrancar (decisión
+  // de producto). Sin provider elegido, antes caíamos SILENCIOSAMENTE a un Ollama
+  // local keyless (ollama/gemma4-gpu) que un cliente SIN Ollama no puede usar →
+  // el LLM no responde y, desde que quitamos el fallback de minimax ("solo
+  // provider elegido"), sin red de rescate = instalación muerta. Convertimos ese
+  // footgun en un error DURO aquí: como generateInstancePackage (registro→baseline
+  // de clawhub) llama a esta función primero, un config sin provider NO puede
+  // promoverse como baseline. El front (paso "Proveedor") ya bloquea Siguiente sin
+  // elección; esto es el backstop de servidor.
+  if (!config.providers || Object.keys(config.providers).length === 0) {
+    throw new Error(
+      "No se eligió ningún provider de modelo. Elige uno en el paso 'Proveedor' del configurador " +
+      "(p.ej. MiniMax) — la instancia necesita un provider para arrancar. " +
+      "No generamos una config sin provider porque caería a un Ollama local que el cliente no tiene.",
+    );
+  }
   const tpl = JSON.parse(JSON.stringify(openclawTemplate));
   const token = randomBytes(24).toString("base64url");
   if (tpl.gateway?.auth) tpl.gateway.auth.token = token;

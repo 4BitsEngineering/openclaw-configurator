@@ -104,12 +104,20 @@ test('provider custom keyless (sin envKey): no pide NINGÚN secreto', () => {
   assert.deepEqual(keys, [], 'keyless: el installer no pide secretos');
 });
 
-test('sin proveedor elegido → default keyless ollama/gemma4-gpu', () => {
+test('sin proveedor elegido → ERROR duro (no se promueve un baseline muerto con ollama)', () => {
+  // Antes caía SILENCIOSAMENTE a ollama/gemma4-gpu keyless → en un cliente sin
+  // Ollama el LLM no respondía (instalación muerta), y sin fallback de minimax no
+  // había red. Ahora generar sin provider lanza, así register/baseline no puede
+  // promover una config sin provider. (Regresión real observada 29-jun.)
   const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, providers: {} };
+  assert.throws(() => generateOpenclawJson(cfg), /No se eligió ningún provider/);
+});
+
+test('provider elegido (minimax) → primary minimax/MiniMax-M3 (no ollama)', () => {
+  const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, providers: { minimax: {} } };
   const oc = JSON.parse(generateOpenclawJson(cfg));
-  assert.equal(oc.agents?.defaults?.model?.primary, 'ollama/gemma4-gpu');
-  const overlay = JSON.parse(generateOverlayConfig(cfg));
-  assert.equal(overlay.defaultModel, 'ollama/gemma4-gpu');
+  assert.equal(oc.agents?.defaults?.model?.primary, 'minimax/MiniMax-M3');
+  assert.deepEqual(Object.keys(oc.models?.providers || {}), ['minimax']);
 });
 
 test('el .env emite la API key del modelo elegido (vacía) y nada extra para ollama', () => {
