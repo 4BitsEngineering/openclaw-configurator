@@ -144,14 +144,34 @@ export function generateOpenclawJson(config: WizardConfig): string {
     ? tpl.agents.defaults.model
     : { fallbacks: [] as string[] };
   modelBlock.primary = instance.ref;
-  const fallbacks: string[] = Array.isArray(modelBlock.fallbacks) ? modelBlock.fallbacks : [];
-  // Red de seguridad keyless: asegurar ollama/gemma4-gpu como fallback (sin
-  // duplicar, y nunca como fallback de sí mismo si ya es el primary).
-  if (instance.ref !== DEFAULT_KEYLESS_MODEL && !fallbacks.includes(DEFAULT_KEYLESS_MODEL)) {
-    fallbacks.push(DEFAULT_KEYLESS_MODEL);
-  }
-  modelBlock.fallbacks = fallbacks;
+  // SOLO el provider elegido: sin fallback de ollama (decisión 29-jun). No
+  // enmascaramos un primary caído con un modelo local que el cliente no pidió.
+  modelBlock.fallbacks = [];
   tpl.agents.defaults.model = modelBlock;
+
+  // El config generado debe contener SOLO el provider elegido. El template trae
+  // minimax+ollama cableados (provider con ${MINIMAX_API_KEY}, fallbacks y TTS),
+  // así que elegir otro provider seguía exigiendo la key de MiniMax para arrancar.
+  // Podamos models.providers a la entrada elegida y, si no se elige minimax,
+  // retiramos su TTS (la voz se reactiva luego en la consola con su key).
+  const keepId = instance.providerId;
+  if (tpl.models?.providers && tpl.models.providers[keepId]) {
+    for (const id of Object.keys(tpl.models.providers)) {
+      if (id !== keepId) delete tpl.models.providers[id];
+    }
+  }
+  // Saneador de fallbacks/primary minimax|ollama en cualquier override por agente
+  // (defensivo; agents.list normalmente queda [] y lo rellena configure-overlay).
+  for (const a of (Array.isArray(tpl.agents?.list) ? tpl.agents.list : [])) {
+    const am = (a as { model?: { primary?: string; fallbacks?: unknown } }).model;
+    if (am && Array.isArray(am.fallbacks)) am.fallbacks = [];
+    if (am && typeof am.primary === "string" && (am.primary.startsWith("minimax/") || am.primary.startsWith("ollama/"))) {
+      am.primary = instance.ref;
+    }
+  }
+  if (keepId !== "minimax" && tpl.messages?.tts) {
+    delete tpl.messages.tts;
+  }
 
   // Canales: la presencia de un canal en config.channels = activado. Reflejamos
   // ese estado en el bloque channels del openclaw.json (enabled:true). Los que
@@ -237,6 +257,22 @@ function pickProviderModel(config: WizardConfig): { providerId: string; provider
     return { providerId: "google", providerEntry: {
       apiKey: "${GOOGLE_API_KEY}", api: "openai-completions",
       models: [{ id: p.google.model || "gemini-2.5-pro", name: p.google.model || "gemini-2.5-pro" }],
+    } };
+  }
+  // Provider custom (OpenAI-compatible): el wizard recoge baseUrl/model/envKey.
+  // Antes pickProviderModel devolvía null para custom → el openclaw.json quedaba
+  // con primary `custom/<model>` SIN entrada `models.providers.custom` (provider
+  // colgado). Ahora se construye la entry real con esos campos.
+  if (p.__custom__) {
+    const c = p.__custom__;
+    const envKey = (c.envKey || "").trim();
+    return { providerId: "custom", providerEntry: {
+      baseUrl: c.baseUrl,
+      // Keyless (sin envKey): placeholder no-vacío para que openclaw no aborte por
+      // apiKey ausente (mismo patrón que ollama-local).
+      apiKey: envKey ? `\${${envKey}}` : "not-needed",
+      api: "openai-completions",
+      models: [{ id: c.model, name: c.model }],
     } };
   }
   // Provider genérico del catálogo. Solo construimos la entry si el catálogo trae

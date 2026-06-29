@@ -61,12 +61,16 @@ const teamWithAgent = {
   agents: [{ agent: 'office-executive', slug: 'office-executive', displayName: 'Iván', icon: '🤝', enabled: true }],
 };
 
-test('el modelo elegido en step-1 es el primary del openclaw.json y el defaultModel del overlay', () => {
+test('el modelo elegido en step-1 es el primary, SOLO ese provider y sin fallback de ollama ni MiniMax', () => {
   const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, providers: { anthropic: { apiKey: 'x', model: 'claude-opus-4-8' } } };
   const oc = JSON.parse(generateOpenclawJson(cfg));
   const primary = oc.agents?.defaults?.model?.primary;
   assert.equal(primary, 'anthropic/claude-opus-4-8');
-  assert.ok((oc.agents?.defaults?.model?.fallbacks || []).includes('ollama/gemma4-gpu'), 'fallback keyless presente');
+  // Decisión 29-jun: el config generado lleva SOLO el provider elegido. Sin
+  // fallback de ollama y sin minimax residual (provider/TTS) que exigiría su key.
+  assert.deepEqual(oc.agents?.defaults?.model?.fallbacks || [], [], 'sin fallback de ollama');
+  assert.deepEqual(Object.keys(oc.models?.providers || {}), ['anthropic'], 'solo el provider elegido en models.providers');
+  assert.ok(!JSON.stringify(oc).includes('${MINIMAX_API_KEY}'), 'sin referencia a MINIMAX_API_KEY');
   const overlay = JSON.parse(generateOverlayConfig(cfg));
   assert.equal(overlay.defaultModel, 'anthropic/claude-opus-4-8');
 });
@@ -78,6 +82,26 @@ test('provider del catálogo (minimax) dirige el primary y declara su key', () =
   assert.ok('minimax' in (oc.models.providers || {}), 'minimax presente en models.providers (de la plantilla)');
   const keys = JSON.parse(generateInstanceManifest(cfg)).env.map(e => e.key);
   assert.ok(keys.includes('MINIMAX_API_KEY'), 'MINIMAX_API_KEY declarada en el manifiesto');
+});
+
+test('provider custom: cablea models.providers.custom y pide SOLO su envKey (sin minimax)', () => {
+  const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, channels: {}, providers: { __custom__: { baseUrl: 'http://127.0.0.1:4010/v1', model: 'mi-modelo', envKey: 'CUSTOM_API_KEY' } } };
+  const oc = JSON.parse(generateOpenclawJson(cfg));
+  assert.equal(oc.agents?.defaults?.model?.primary, 'custom/mi-modelo');
+  assert.deepEqual(Object.keys(oc.models?.providers || {}), ['custom'], 'solo el provider custom');
+  assert.equal(oc.models.providers.custom.baseUrl, 'http://127.0.0.1:4010/v1');
+  assert.equal(oc.models.providers.custom.api, 'openai-completions');
+  assert.ok(!JSON.stringify(oc).includes('${MINIMAX_API_KEY}'), 'sin MiniMax residual');
+  const keys = JSON.parse(generateInstanceManifest(cfg)).env.map(e => e.key);
+  assert.deepEqual(keys, ['CUSTOM_API_KEY'], 'solo pide la envKey del custom');
+});
+
+test('provider custom keyless (sin envKey): no pide NINGÚN secreto', () => {
+  const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, channels: {}, providers: { __custom__: { baseUrl: 'http://127.0.0.1:4010/v1', model: 'mi-modelo', envKey: '' } } };
+  const oc = JSON.parse(generateOpenclawJson(cfg));
+  assert.equal(oc.models.providers.custom.apiKey, 'not-needed', 'placeholder no-vacío para keyless');
+  const keys = JSON.parse(generateInstanceManifest(cfg)).env.map(e => e.key);
+  assert.deepEqual(keys, [], 'keyless: el installer no pide secretos');
 });
 
 test('sin proveedor elegido → default keyless ollama/gemma4-gpu', () => {
