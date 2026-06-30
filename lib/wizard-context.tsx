@@ -1,7 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import clawcrewCatalog from "./clawcrew-catalog.json";
+
+// Persist the wizard state across remounts (hard reload / new tab / deep-link to
+// a later step). Without this the state lived in plain useState and a remount
+// reset it to defaults (notably providers:{}), silently dropping the chosen LLM
+// provider → a baseline registered WITHOUT a provider → new installs boot with a
+// dead LLM (fall back to keyless ollama/gemma4-gpu). Bump the version suffix to
+// invalidate older saved shapes.
+const WIZARD_STORAGE_KEY = "openclaw-wizard-state-v1";
 
 export type TemplateType = "personal" | "developer" | "business" | "custom";
 
@@ -343,6 +351,7 @@ interface WizardContextType {
   setSelectedTemplate: (template: TemplateType) => void;
   touched: Record<TouchedKey, boolean>;
   markTouched: (key: TouchedKey) => void;
+  resetWizard: () => void;
 }
 
 const WizardContext = createContext<WizardContextType | undefined>(undefined);
@@ -429,6 +438,54 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     personality: { name: "JARVIS", emoji: "🤖", vibe: "Professional yet approachable" },
   });
 
+  // Hydrate once from localStorage on mount. We gate persistence on `hydrated`
+  // (state, not a ref) so the persist effect's first run — which still sees the
+  // pre-hydration default state — skips writing, and only the post-hydration run
+  // persists the restored values. This avoids clobbering the saved state with
+  // defaults on a remount.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(WIZARD_STORAGE_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved.config) setConfig(saved.config);
+          if (typeof saved.currentStep === "number") setCurrentStep(saved.currentStep);
+          if (saved.selectedTemplate) setSelectedTemplate(saved.selectedTemplate);
+          if (saved.touched) setTouched(saved.touched);
+        }
+      } catch {
+        /* corrupt/unavailable storage — start fresh */
+      }
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        WIZARD_STORAGE_KEY,
+        JSON.stringify({ config, currentStep, selectedTemplate, touched }),
+      );
+    } catch {
+      /* quota / private mode — persistence is best-effort */
+    }
+  }, [hydrated, config, currentStep, selectedTemplate, touched]);
+
+  // Clear persisted state — call after a successful registration so the next
+  // firm setup starts clean instead of inheriting the previous firm's choices.
+  const resetWizard = () => {
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem(WIZARD_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
   const updateConfig = (updates: Partial<WizardConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
   };
@@ -448,6 +505,7 @@ export function WizardProvider({ children }: { children: ReactNode }) {
         setSelectedTemplate,
         touched,
         markTouched,
+        resetWizard,
       }}
     >
       {children}

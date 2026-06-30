@@ -31,7 +31,7 @@ type RegisterResult = {
 };
 
 export default function RegisterStep() {
-  const { config } = useWizard();
+  const { config, resetWizard } = useWizard();
   const team = config.clawcrewTeam;
   const name = team?.overlayName || "Instancia";
   const prefix = team?.prefix || "office";
@@ -93,6 +93,7 @@ export default function RegisterStep() {
         throw new Error(detail);
       }
       setResult(j as RegisterResult);
+      resetWizard(); // alta OK → limpia el estado persistido para la próxima firma
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -122,6 +123,7 @@ export default function RegisterStep() {
         throw new Error(detail);
       }
       setResult(j as RegisterResult);
+      resetWizard(); // alta OK → limpia el estado persistido para la próxima firma
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
