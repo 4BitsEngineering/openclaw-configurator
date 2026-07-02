@@ -140,7 +140,7 @@
     },
     {
       "id": "documents",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "office",
       "description": "Convierte datos, ficheros y temas en entregables presentables —informes, presentaciones y hojas de cálculo— como ficheros reales (.docx, .pptx, .xlsx, PDF) con el formato y la voz del cliente. Siempre entrega borrador para revisión; nunca envía ni publica.",
       "defaults": {
@@ -386,7 +386,7 @@
     },
     {
       "id": "planner",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "office",
       "description": "Orquestador interno: descompone peticiones complejas en fases, coordina al equipo vía sessions_spawn y gestiona los proyectos por fases. En PLAN_MODE propone un plan y espera aprobación.",
       "defaults": {
@@ -420,7 +420,7 @@
     },
     {
       "id": "software-developer",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "office",
       "description": "Desarrollador de software del cliente. Convierte un encargo en lenguaje natural en una pequeña especificación y construye scripts y apps pequeñas usando un CLI de codificación (Claude Code por defecto) conducido por el propio modelo del cliente. Trabaja en un workspace aislado y entrega el resultado para revisión; nunca aplica cambios en producción sin aprobación.",
       "defaults": {
