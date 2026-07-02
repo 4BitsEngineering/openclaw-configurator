@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "sync:catalog": "node scripts/sync-catalog.mjs",
+    "check:catalog": "node scripts/check-catalog-drift.mjs",
     "sync:providers": "node scripts/sync-providers.mjs",
     "sync:channels": "node scripts/sync-channels.mjs",
     "build": "next build",
@@ -12,7 +13,8 @@
     "lint": "eslint .",
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
-    "test:generate": "tsx --test scripts/test-generate.mjs"
+    "test:generate": "tsx --test scripts/test-generate.mjs",
+    "test": "npm run check:catalog && npm run test:generate"
   },
   "dependencies": {
     "@lobehub/icons": "^5.10.0",

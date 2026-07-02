@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "agentCount": 11,
+  "agentCount": 12,
   "agents": [
     {
       "id": "automation-engineer",
@@ -60,7 +60,7 @@
     },
     {
       "id": "community",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "office",
       "description": "Community manager. Ideas de contenido, posts para IG/LinkedIn/X y calendario editorial; además atención de comunidad: respuestas a comentarios y DMs, moderación y escucha/sentiment. Nunca publica ni responde en público sin aprobación.",
       "defaults": {
@@ -177,9 +177,9 @@
     },
     {
       "id": "executive",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "office",
-      "description": "Asistente ejecutiva del cliente. Triaje del inbox, agenda, notas y borradores. Nunca envía nada sin aprobación.",
+      "description": "Asistente ejecutiva del cliente. Triaje de Gmail, agenda de Google Calendar, notas y borradores vía el wrapper gws-bridge (OAuth). Fallback himalaya para cuentas IMAP/Outlook. Nunca envía nada sin aprobación.",
       "defaults": {
         "slug": "executive",
         "displayName": "Agenda y Correo",
@@ -193,6 +193,7 @@
         "workingVerb": "ordenando tu día"
       },
       "tools": [
+        "exec",
         "memory_search",
         "memory_save"
       ],
@@ -412,6 +413,43 @@
       ],
       "skills": [],
       "siblings": {},
+      "compatibleOverlays": [
+        "*"
+      ],
+      "hasPortrait": false
+    },
+    {
+      "id": "software-developer",
+      "version": "0.1.0",
+      "category": "office",
+      "description": "Desarrollador de software del cliente. Convierte un encargo en lenguaje natural en una pequeña especificación y construye scripts y apps pequeñas usando un CLI de codificación (Claude Code por defecto) conducido por el propio modelo del cliente. Trabaja en un workspace aislado y entrega el resultado para revisión; nunca aplica cambios en producción sin aprobación.",
+      "defaults": {
+        "slug": "developer",
+        "displayName": "Desarrollo de Software",
+        "shortName": "Dev",
+        "icon": "💻",
+        "color": "#475569",
+        "voice": {
+          "kind": "neutral",
+          "elevenlabsId": null
+        },
+        "workingVerb": "programando"
+      },
+      "tools": [
+        "exec",
+        "memory_search",
+        "memory_save"
+      ],
+      "toolGroups": [
+        "group:fs"
+      ],
+      "skills": [],
+      "siblings": {
+        "documents": "Para convertir resultados en un informe, presentación u hoja de cálculo presentables.",
+        "automation": "Para automatizaciones que vivan en n8n (workflows) en vez de un script suelto.",
+        "personal-assistant": "Para research web de apoyo antes de especificar el encargo.",
+        "executive": "Cuando haya que enviar el entregable por correo o agendar algo (la acción externa la aprueba el cliente)."
+      },
       "compatibleOverlays": [
         "*"
       ],
