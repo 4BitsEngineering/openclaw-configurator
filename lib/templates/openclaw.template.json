@@ -108,7 +108,6 @@
         ],
         "delegationMode": "prefer"
       },
-      "skills": [],
       "params": {
         "cacheRetention": "long"
       },
