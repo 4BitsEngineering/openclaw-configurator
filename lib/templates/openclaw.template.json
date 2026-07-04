@@ -349,7 +349,7 @@
         "enabled": true
       },
       "skill-creator": {
-        "enabled": false
+        "enabled": true
       },
       "slack": {
         "enabled": true
