@@ -113,6 +113,21 @@ test('sin proveedor elegido → ERROR duro (no se promueve un baseline muerto co
   assert.throws(() => generateOpenclawJson(cfg), /No se eligió ningún provider/);
 });
 
+test('memorySearch sale keyword-only (provider "none"), sin el Ollama de dev fosilizado', () => {
+  // Regresión 15-jul: la plantilla llevaba memorySearch → ollama/nomic-embed-text
+  // en 127.0.0.1:11434 (config de dev). Un cliente sin Ollama quedaba con la
+  // búsqueda semántica muerta en silencio. Verificado en openclaw 2026.6.11:
+  // - enabled:true SIN provider ⇒ el CLI ni arranca (default openai exige key)
+  // - provider "none" ⇒ índice FTS5 real (keyword-only), cero dependencias
+  const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, providers: { minimax: {} } };
+  const oc = JSON.parse(generateOpenclawJson(cfg));
+  const ms = oc.agents?.defaults?.memorySearch;
+  assert.equal(ms?.enabled, true, 'memorySearch habilitado');
+  assert.equal(ms?.provider, 'none', 'provider "none" explícito (keyword-only)');
+  assert.equal(ms?.remote, undefined, 'sin remote residual');
+  assert.ok(!JSON.stringify(ms).includes('11434'), 'sin el endpoint de Ollama de dev');
+});
+
 test('provider elegido (minimax) → primary minimax/MiniMax-M3 (no ollama)', () => {
   const cfg = { ...baseConfig, clawcrewTeam: teamWithAgent, providers: { minimax: {} } };
   const oc = JSON.parse(generateOpenclawJson(cfg));

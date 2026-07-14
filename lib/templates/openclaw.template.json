@@ -91,11 +91,7 @@
       },
       "memorySearch": {
         "enabled": true,
-        "provider": "ollama",
-        "model": "nomic-embed-text",
-        "remote": {
-          "baseUrl": "http://127.0.0.1:11434"
-        }
+        "provider": "none"
       },
       "subagents": {
         "maxSpawnDepth": 2,
