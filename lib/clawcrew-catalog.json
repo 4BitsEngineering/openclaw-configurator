@@ -60,9 +60,9 @@
     },
     {
       "id": "community",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "category": "office",
-      "description": "Community manager. Ideas de contenido, posts para IG/LinkedIn/X y calendario editorial; además atención de comunidad: respuestas a comentarios y DMs, moderación y escucha/sentiment. Nunca publica ni responde en público sin aprobación.",
+      "description": "Community manager. Genera imágenes y creatividades para redes y posts (fotos, visuales). Ideas de contenido, posts para IG/LinkedIn/X y calendario editorial; atención de comunidad: respuestas a comentarios y DMs, moderación y escucha/sentiment. Nunca publica ni responde en público sin aprobación.",
       "defaults": {
         "slug": "community",
         "displayName": "Community Manager",
@@ -98,7 +98,7 @@
     },
     {
       "id": "copywriter",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "content",
       "description": "Redactor. Captions IG, posts LinkedIn, hashtags, hooks, guiones de reels/shorts, blog, newsletter y artículos SEO con optimización on-page (títulos, meta, encabezados, enlazado). Texto en voz de marca.",
       "defaults": {
@@ -131,7 +131,8 @@
       ],
       "siblings": {
         "marketing": "Para plan editorial, audiencia, ángulo de campaña o keyword/brief SEO antes de redactar.",
-        "community": "Para respuesta a comentario/DM concreto o gestión de comunidad (no creación de pieza)."
+        "community": "Para respuesta a comentario/DM concreto o gestión de comunidad (no creación de pieza).",
+        "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
       },
       "compatibleOverlays": [
         "*"
@@ -177,9 +178,9 @@
     },
     {
       "id": "executive",
-      "version": "1.2.0",
+      "version": "1.3.1",
       "category": "office",
-      "description": "Asistente ejecutiva del cliente. Triaje de Gmail, agenda de Google Calendar, notas y borradores vía el wrapper gws-bridge (OAuth). Fallback himalaya para cuentas IMAP/Outlook. Nunca envía nada sin aprobación.",
+      "description": "Asistente ejecutiva del cliente. Triaje de Gmail, agenda de Google Calendar, notas y borradores vía el wrapper gws-bridge (OAuth), y gestión con aprobación del Google conectado: papelera de correos, edición/cancelación de eventos, orden de Drive y filas en Sheets. Fallback himalaya para cuentas IMAP/Outlook. Nunca ejecuta nada externo sin aprobación.",
       "defaults": {
         "slug": "executive",
         "displayName": "Agenda y Correo",
@@ -241,7 +242,8 @@
       "siblings": {
         "executive": "Para email a un cliente, agenda, reuniones o recordatorios.",
         "social": "Para posts o calendario de redes sociales.",
-        "legal": "Para dudas de contrato o revisión legal."
+        "legal": "Para dudas de contrato o revisión legal.",
+        "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
       },
       "compatibleOverlays": [
         "*"
@@ -283,7 +285,8 @@
       ],
       "siblings": {
         "executive": "Para triaje del inbox, gestión de agenda o envío de correos al cliente / a la otra parte.",
-        "social": "Para post social / contenido editorial corto (incluso si versa sobre novedades legales)."
+        "social": "Para post social / contenido editorial corto (incluso si versa sobre novedades legales).",
+        "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
       },
       "compatibleOverlays": [
         "*"
@@ -292,7 +295,7 @@
     },
     {
       "id": "marketing-strategist",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "marketing",
       "description": "Estratega de marketing integral. Plan trimestral, posicionamiento, GTM, buyer persona, allocation cross-channel y KPIs; además estrategia SEO (keyword research, audit técnica, briefs de contenido, calendario editorial) y criterio de paid y analítica para orientar al equipo. Define el rumbo y los briefs; no redacta el copy final ni opera campañas.",
       "defaults": {
@@ -337,7 +340,8 @@
       "siblings": {
         "copy": "Para redactar el copy o el artículo final una vez fijada la estrategia, el ángulo o la keyword.",
         "community": "Para ejecutar el calendario en redes y la gestión de comunidad.",
-        "executive": "Para enviar emails o agendar reuniones derivadas del plan."
+        "executive": "Para enviar emails o agendar reuniones derivadas del plan.",
+        "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
       },
       "compatibleOverlays": [
         "*"
@@ -367,7 +371,9 @@
         "browser",
         "memory_search",
         "memory_save",
-        "exec"
+        "sessions_spawn",
+        "sessions_yield",
+        "message"
       ],
       "toolGroups": [
         "group:fs",
@@ -377,7 +383,8 @@
       "siblings": {
         "executive": "Para inbox, agenda, reuniones y recordatorios (asistencia ejecutiva de oficina).",
         "social": "Para posts de redes sociales.",
-        "legal": "Para dudas de contrato / legal."
+        "legal": "Para dudas de contrato / legal.",
+        "documents": "Para generar ficheros Office/PDF y copiar/mover ficheros existentes (binarios) a carpetas del usuario."
       },
       "compatibleOverlays": [
         "*"
@@ -412,7 +419,9 @@
         "group:fs"
       ],
       "skills": [],
-      "siblings": {},
+      "siblings": {
+        "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
+      },
       "compatibleOverlays": [
         "*"
       ],
@@ -420,7 +429,7 @@
     },
     {
       "id": "software-developer",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "category": "office",
       "description": "Desarrollador de software del cliente. Convierte un encargo en lenguaje natural en una pequeña especificación y construye scripts y apps pequeñas usando un CLI de codificación (Claude Code por defecto) conducido por el propio modelo del cliente. Trabaja en un workspace aislado y entrega el resultado para revisión; nunca aplica cambios en producción sin aprobación.",
       "defaults": {
