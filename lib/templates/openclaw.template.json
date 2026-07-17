@@ -127,6 +127,9 @@
   "messages": {
     "tts": {
       "auto": "tagged",
+      "modelOverrides": {
+        "enabled": false
+      },
       "provider": "minimax",
       "providers": {
         "elevenlabs": {
