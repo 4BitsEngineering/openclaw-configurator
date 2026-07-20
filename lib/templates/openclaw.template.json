@@ -78,6 +78,8 @@
       "thinkingDefault": "off",
       "reasoningDefault": "off",
       "contextInjection": "continuation-skip",
+      "bootstrapMaxChars": 25000,
+      "bootstrapTotalMaxChars": 75000,
       "heartbeat": {
         "every": "55m"
       },
