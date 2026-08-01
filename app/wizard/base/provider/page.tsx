@@ -18,7 +18,10 @@ const catalog = rawCatalog as typeof rawCatalog & {
 type CatalogProvider = (typeof catalog)["providers"][number];
 type CatalogModel = CatalogProvider["models"][number];
 
-const FEATURED_IDS = ["openai", "anthropic", "google", "minimax"];
+// OpenRouter primero (1-ago-2026, decisión JJ tras el A/B real): es el modo de
+// producto recomendado — multi-modelo con M3 primary (BYOK de la suscripción
+// MiniMax) y reserva Kimi K2.6. Google sigue disponible en el buscador.
+const FEATURED_IDS = ["openrouter", "minimax", "anthropic", "openai"];
 
 const isKeyless = (p: CatalogProvider) =>
   p.authMethods.includes("local") || p.envVars.length === 0;
@@ -53,7 +56,14 @@ export default function ProviderStep() {
   const [customModelId, setCustomModelId] = useState("");
   const [customEnvKey, setCustomEnvKey] = useState("CUSTOM_API_KEY");
 
+  // Modo openrouter: acompañarlo de la suscripción MiniMax (TTS/imagen + BYOK).
+  // Default ON — es el SKU recomendado. Se rehidrata de una selección previa.
+  const [orWithMinimax, setOrWithMinimax] = useState<boolean>(() =>
+    (config.providers || {}).openrouter ? !!(config.providers || {}).minimax : true,
+  );
+
   const isCustom = selectedId === "__custom__";
+  const isOpenRouter = selectedId === "openrouter";
 
   const featured = FEATURED_IDS
     .map((id) => catalog.providers.find((p) => p.id === id))
@@ -99,6 +109,12 @@ export default function ProviderStep() {
     }
     const entry: Record<string, unknown> = {};
     if (selectedModelId) entry.model = selectedModelId;
+    // openrouter + suscripción MiniMax: el generador conserva el bloque directo
+    // de minimax (TTS/imagen) y pide MINIMAX_API_KEY además de la de OpenRouter.
+    if (isOpenRouter && orWithMinimax) {
+      updateConfig({ providers: { openrouter: entry, minimax: {} } });
+      return true;
+    }
     updateConfig({ providers: { [selectedId]: entry } });
     return true;
   }
@@ -171,7 +187,33 @@ export default function ProviderStep() {
         </div>
       </div>
 
-      {models.length > 0 ? (
+      {isOpenRouter ? (
+        <div className="space-y-3">
+          <div className="rounded-lg border border-border bg-background p-3 space-y-1">
+            <p className="text-sm font-medium text-foreground">Multi-modelo (recomendado)</p>
+            <p className="text-xs text-muted-foreground">
+              Principal <span className="font-mono">MiniMax M3</span> (proveedor oficial fijado) con
+              reserva automática <span className="font-mono">Kimi K2.6</span>.{" "}
+              <span className="font-mono">Qwen3.7 Plus</span> disponible para asignarlo por agente.
+            </p>
+          </div>
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={orWithMinimax}
+              onChange={(e) => setOrWithMinimax(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-input accent-[var(--brand,#7c3aed)]"
+            />
+            <span>
+              <span className="text-sm font-medium text-foreground block">Tengo suscripción MiniMax</span>
+              <span className="text-xs text-muted-foreground block">
+                Activa voz e imagen con su key y permite que el consumo de M3 lo cubra tu plan
+                (registrándola como BYOK en OpenRouter, sección Prioritized).
+              </span>
+            </span>
+          </label>
+        </div>
+      ) : models.length > 0 ? (
         <div>
           <label className="text-xs font-semibold text-muted-foreground block mb-2">Modelo</label>
           <div className="space-y-1.5 max-h-[30rem] overflow-y-auto pr-1">
@@ -225,6 +267,11 @@ export default function ProviderStep() {
               {v}
             </span>
           ))}
+          {isOpenRouter && orWithMinimax && (
+            <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs font-mono">
+              MINIMAX_API_KEY
+            </span>
+          )}
         </div>
       )}
     </div>

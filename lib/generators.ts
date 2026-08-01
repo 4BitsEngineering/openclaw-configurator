@@ -65,6 +65,56 @@ const CONFIGURATOR_VERSION = "0.1.0";
 // modelo de la instancia cuando el operador no eligió provider en step-1.
 const DEFAULT_KEYLESS_MODEL = "ollama/gemma4-gpu";
 
+// ── Modo OpenRouter multi-modelo (1-ago-2026, decisión JJ tras el A/B real) ──
+// OpenRouter como transporte LLM único de la instancia: primary M3 — vía BYOK
+// del cliente (su key MiniMax en Prioritized de la web BYOK de OpenRouter: el
+// plan $20 cubre el consumo y OpenRouter no cobra fee <1M req/mes) y FIJADO al
+// proveedor OFICIAL (sin el pin, el routing balancea a revendedores fp8
+// cuantizados que cobran créditos y NO son el M3 real) — con fallback de
+// MODELO a Kimi K2.6 (12/12 en la batería A/B; Qwen3.7-plus disponible para
+// pins por agente). Si el wizard selecciona TAMBIÉN minimax, su bloque directo
+// se conserva para TTS/imagen (la suscripción del SKU).
+const OPENROUTER_DEFAULT_MODEL = "minimax/minimax-m3";
+const OPENROUTER_FALLBACK_MODEL = "moonshotai/kimi-k2.6";
+const OPENROUTER_PROVIDER_ENTRY = {
+  baseUrl: "https://openrouter.ai/api/v1",
+  apiKey: "${OPENROUTER_API_KEY}",
+  api: "openai-completions",
+  timeoutSeconds: 300,
+  models: [
+    {
+      id: "minimax/minimax-m3",
+      name: "MiniMax M3 (OpenRouter)",
+      reasoning: true,
+      input: ["text", "image"],
+      // Coste PAYG real de OpenRouter; con BYOK activo el cargo efectivo es 0
+      // (lo cubre el plan MiniMax del cliente), pero el default honesto es el
+      // precio de lista — la instancia con BYOK puede ponerlo a 0 a mano.
+      cost: { input: 0.3, output: 1.2, cacheRead: 0.06, cacheWrite: 0 },
+      contextWindow: 1000000,
+      maxTokens: 65536,
+    },
+    {
+      id: "moonshotai/kimi-k2.6",
+      name: "Kimi K2.6 (OpenRouter)",
+      reasoning: true,
+      input: ["text"],
+      cost: { input: 0.6, output: 3.41, cacheRead: 0.15, cacheWrite: 0 },
+      contextWindow: 262144,
+      maxTokens: 65536,
+    },
+    {
+      id: "qwen/qwen3.7-plus",
+      name: "Qwen3.7 Plus (OpenRouter)",
+      reasoning: true,
+      input: ["text", "image"],
+      cost: { input: 0.32, output: 1.28, cacheRead: 0.064, cacheWrite: 0 },
+      contextWindow: 1000000,
+      maxTokens: 65536,
+    },
+  ],
+};
+
 // Resuelve el modelo de la instancia desde el wizard. Es la ÚNICA fuente de
 // verdad compartida por los tres generadores (openclaw.json primary,
 // overlay defaultModel, .env key) para que no se descuadren. Default keyless:
@@ -87,6 +137,14 @@ function resolveInstanceModel(config: WizardConfig): { providerId: string; model
     const c = p.__custom__;
     const modelId = c.model || "custom-model";
     return { providerId: "custom", modelId, ref: `custom/${modelId}`, envKey: c.envKey || undefined };
+  }
+  // OpenRouter ANTES del path genérico: cuando el wizard selecciona openrouter
+  // Y minimax (el SKU con suscripción para TTS/imagen), el primary es SIEMPRE
+  // openrouter — el genérico habría elegido cualquiera de los dos según el
+  // orden de Object.keys.
+  if (p.openrouter) {
+    const modelId = (p.openrouter as { model?: string }).model || OPENROUTER_DEFAULT_MODEL;
+    return { providerId: "openrouter", modelId, ref: `openrouter/${modelId}`, envKey: "OPENROUTER_API_KEY" };
   }
   // Cualquier otro provider del catálogo (minimax, deepseek, groq, …). Antes
   // caía silenciosamente al keyless ollama; ahora respeta la elección del step-1.
@@ -162,7 +220,17 @@ export function generateOpenclawJson(config: WizardConfig): string {
   modelBlock.primary = instance.ref;
   // SOLO el provider elegido: sin fallback de ollama (decisión 29-jun). No
   // enmascaramos un primary caído con un modelo local que el cliente no pidió.
+  // Excepción openrouter (1-ago): fallback de MODELO dentro del MISMO provider
+  // (M3 ⇄ Kimi K2.6) — no enmascara nada, es el salto de calidad validado en
+  // el A/B para cuando el proveedor oficial de M3 tenga problemas.
   modelBlock.fallbacks = [];
+  if (instance.providerId === "openrouter") {
+    modelBlock.fallbacks = [
+      instance.modelId === OPENROUTER_FALLBACK_MODEL
+        ? `openrouter/${OPENROUTER_DEFAULT_MODEL}`
+        : `openrouter/${OPENROUTER_FALLBACK_MODEL}`,
+    ];
+  }
   tpl.agents.defaults.model = modelBlock;
 
   // El config generado debe contener SOLO el provider elegido. El template trae
@@ -170,10 +238,41 @@ export function generateOpenclawJson(config: WizardConfig): string {
   // así que elegir otro provider seguía exigiendo la key de MiniMax para arrancar.
   // Podamos models.providers a la entrada elegida y, si no se elige minimax,
   // retiramos su TTS (la voz se reactiva luego en la consola con su key).
+  // Modo openrouter+minimax: minimax se CONSERVA (TTS/imagen de la suscripción
+  // del SKU) aunque el primary sea openrouter — el cliente aporta ambas keys.
   const keepId = instance.providerId;
+  const keepSet = new Set([keepId]);
+  if (keepId === "openrouter" && (config.providers || {}).minimax) keepSet.add("minimax");
   if (tpl.models?.providers && tpl.models.providers[keepId]) {
     for (const id of Object.keys(tpl.models.providers)) {
-      if (id !== keepId) delete tpl.models.providers[id];
+      if (!keepSet.has(id)) delete tpl.models.providers[id];
+    }
+  }
+
+  // Allowlist de modelos (agents.defaults.models): el motor IGNORA EN SILENCIO
+  // cualquier model ref (por-agente o de sesión) que no esté entre estas claves
+  // (gotcha 1-ago, `openclaw models status` → campo `allowed`). Todo modelo del
+  // provider openrouter entra, y el M3 lleva el pin al proveedor OFICIAL para
+  // que el BYOK aplique (jamás revendedores fp8; ante un problema del oficial,
+  // que salte el fallback de MODELO a Kimi, no un downgrade de proveedor).
+  if (keepId === "openrouter") {
+    tpl.agents.defaults.models = tpl.agents.defaults.models || {};
+    const dm = tpl.agents.defaults.models as Record<string, { streaming?: boolean; params?: Record<string, unknown> }>;
+    for (const m of OPENROUTER_PROVIDER_ENTRY.models) {
+      const ref = `openrouter/${m.id}`;
+      dm[ref] = { ...(dm[ref] || {}), streaming: true };
+    }
+    const m3ref = `openrouter/${OPENROUTER_DEFAULT_MODEL}`;
+    dm[m3ref].params = {
+      ...(dm[m3ref].params || {}),
+      provider: { order: ["minimax"], allow_fallbacks: false },
+    };
+    // Sin el bloque directo de minimax, sus refs del template quedarían
+    // colgando en la allowlist — fuera.
+    if (!keepSet.has("minimax")) {
+      for (const ref of Object.keys(dm)) {
+        if (ref.startsWith("minimax/")) delete dm[ref];
+      }
     }
   }
   // Saneador de fallbacks/primary minimax|ollama en cualquier override por agente
@@ -185,7 +284,7 @@ export function generateOpenclawJson(config: WizardConfig): string {
       am.primary = instance.ref;
     }
   }
-  if (keepId !== "minimax" && tpl.messages?.tts) {
+  if (!keepSet.has("minimax") && tpl.messages?.tts) {
     delete tpl.messages.tts;
   }
 
@@ -274,6 +373,13 @@ function pickProviderModel(config: WizardConfig): { providerId: string; provider
       apiKey: "${GOOGLE_API_KEY}", api: "openai-completions",
       models: [{ id: p.google.model || "gemini-2.5-pro", name: p.google.model || "gemini-2.5-pro" }],
     } };
+  }
+  // OpenRouter: entry completa con el trío del A/B (M3 primary + Kimi fallback
+  // + Qwen para pins por agente). El catálogo trae openrouter SIN baseUrl/api
+  // (el motor lo resuelve dinámicamente), así que el path genérico no puede
+  // construirla — branch explícito.
+  if (p.openrouter) {
+    return { providerId: "openrouter", providerEntry: JSON.parse(JSON.stringify(OPENROUTER_PROVIDER_ENTRY)) };
   }
   // Provider custom (OpenAI-compatible): el wizard recoge baseUrl/model/envKey.
   // Antes pickProviderModel devolvía null para custom → el openclaw.json quedaba
@@ -504,6 +610,18 @@ export function generateEnvFile(config: WizardConfig): string {
   if (instance.envKey && !lines.some((l) => l.startsWith(`${instance.envKey}=`))) {
     lines.push(`# Required for the selected model (${instance.ref}) — fill in your key`);
     lines.push(`${instance.envKey}=`);
+    lines.push(``);
+  }
+
+  // Modo openrouter+minimax: el bloque directo de minimax se conserva en el
+  // openclaw.json (TTS/imagen de la suscripción) y referencia ${MINIMAX_API_KEY}
+  // — sin la línea, el secret-reloader aborta el boot. Es además la key que el
+  // cliente registra como BYOK en OpenRouter (Prioritized) para que M3 lo cubra
+  // su plan.
+  if (instance.providerId === "openrouter" && (config.providers || {}).minimax
+      && !lines.some((l) => l.startsWith("MINIMAX_API_KEY="))) {
+    lines.push(`# MiniMax subscription key — TTS/imagen del SKU y BYOK en OpenRouter (Prioritized)`);
+    lines.push(`MINIMAX_API_KEY=`);
     lines.push(``);
   }
 

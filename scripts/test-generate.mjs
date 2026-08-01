@@ -367,3 +367,80 @@ test('package incluye overlay/dispatch.config.json', () => {
   const d = JSON.parse(pkg['overlay/dispatch.config.json']);
   assert.equal(d.roles.length, 2, 'roles en el paquete');
 });
+
+// ── Modo OpenRouter multi-modelo (1-ago-2026, decisión JJ tras el A/B real) ──
+// La instancia tira de OpenRouter como transporte LLM único: primary M3 (vía
+// BYOK del cliente = su plan MiniMax lo cubre; fijado al proveedor OFICIAL
+// para que el routing nunca caiga en revendedores fp8) con fallback de MODELO
+// a Kimi K2.6 (12/12 en la batería). Si el wizard selecciona TAMBIÉN minimax,
+// su bloque directo se conserva para TTS/imagen (la suscripción del SKU).
+const orOnlyConfig = {
+  ...baseConfig,
+  providers: { openrouter: {} },
+};
+const orPlusMinimaxConfig = {
+  ...baseConfig,
+  providers: { openrouter: {}, minimax: {} },
+};
+
+test('openrouter: provider completo con los 3 modelos del A/B', () => {
+  const out = JSON.parse(generateOpenclawJson(orOnlyConfig));
+  const prov = out.models.providers.openrouter;
+  assert.ok(prov, 'provider openrouter presente');
+  assert.equal(prov.baseUrl, 'https://openrouter.ai/api/v1', 'baseUrl canónica (verified route)');
+  assert.equal(prov.api, 'openai-completions', 'api openai-completions');
+  assert.equal(prov.apiKey, '${OPENROUTER_API_KEY}', 'key por env ref');
+  const ids = (prov.models || []).map(m => m.id);
+  assert.ok(ids.includes('minimax/minimax-m3'), 'M3 presente');
+  assert.ok(ids.includes('moonshotai/kimi-k2.6'), 'Kimi K2.6 presente');
+  assert.ok(ids.includes('qwen/qwen3.7-plus'), 'Qwen3.7-plus presente');
+});
+
+test('openrouter: primary M3 con fallback de modelo a Kimi', () => {
+  const out = JSON.parse(generateOpenclawJson(orOnlyConfig));
+  assert.equal(out.agents.defaults.model.primary, 'openrouter/minimax/minimax-m3');
+  assert.deepEqual(out.agents.defaults.model.fallbacks, ['openrouter/moonshotai/kimi-k2.6']);
+});
+
+test('openrouter: allowlist (agents.defaults.models) incluye los 3 refs — sin esto el motor los ignora EN SILENCIO', () => {
+  const out = JSON.parse(generateOpenclawJson(orOnlyConfig));
+  const dm = out.agents.defaults.models || {};
+  assert.ok(dm['openrouter/minimax/minimax-m3'], 'M3 en allowlist');
+  assert.ok(dm['openrouter/moonshotai/kimi-k2.6'], 'Kimi en allowlist');
+  assert.ok(dm['openrouter/qwen/qwen3.7-plus'], 'Qwen en allowlist');
+});
+
+test('openrouter: M3 fijado al proveedor OFICIAL (BYOK; jamás revendedores fp8)', () => {
+  const out = JSON.parse(generateOpenclawJson(orOnlyConfig));
+  const m3 = out.agents.defaults.models['openrouter/minimax/minimax-m3'];
+  assert.deepEqual(m3.params?.provider, { order: ['minimax'], allow_fallbacks: false });
+});
+
+test('openrouter SIN minimax: se poda minimax y su TTS (comportamiento estándar)', () => {
+  const out = JSON.parse(generateOpenclawJson(orOnlyConfig));
+  assert.ok(!out.models.providers.minimax, 'minimax podado');
+  assert.ok(!out.messages?.tts, 'tts podado');
+});
+
+test('openrouter + minimax: el bloque directo de minimax SE CONSERVA (TTS/imagen del SKU)', () => {
+  const out = JSON.parse(generateOpenclawJson(orPlusMinimaxConfig));
+  assert.ok(out.models.providers.openrouter, 'openrouter presente');
+  assert.ok(out.models.providers.minimax, 'minimax conservado');
+  assert.ok(out.messages?.tts, 'tts conservado');
+  assert.equal(out.agents.defaults.model.primary, 'openrouter/minimax/minimax-m3', 'primary sigue siendo openrouter');
+});
+
+test('openrouter: modelo elegido distinto (kimi) → primary kimi, fallback M3', () => {
+  const cfg = { ...baseConfig, providers: { openrouter: { model: 'moonshotai/kimi-k2.6' } } };
+  const out = JSON.parse(generateOpenclawJson(cfg));
+  assert.equal(out.agents.defaults.model.primary, 'openrouter/moonshotai/kimi-k2.6');
+  assert.deepEqual(out.agents.defaults.model.fallbacks, ['openrouter/minimax/minimax-m3']);
+});
+
+test('openrouter: el .env del paquete pide OPENROUTER_API_KEY (y MINIMAX_API_KEY si minimax va tambien)', () => {
+  const envOnly = generateEnvFile(orOnlyConfig);
+  assert.ok(envOnly.includes('OPENROUTER_API_KEY'), 'OPENROUTER_API_KEY en env (solo openrouter)');
+  const envBoth = generateEnvFile(orPlusMinimaxConfig);
+  assert.ok(envBoth.includes('OPENROUTER_API_KEY'), 'OPENROUTER_API_KEY en env (ambos)');
+  assert.ok(envBoth.includes('MINIMAX_API_KEY'), 'MINIMAX_API_KEY en env (ambos)');
+});
