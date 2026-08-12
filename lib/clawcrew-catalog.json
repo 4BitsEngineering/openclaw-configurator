@@ -1,16 +1,63 @@
 {
   "schemaVersion": 1,
-  "agentCount": 12,
+  "agentCount": 14,
   "agents": [
     {
-      "id": "automation-engineer",
-      "version": "0.1.0",
+      "id": "assistant",
+      "version": "1.0.2",
+      "category": "general",
+      "description": "Asistente personal versátil tipo openclaw pero acotado: investiga en la web (Brave + browser headless), navega URLs, compara productos y precios, calcula cantidades/presupuestos y redacta respuestas prácticas. El agente 'para todo lo demás' que no encaja en un especialista.",
+      "defaults": {
+        "slug": "assistant",
+        "displayName": "Asistente Personal",
+        "shortName": "PA",
+        "icon": "🪄",
+        "color": "#3B6FE0",
+        "voice": {
+          "kind": "neutral",
+          "elevenlabsId": null
+        },
+        "workingVerb": "investigando"
+      },
+      "tools": [
+        "web_search",
+        "web_fetch",
+        "browser",
+        "memory_search",
+        "memory_save",
+        "sessions_spawn",
+        "sessions_yield",
+        "message"
+      ],
+      "toolGroups": [
+        "group:fs",
+        "group:web"
+      ],
+      "skills": [
+        "skills/pa-task-management",
+        "skills/pa-monday-brief",
+        "skills/pa-friday-brief"
+      ],
+      "siblings": {
+        "executive": "Para inbox, agenda, reuniones y recordatorios (asistencia ejecutiva de oficina).",
+        "community": "Para posts de redes sociales.",
+        "legal": "Para dudas de contrato / legal.",
+        "documents": "Para generar ficheros Office/PDF y copiar/mover ficheros existentes (binarios) a carpetas del usuario."
+      },
+      "compatibleOverlays": [
+        "*"
+      ],
+      "hasPortrait": false
+    },
+    {
+      "id": "automation",
+      "version": "0.2.1",
       "category": "office",
       "description": "Ingeniero/a de automatización. Diseña, valida y opera workflows en n8n. Cada workflow nace inactivo y solo se activa con aprobación humana.",
       "defaults": {
-        "slug": "engineer",
-        "displayName": "Automation Engineer",
-        "shortName": "Automation",
+        "slug": "automation",
+        "displayName": "Automatizaciones",
+        "shortName": "Automatizaciones",
         "icon": "🤖",
         "color": "#65A30D",
         "voice": {
@@ -22,51 +69,49 @@
       "tools": [
         "memory_search",
         "memory_save",
-        "tools_documentation",
-        "search_nodes",
-        "get_node",
-        "validate_node",
-        "validate_workflow",
-        "search_templates",
-        "get_template",
-        "n8n_health_check",
+        "n8n_health",
         "n8n_list_workflows",
         "n8n_get_workflow",
-        "n8n_workflow_versions",
-        "n8n_executions",
+        "n8n_list_executions",
+        "n8n_get_execution",
         "n8n_audit_instance",
-        "n8n_validate_workflow",
-        "n8n_autofix_workflow",
+        "n8n_run_workflow",
         "n8n_create_workflow",
         "n8n_deploy_template",
-        "n8n_update_full_workflow",
-        "n8n_update_partial_workflow",
+        "n8n_update_workflow",
+        "n8n_set_active",
         "n8n_delete_workflow",
-        "n8n_test_workflow",
-        "n8n_manage_credentials"
+        "n8n_credential_schema",
+        "n8n_credential_create",
+        "n8n_credential_delete"
       ],
       "toolGroups": [
         "group:fs"
       ],
-      "skills": [],
+      "skills": [
+        "skills/engineer-runbook",
+        "skills/engineer-process-doc",
+        "skills/engineer-process-optimization"
+      ],
       "siblings": {
         "executive": "Para disparar workflows desde correo o agenda (ej. recibido un email VIP → crear ticket).",
-        "social": "Para programar publicación de posts ya aprobados a IG/LinkedIn/X."
+        "community": "Para programar publicación de posts ya aprobados a IG/LinkedIn/X.",
+        "documents": "Para maquetar la documentación de los flujos como fichero Office/PDF: yo no tengo render."
       },
       "compatibleOverlays": [
         "*"
       ],
-      "hasPortrait": true
+      "hasPortrait": false
     },
     {
       "id": "community",
-      "version": "1.1.2",
+      "version": "1.1.4",
       "category": "office",
       "description": "Community manager. Genera imágenes y creatividades para redes y posts (fotos, visuales). Ideas de contenido, posts para IG/LinkedIn/X y calendario editorial; atención de comunidad: respuestas a comentarios y DMs, moderación y escucha/sentiment. Nunca publica ni responde en público sin aprobación.",
       "defaults": {
         "slug": "community",
-        "displayName": "Community Manager",
-        "shortName": "Community",
+        "displayName": "Redes Sociales",
+        "shortName": "Redes Sociales",
         "icon": "✨",
         "color": "#8A6BAE",
         "voice": {
@@ -78,33 +123,40 @@
       "tools": [
         "memory_search",
         "memory_save",
-        "web_search"
+        "web_search",
+        "image_generate",
+        "asset_download"
       ],
       "toolGroups": [
         "group:fs",
         "group:web"
       ],
-      "skills": [],
+      "skills": [
+        "skills/community-ticket-triage",
+        "skills/community-draft-response",
+        "skills/community-kb-article"
+      ],
       "siblings": {
         "executive": "Para triaje general del inbox o gestión de agenda.",
         "marketing": "Para estrategia editorial, ángulo de campaña o brief/keyword SEO.",
-        "copy": "Para redacción larga (artículo de blog, newsletter) a partir de una idea.",
-        "legal": "Para política de privacidad, términos, RGPD."
+        "copywriter": "Para redacción larga (artículo de blog, newsletter) a partir de una idea.",
+        "legal": "Para política de privacidad, términos, RGPD.",
+        "documents": "Para maquetar el calendario, el plan de contenidos o el informe como fichero Office/PDF: yo no tengo render."
       },
       "compatibleOverlays": [
         "*"
       ],
-      "hasPortrait": true
+      "hasPortrait": false
     },
     {
       "id": "copywriter",
-      "version": "1.2.1",
+      "version": "1.2.3",
       "category": "content",
       "description": "Redactor. Captions IG, posts LinkedIn, hashtags, hooks, guiones de reels/shorts, blog, newsletter y artículos SEO con optimización on-page (títulos, meta, encabezados, enlazado). Texto en voz de marca.",
       "defaults": {
-        "slug": "copy",
-        "displayName": "Redactor",
-        "shortName": "Redactor",
+        "slug": "copywriter",
+        "displayName": "Redacción",
+        "shortName": "Redacción",
         "icon": "✍️",
         "color": "#8B5A8C",
         "voice": {
@@ -116,7 +168,9 @@
       "tools": [
         "memory_search",
         "memory_save",
-        "web_search"
+        "web_search",
+        "image_generate",
+        "asset_download"
       ],
       "toolGroups": [
         "group:fs",
@@ -127,7 +181,10 @@
         "skills/copy-editing",
         "skills/landing-page-design",
         "skills/marketing-psychology",
-        "skills/on-page-seo"
+        "skills/on-page-seo",
+        "skills/copy-brand-voice",
+        "skills/copy-draft-content",
+        "skills/copy-ux-writing"
       ],
       "siblings": {
         "marketing": "Para plan editorial, audiencia, ángulo de campaña o keyword/brief SEO antes de redactar.",
@@ -137,11 +194,53 @@
       "compatibleOverlays": [
         "*"
       ],
-      "hasPortrait": true
+      "hasPortrait": false
+    },
+    {
+      "id": "developer",
+      "version": "0.3.2",
+      "category": "office",
+      "description": "Desarrollador de software del cliente. Convierte un encargo en lenguaje natural en una pequeña especificación y construye scripts y apps pequeñas usando un CLI de codificación (incluido siempre en la instalación) conducido por el propio modelo del cliente. Trabaja en un workspace aislado y entrega el resultado para revisión; nunca aplica cambios en producción sin aprobación.",
+      "defaults": {
+        "slug": "developer",
+        "displayName": "Desarrollo de Software",
+        "shortName": "Dev",
+        "icon": "💻",
+        "color": "#475569",
+        "voice": {
+          "kind": "neutral",
+          "elevenlabsId": null
+        },
+        "workingVerb": "programando"
+      },
+      "tools": [
+        "exec",
+        "memory_search",
+        "memory_save",
+        "browser"
+      ],
+      "toolGroups": [
+        "group:fs"
+      ],
+      "skills": [
+        "skills/developer-code-review",
+        "skills/developer-debug",
+        "skills/developer-testing-strategy"
+      ],
+      "siblings": {
+        "documents": "Para convertir resultados en un informe, presentación u hoja de cálculo presentables.",
+        "automation": "Para automatizaciones que vivan en n8n (workflows) en vez de un script suelto.",
+        "assistant": "Para research web de apoyo antes de especificar el encargo.",
+        "executive": "Cuando haya que enviar el entregable por correo o agendar algo (la acción externa la aprueba el cliente)."
+      },
+      "compatibleOverlays": [
+        "*"
+      ],
+      "hasPortrait": false
     },
     {
       "id": "documents",
-      "version": "1.0.1",
+      "version": "1.0.6",
       "category": "office",
       "description": "Convierte datos, ficheros y temas en entregables presentables —informes, presentaciones y hojas de cálculo— como ficheros reales (.docx, .pptx, .xlsx, PDF) con el formato y la voz del cliente. Siempre entrega borrador para revisión; nunca envía ni publica.",
       "defaults": {
@@ -164,12 +263,56 @@
       "toolGroups": [
         "group:fs"
       ],
-      "skills": [],
+      "skills": [
+        "skills/documents-theme-factory",
+        "skills/documents-brand-guidelines"
+      ],
       "siblings": {
         "executive": "Cuando el entregable hay que enviarlo por correo o agendar algo, deriva al rol ejecutivo/asistente para el envío (la acción externa la aprueba el cliente).",
         "webops": "Cuando hay que operar un portal con navegador (subir la propuesta, pulsar Submit), deriva al rol de operaciones web.",
         "automation": "Cuando el entregable depende de un workflow de automatización (n8n u otro), deriva al rol de ingeniería/automatización.",
-        "personal-assistant": "Cuando faltan datos que requieren búsqueda web de apoyo, deriva al rol de asistente personal/research."
+        "assistant": "Cuando faltan datos que requieren búsqueda web de apoyo, deriva al rol de asistente personal/research."
+      },
+      "compatibleOverlays": [
+        "*"
+      ],
+      "hasPortrait": false
+    },
+    {
+      "id": "employment",
+      "version": "1.0.0",
+      "category": "asesoria",
+      "description": "Asesoría laboral española: prepara los trámites de Seguridad Social del despacho antes de que se comuniquen por el Sistema RED. En su v1 clasifica la plantilla en códigos de ocupación CNO para la campaña que el RD 643/2026 obliga a cerrar. Nunca comunica nada a la Seguridad Social ni usa el certificado digital; todo entregable es un borrador técnico que requiere revisión del profesional.",
+      "defaults": {
+        "slug": "employment",
+        "displayName": "Asesoría Laboral",
+        "shortName": "Asesoría Laboral",
+        "icon": "👥",
+        "color": "#4A6C8C",
+        "voice": {
+          "kind": "male",
+          "elevenlabsId": null
+        },
+        "workingVerb": "revisando la plantilla"
+      },
+      "tools": [
+        "memory_search",
+        "memory_save",
+        "web_search"
+      ],
+      "toolGroups": [
+        "group:fs",
+        "group:web"
+      ],
+      "skills": [
+        "skills/cno-ocupaciones",
+        "../../shared/skills/triaje-notificaciones"
+      ],
+      "siblings": {
+        "tax": "Para impuestos, censos y liquidaciones — no son mi alcance.",
+        "legal": "Para despidos, contratos, NDAs y RGPD — no son mi alcance.",
+        "executive": "Para enviar correo, gestionar agenda o triaje de bandeja con el cliente.",
+        "documents": "Para maquetar mi borrador como documento Office (.docx/.pdf/.xlsx): le paso el markdown y él genera el fichero."
       },
       "compatibleOverlays": [
         "*"
@@ -178,7 +321,7 @@
     },
     {
       "id": "executive",
-      "version": "1.3.1",
+      "version": "1.4.1",
       "category": "office",
       "description": "Asistente ejecutiva del cliente. Triaje de Gmail, agenda de Google Calendar, notas y borradores vía el wrapper gws-bridge (OAuth), y gestión con aprobación del Google conectado: papelera de correos, edición/cancelación de eventos, orden de Drive y filas en Sheets. Fallback himalaya para cuentas IMAP/Outlook. Nunca ejecuta nada externo sin aprobación.",
       "defaults": {
@@ -201,28 +344,34 @@
       "toolGroups": [
         "group:fs"
       ],
-      "skills": [],
+      "skills": [
+        "skills/executive-internal-comms",
+        "skills/executive-variance-analysis",
+        "skills/executive-financial-statements",
+        "skills/executive-status-report"
+      ],
       "siblings": {
         "marketing": "Para estrategia, calendario editorial o brief/keyword SEO.",
         "community": "Para ideas de post o gestión de redes sociales.",
-        "copy": "Para redactar copy o un artículo largo en voz de marca.",
+        "copywriter": "Para redactar copy o un artículo largo en voz de marca.",
         "legal": "Para revisión de contratos o dudas legales orientativas.",
+        "tax": "Para gestoría: tributos, modelos AEAT, censos, Seguridad Social, contabilidad.",
         "documents": "Para convertir notas o datos en un informe, presentación u hoja de cálculo."
       },
       "compatibleOverlays": [
         "*"
       ],
-      "hasPortrait": true
+      "hasPortrait": false
     },
     {
       "id": "founder",
-      "version": "1.0.0",
+      "version": "1.0.2",
       "category": "office",
       "description": "Aliado estratégico del cliente: mantiene vivos la misión, los valores, la audiencia y la voz del negocio en los docs enterprise/ para que el resto del equipo suene al cliente y no a un agente genérico. No actúa sobre el mundo externo: escucha, sintetiza y persiste el contexto.",
       "defaults": {
         "slug": "founder",
-        "displayName": "Founder",
-        "shortName": "Founder",
+        "displayName": "Dirección",
+        "shortName": "Dirección",
         "icon": "🧭",
         "color": "#7A6A53",
         "voice": {
@@ -233,15 +382,21 @@
       },
       "tools": [
         "memory_search",
-        "memory_save"
+        "memory_save",
+        "image_generate"
       ],
       "toolGroups": [
         "group:fs"
       ],
-      "skills": [],
+      "skills": [
+        "skills/founder-business-pulse",
+        "skills/founder-cash-flow-snapshot",
+        "skills/founder-margin-analyzer",
+        "skills/founder-quarterly-review"
+      ],
       "siblings": {
         "executive": "Para email a un cliente, agenda, reuniones o recordatorios.",
-        "social": "Para posts o calendario de redes sociales.",
+        "community": "Para posts o calendario de redes sociales.",
         "legal": "Para dudas de contrato o revisión legal.",
         "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
       },
@@ -251,7 +406,7 @@
       "hasPortrait": false
     },
     {
-      "id": "legal-suite",
+      "id": "legal",
       "version": "1.0.0",
       "category": "office",
       "description": "Suite legal completa: revisión de contratos contra playbook, triaje de NDAs, compliance RGPD, evaluación de riesgos, respuestas desde plantilla y preparación de reuniones. Orientativo, no sustituye a un abogado colegiado.",
@@ -273,7 +428,8 @@
         "web_search"
       ],
       "toolGroups": [
-        "group:fs"
+        "group:fs",
+        "group:web"
       ],
       "skills": [
         "skills/legal-contract-review",
@@ -281,11 +437,16 @@
         "skills/legal-compliance-check",
         "skills/legal-risk-assessment",
         "skills/legal-response",
-        "skills/legal-meeting-briefing"
+        "skills/legal-meeting-briefing",
+        "skills/legal-brief",
+        "skills/legal-vendor-check",
+        "../../shared/skills/triaje-notificaciones"
       ],
       "siblings": {
         "executive": "Para triaje del inbox, gestión de agenda o envío de correos al cliente / a la otra parte.",
-        "social": "Para post social / contenido editorial corto (incluso si versa sobre novedades legales).",
+        "community": "Para post social / contenido editorial corto (incluso si versa sobre novedades legales).",
+        "tax": "Para tributos, modelos AEAT, censos y contabilidad.",
+        "employment": "Para afiliación, ocupación CNO y trámites de Seguridad Social por el Sistema RED.",
         "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
       },
       "compatibleOverlays": [
@@ -294,13 +455,13 @@
       "hasPortrait": false
     },
     {
-      "id": "marketing-strategist",
-      "version": "1.2.1",
+      "id": "marketing",
+      "version": "1.5.1",
       "category": "marketing",
       "description": "Estratega de marketing integral. Plan trimestral, posicionamiento, GTM, buyer persona, allocation cross-channel y KPIs; además estrategia SEO (keyword research, audit técnica, briefs de contenido, calendario editorial) y criterio de paid y analítica para orientar al equipo. Define el rumbo y los briefs; no redacta el copy final ni opera campañas.",
       "defaults": {
         "slug": "marketing",
-        "displayName": "Estratega de Marketing",
+        "displayName": "Marketing",
         "shortName": "Marketing",
         "icon": "🧭",
         "color": "#2E5C7E",
@@ -335,10 +496,21 @@
         "skills/local-seo-booster",
         "skills/content-strategy",
         "skills/content-calendar-briefs",
-        "skills/social-media-content"
+        "skills/social-media-content",
+        "skills/marketing-performance-report",
+        "skills/google-ads-campaigns",
+        "skills/meta-ads-campaigns",
+        "skills/marketing-attribution",
+        "skills/marketing-automation",
+        "skills/marketing-metrics-101",
+        "skills/email-sequence-builder",
+        "skills/email-funnel-optimizer",
+        "skills/ab-testing-framework",
+        "skills/landing-cro-audit",
+        "skills/ads-performance-auditor"
       ],
       "siblings": {
-        "copy": "Para redactar el copy o el artículo final una vez fijada la estrategia, el ángulo o la keyword.",
+        "copywriter": "Para redactar el copy o el artículo final una vez fijada la estrategia, el ángulo o la keyword.",
         "community": "Para ejecutar el calendario en redes y la gestión de comunidad.",
         "executive": "Para enviar emails o agendar reuniones derivadas del plan.",
         "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
@@ -346,54 +518,11 @@
       "compatibleOverlays": [
         "*"
       ],
-      "hasPortrait": true
-    },
-    {
-      "id": "personal-assistant",
-      "version": "1.0.0",
-      "category": "general",
-      "description": "Asistente personal versátil tipo openclaw pero acotado: investiga en la web (Brave + browser headless), navega URLs, compara productos y precios, calcula cantidades/presupuestos y redacta respuestas prácticas. El agente 'para todo lo demás' que no encaja en un especialista.",
-      "defaults": {
-        "slug": "pa",
-        "displayName": "Asistente Personal",
-        "shortName": "PA",
-        "icon": "🪄",
-        "color": "#3B6FE0",
-        "voice": {
-          "kind": "neutral",
-          "elevenlabsId": null
-        },
-        "workingVerb": "investigando"
-      },
-      "tools": [
-        "web_search",
-        "web_fetch",
-        "browser",
-        "memory_search",
-        "memory_save",
-        "sessions_spawn",
-        "sessions_yield",
-        "message"
-      ],
-      "toolGroups": [
-        "group:fs",
-        "group:web"
-      ],
-      "skills": [],
-      "siblings": {
-        "executive": "Para inbox, agenda, reuniones y recordatorios (asistencia ejecutiva de oficina).",
-        "social": "Para posts de redes sociales.",
-        "legal": "Para dudas de contrato / legal.",
-        "documents": "Para generar ficheros Office/PDF y copiar/mover ficheros existentes (binarios) a carpetas del usuario."
-      },
-      "compatibleOverlays": [
-        "*"
-      ],
-      "hasPortrait": true
+      "hasPortrait": false
     },
     {
       "id": "planner",
-      "version": "1.1.0",
+      "version": "1.2.2",
       "category": "office",
       "description": "Orquestador interno: descompone peticiones complejas en fases, coordina al equipo vía sessions_spawn y gestiona los proyectos por fases. En PLAN_MODE propone un plan y espera aprobación.",
       "defaults": {
@@ -413,12 +542,18 @@
         "sessions_yield",
         "subagents",
         "memory_search",
-        "memory_save"
+        "memory_save",
+        "image_generate"
       ],
       "toolGroups": [
         "group:fs"
       ],
-      "skills": [],
+      "skills": [
+        "skills/planner-write-spec",
+        "skills/planner-sprint-planning",
+        "skills/planner-roadmap-update",
+        "skills/planner-stakeholder-update"
+      ],
       "siblings": {
         "documents": "Para maquetar mi entregable como documento Office con formato (.docx/.pdf/.xlsx/.pptx): le paso el markdown y él genera el fichero."
       },
@@ -428,51 +563,63 @@
       "hasPortrait": false
     },
     {
-      "id": "software-developer",
-      "version": "0.2.2",
-      "category": "office",
-      "description": "Desarrollador de software del cliente. Convierte un encargo en lenguaje natural en una pequeña especificación y construye scripts y apps pequeñas usando un CLI de codificación (Claude Code por defecto) conducido por el propio modelo del cliente. Trabaja en un workspace aislado y entrega el resultado para revisión; nunca aplica cambios en producción sin aprobación.",
+      "id": "tax",
+      "version": "1.0.0",
+      "category": "asesoria",
+      "description": "Asesoría fiscal y gestoría española: encuadra cada consulta en su ejercicio y normativa antes de calcular, prepara borradores técnicos de IVA, IRPF e Impuesto sobre Sociedades, gestiona censos/altas y vigila el calendario de obligaciones. Nunca presenta ante la AEAT; todo entregable es un borrador técnico que requiere revisión del profesional.",
       "defaults": {
-        "slug": "developer",
-        "displayName": "Desarrollo de Software",
-        "shortName": "Dev",
-        "icon": "💻",
-        "color": "#475569",
+        "slug": "tax",
+        "displayName": "Asesoría Fiscal",
+        "shortName": "Asesoría Fiscal",
+        "icon": "🧾",
+        "color": "#A6752B",
         "voice": {
-          "kind": "neutral",
+          "kind": "female",
           "elevenlabsId": null
         },
-        "workingVerb": "programando"
+        "workingVerb": "encuadrando tu consulta fiscal"
       },
       "tools": [
-        "exec",
         "memory_search",
-        "memory_save"
+        "memory_save",
+        "web_search"
       ],
       "toolGroups": [
-        "group:fs"
+        "group:fs",
+        "group:web"
       ],
-      "skills": [],
+      "skills": [
+        "skills/encuadre-fiscal",
+        "skills/iva-liquidacion",
+        "skills/irpf-retenciones-pagos",
+        "skills/is-liquidacion",
+        "skills/censos-altas",
+        "skills/calendario-fiscal",
+        "../../shared/skills/triaje-notificaciones",
+        "skills/cuadre-previo",
+        "skills/diagnostico-verifactu"
+      ],
       "siblings": {
-        "documents": "Para convertir resultados en un informe, presentación u hoja de cálculo presentables.",
-        "automation": "Para automatizaciones que vivan en n8n (workflows) en vez de un script suelto.",
-        "personal-assistant": "Para research web de apoyo antes de especificar el encargo.",
-        "executive": "Cuando haya que enviar el entregable por correo o agendar algo (la acción externa la aprueba el cliente)."
+        "executive": "Para enviar correo, gestionar agenda o triaje de bandeja con el cliente.",
+        "founder": "Para contexto de empresa (sector, tamaño, jurisdicción) cuando falte.",
+        "legal": "Para contratos, NDAs, RGPD/compliance y despidos — no son mi alcance.",
+        "employment": "Para afiliación, ocupación CNO y trámites de Seguridad Social por el Sistema RED — no son mi alcance.",
+        "documents": "Para maquetar mi borrador como documento Office con formato (.docx/.pdf/.xlsx): le paso el markdown y él genera el fichero."
       },
       "compatibleOverlays": [
         "*"
       ],
-      "hasPortrait": false
+      "hasPortrait": true
     },
     {
       "id": "webops",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "category": "office",
       "description": "Operador web: conduce un navegador real sobre portales y herramientas de terceros sin API (extranets de proveedores, paneles B2B, backoffices). Consulta y descarga directo, y deja cualquier cambio preparado pendiente de aprobación.",
       "defaults": {
         "slug": "webops",
-        "displayName": "WebOps",
-        "shortName": "WebOps",
+        "displayName": "Web y Publicación",
+        "shortName": "Web y Publicación",
         "icon": "🌐",
         "color": "#3A6E8F",
         "voice": {
@@ -489,7 +636,14 @@
       "toolGroups": [
         "group:fs"
       ],
-      "skills": [],
+      "skills": [
+        "skills/webops-incident-response",
+        "skills/webops-deploy-checklist",
+        "skills/webops-change-request",
+        "skills/webops-data-extraction",
+        "skills/webops-portal-login-assist",
+        "skills/webops-form-automation"
+      ],
       "siblings": {},
       "compatibleOverlays": [
         "*"

@@ -172,7 +172,10 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
     label: "Asesoría / Despacho",
     emoji: "📁",
     description: "Asesoría fiscal, laboral, contable o despacho jurídico.",
-    agentIds: ["executive", "copywriter", "legal-suite"],
+    // Los TRES asesores del roster (12-ago-2026): fiscal, jurídica y laboral.
+    // Antes esta plantilla no llevaba ninguno de los dos primeros porque no
+    // existían cuando se escribió — y es justo el sector al que apunta.
+    agentIds: ["executive", "tax", "legal", "employment"],
     suggestedPrefix: "asesoria",
     suggestedOverlayName: "Mi Despacho",
   },
@@ -180,7 +183,7 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
     label: "E-commerce",
     emoji: "🛒",
     description: "Tienda online — atención, contenido y SEO de producto.",
-    agentIds: ["executive", "community", "marketing-strategist", "copywriter"],
+    agentIds: ["executive", "community", "marketing", "copywriter"],
     suggestedPrefix: "shop",
     suggestedOverlayName: "Mi Tienda",
   },
@@ -188,7 +191,7 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
     label: "Agencia",
     emoji: "🏢",
     description: "Agencia digital — operaciones, estrategia y contenido.",
-    agentIds: ["executive", "marketing-strategist", "community", "copywriter"],
+    agentIds: ["executive", "marketing", "community", "copywriter"],
     suggestedPrefix: "agency",
     suggestedOverlayName: "Mi Agencia",
   },
@@ -204,7 +207,7 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
     label: "Inmobiliaria",
     emoji: "🏘️",
     description: "Inmobiliaria — redes, contenido y legal de contratos.",
-    agentIds: ["executive", "community", "legal-suite"],
+    agentIds: ["executive", "community", "legal"],
     suggestedPrefix: "estate",
     suggestedOverlayName: "Mi Inmobiliaria",
   },
@@ -212,7 +215,7 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
     label: "General (PYME)",
     emoji: "🤖",
     description: "Pack genérico — oficina, comunidad y contenido.",
-    agentIds: ["executive", "community", "copywriter", "legal-suite"],
+    agentIds: ["executive", "community", "copywriter", "legal"],
     suggestedPrefix: "office",
     suggestedOverlayName: "Mi Oficina",
   },
@@ -233,11 +236,11 @@ export const SECTOR_TEMPLATES: Record<ClawcrewSector, ClawcrewSectorTemplate> = 
 // contexto del negocio —misión, voz, audiencia— en los docs enterprise/ que el
 // resto del equipo lee al arrancar; sin él los agentes suenan genéricos). Son
 // roles REUTILIZABLES de clawcrew (no hardcodeados): planner → {prefix}-planner-v1,
-// personal-assistant (slug "pa") → {prefix}-pa-v1, founder → {prefix}-founder-v1,
+// assistant → {prefix}-assistant-v1, founder → {prefix}-founder-v1,
 // igual que el overlay real office-*. Los tres son infraestructura: van ocultos
 // del roster visible en la web (isHiddenAgent) pero SIEMPRE presentes.
 // ──────────────────────────────────────────────────────────────────────────────
-export const NUCLEO_ROLE_IDS = ["planner", "personal-assistant", "founder"] as const;
+export const NUCLEO_ROLE_IDS = ["planner", "assistant", "founder"] as const;
 export const isNucleoAgent = (roleId: string) =>
   (NUCLEO_ROLE_IDS as readonly string[]).includes(roleId);
 

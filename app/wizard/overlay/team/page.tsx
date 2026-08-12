@@ -30,21 +30,30 @@ import { useState } from "react";
 // ──────────────────────────────────────────────────────────────────────────────
 
 // Etiquetas de rol en español (algunos defaults del catálogo venían en inglés).
-// Catálogo Lean PyME (11 roles). Los displayName del catálogo ya vienen en
-// español; este mapa solo cubre overrides y los roles cuyo default está en
-// inglés (automation-engineer). Núcleo: founder/planner van ocultos, PA visible.
+// Los displayName del catálogo ya vienen en español; este mapa solo cubre
+// overrides. Núcleo: founder/planner van ocultos, el asistente visible.
+//
+// ⚠️ Sincronizado con la biblioteca el 12-ago-2026 (14 roles). Cinco ids
+// cambiaron de nombre en el renombrado de agosto y aquí seguían los viejos:
+// personal-assistant→assistant, legal-suite→legal, automation-engineer→
+// automation, marketing-strategist→marketing, software-developer→developer.
+// Con los ids retirados, el paquete que genera este wizard pedía instalar
+// carpetas que ya no existen en clawcrew y `agent-cli install` fallaba en seco.
 const ROLE_LABEL_ES: Record<string, string> = {
   planner: "Planificador",
   founder: "Founder",
-  "personal-assistant": "Asistente personal",
+  assistant: "Asistente personal",
   executive: "Agenda y Correo",
   documents: "Gestor documental",
   webops: "WebOps",
-  "legal-suite": "Asesoría jurídica",
-  "automation-engineer": "Automatización",
-  "marketing-strategist": "Estratega de marketing",
+  legal: "Asesoría jurídica",
+  automation: "Automatización",
+  marketing: "Estratega de marketing",
   copywriter: "Redactor",
   community: "Community manager",
+  developer: "Desarrollo de software",
+  tax: "Asesoría fiscal",
+  employment: "Asesoría laboral",
 };
 
 const roleLabel = (roleId: string) =>
@@ -203,7 +212,7 @@ export default function TeamStep() {
                 selected
                 locked
                 onToggle={() => {}}
-                channelsNote={hasChannels && id === "personal-assistant"}
+                channelsNote={hasChannels && id === "assistant"}
               />
             ))}
           </div>
